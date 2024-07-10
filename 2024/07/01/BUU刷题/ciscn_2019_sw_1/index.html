@@ -23,7 +23,7 @@
   <meta name="description" content="ciscn_2019_sw_1学习与收获 对于RELRO保护，有以下3种情况： No RELRO：init.array，fini.array，got.plt均可读可写 PARTIAL RELRO：init.array，fini.array可读不可写，got.plt可读可写 FULL RELRO：init.array，fini.array，got.plt均可读不可写  程序在加载的时候，会依次调用i">
 <meta property="og:type" content="article">
 <meta property="og:title" content="ciscn_2019_sw_1">
-<meta property="og:url" content="http://example.com/2024/07/10/BUU%E5%88%B7%E9%A2%98/ciscn_2019_sw_1/index.html">
+<meta property="og:url" content="http://example.com/2024/07/01/BUU%E5%88%B7%E9%A2%98/ciscn_2019_sw_1/index.html">
 <meta property="og:site_name" content="wen&#39;s blog">
 <meta property="og:description" content="ciscn_2019_sw_1学习与收获 对于RELRO保护，有以下3种情况： No RELRO：init.array，fini.array，got.plt均可读可写 PARTIAL RELRO：init.array，fini.array可读不可写，got.plt可读可写 FULL RELRO：init.array，fini.array，got.plt均可读不可写  程序在加载的时候，会依次调用i">
 <meta property="og:locale" content="en_US">
@@ -32,14 +32,14 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102309060.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102310043.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102310684.png">
-<meta property="article:published_time" content="2024-07-10T15:06:00.000Z">
-<meta property="article:modified_time" content="2024-07-10T15:10:49.113Z">
+<meta property="article:published_time" content="2024-07-01T15:06:00.000Z">
+<meta property="article:modified_time" content="2024-07-10T16:45:07.006Z">
 <meta property="article:author" content="wen">
 <meta property="article:tag" content="pwn">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102308582.png">
 
-<link rel="canonical" href="http://example.com/2024/07/10/BUU%E5%88%B7%E9%A2%98/ciscn_2019_sw_1/">
+<link rel="canonical" href="http://example.com/2024/07/01/BUU%E5%88%B7%E9%A2%98/ciscn_2019_sw_1/">
 
 
 <script id="page-configurations">
@@ -157,7 +157,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/10/BUU%E5%88%B7%E9%A2%98/ciscn_2019_sw_1/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/01/BUU%E5%88%B7%E9%A2%98/ciscn_2019_sw_1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -179,9 +179,24 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2024-07-10 23:06:00 / Modified: 23:10:49" itemprop="dateCreated datePublished" datetime="2024-07-10T23:06:00+08:00">2024-07-10</time>
+              <time title="Created: 2024-07-01 23:06:00" itemprop="dateCreated datePublished" datetime="2024-07-01T23:06:00+08:00">2024-07-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2024-07-11 00:45:07" itemprop="dateModified" datetime="2024-07-11T00:45:07+08:00">2024-07-11</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/BUU%E5%88%B7%E9%A2%98/" itemprop="url" rel="index"><span itemprop="name">BUU刷题</span></a>
+                </span>
             </span>
 
           
@@ -242,12 +257,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2024/07/10/%E8%B5%9B%E9%A2%98wp/NKCTF-Maimai%E6%9F%A5%E5%88%86%E5%99%A8/" rel="prev" title="NKCTF_Maimai查分器">
+    <a href="/2024/05/17/%E8%B5%9B%E9%A2%98wp/NKCTF-Maimai%E6%9F%A5%E5%88%86%E5%99%A8/" rel="prev" title="NKCTF_Maimai查分器">
       <i class="fa fa-chevron-left"></i> NKCTF_Maimai查分器
     </a></div>
       <div class="post-nav-item">
-    <a href="/2024/07/10/BUU%E5%88%B7%E9%A2%98/%5B%E6%9E%81%E5%AE%A2%E5%A4%A7%E6%8C%91%E6%88%98%202019%5DNot%20Bad/" rel="next" title="极客大挑战 2019 Not Bad">
-      极客大挑战 2019 Not Bad <i class="fa fa-chevron-right"></i>
+    <a href="/2024/07/10/%E5%85%B3%E4%BA%8Eret2csu%E7%9A%84%E4%B8%80%E9%81%93%E9%A2%98/" rel="next" title="关于ret2csu的一道题">
+      关于ret2csu的一道题 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -326,7 +341,7 @@
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">categories</span>
       </div>
       <div class="site-state-item site-state-tags">
