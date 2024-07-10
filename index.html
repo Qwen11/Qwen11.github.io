@@ -172,7 +172,7 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2024-07-10 23:22:41 / Modified: 23:34:04" itemprop="dateCreated datePublished" datetime="2024-07-10T23:22:41+08:00">2024-07-10</time>
+              <time title="Created: 2024-07-10 23:22:41 / Modified: 23:44:05" itemprop="dateCreated datePublished" datetime="2024-07-10T23:22:41+08:00">2024-07-10</time>
             </span>
 
           
@@ -187,7 +187,7 @@
 
       
           <h1 id="hitcontraining-heapcreator"><a href="#hitcontraining-heapcreator" class="headerlink" title="hitcontraining_heapcreator"></a><em>hitcontraining_heapcreator</em></h1><h2 id="保护"><a href="#保护" class="headerlink" title="保护"></a>保护</h2><p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102332737.png" alt="image-20240710233212702"></p>
-<h2 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h2><p>​	一共有_create_heap_，_edit_heap_，_show_heap_，_delete_heap_四个函数，_edit_heap_函数中有一个堆溢出漏洞，只可以溢出<code>1</code>个字节。</p>
+<h2 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h2><p>​	一共有<em>create_heap</em>，_edit_heap_，_show_heap_，_delete_heap_四个函数，_edit_heap_函数中有一个堆溢出漏洞，只可以溢出<code>1</code>个字节。</p>
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101814056.png" alt="image-20240710181416024" style="zoom: 80%;" />
 
 <p>​	本题中，每_malloc_一次会创建一个指针_chunk_和一个内容_chunk_（其实就是两个地址空间，分别存储着指向_chunk_中数据的指针，和_chunk_的数据），而_free_一次也就是把这两个地址空间都释放掉了。_show_heap_和_edit_heap_函数中打印和修改的内容都是由指针决定的，指针指向什么就打印和修改什么。</p>
