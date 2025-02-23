@@ -28,7 +28,7 @@
 <meta property="og:description" content="学习与收获 认识了三个汇编指令，dec：将操作数的值减去1。如，edx的值原来为0x30，执行dec edx后，edx的值变为0x2f。inc：将操作数的值加上1。如，eax的值原来为0，执行inc eax后，eax的值变为0x1。xor：将两个操作数的值进行异或。异或，两个二进制数，对应位异或，同为0，不同为1。 对于32位的寄存器edx，dl是其低8位，即最后1个字节；dh是其高8位，即第1个">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-01-20T14:34:43.000Z">
-<meta property="article:modified_time" content="2025-01-21T08:24:15.655Z">
+<meta property="article:modified_time" content="2025-02-23T09:53:40.395Z">
 <meta property="article:author" content="Qwen">
 <meta property="article:tag" content="pwn">
 <meta property="article:tag" content="栈">
@@ -192,7 +192,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-21 16:24:15" itemprop="dateModified" datetime="2025-01-21T16:24:15+08:00">2025-01-21</time>
+                <time title="修改时间：2025-02-23 17:53:40" itemprop="dateModified" datetime="2025-02-23T17:53:40+08:00">2025-02-23</time>
               </span>
 
           
@@ -218,6 +218,8 @@
 <li>对于<code>32</code>位的寄存器<code>edx</code>，<code>dl</code>是其低<code>8</code>位，即最后<code>1</code>个字节；<code>dh</code>是其高<code>8</code>位，即第<code>1</code>个字节。</li>
 <li>对于<code>syscall</code>和<code>int 0x80</code>的不可见字符汇编代码编写，<br><code>syscall</code>的机器码是<code>\x0f\x05</code>，<code>int 0x80</code>的机器码是<code>\xCD\x80</code>。这两个指令都是汇编指令，故其在内存中的存储形式是机器码。也就是说，如果<code>0x08048020</code>这个地址里，存储的数据是<code>0x80cd</code>，便可以理解为地址<code>0x08048020</code>存储着<code>int 0x80</code>这个指令。</li>
 </ol>
+<span id="more"></span>
+
 <h2 id="整体思路"><a href="#整体思路" class="headerlink" title="整体思路"></a>整体思路</h2><p>程序没有开<em>pie</em>保护，可能要用到<em>shellcode</em>。程序主要功能是实现<em>chunk</em>的创建，打印，删除。在创建<em>chunk</em>的时候，有一个索引越界漏洞，我们可以通过输入负数，覆盖<em>note</em>数组前面的内容为<em>chunk_hook</em>。</p>
 <p>通过以上方法，覆盖<code>free@got.plt</code>，为一个<em>chunk_hook</em>，该<em>chunk_hook</em>指向<em>chunk</em>的<em>user_data</em>。如果我们把<em>shellcode</em>布置在<em>chunk</em>中，那么在删除<em>chunk</em>的时候，便会执行<em>shellcode</em>。</p>
 <p>该题考察了关于可见字符<em>shellcode</em>的编写，不能使用<em>mov</em>，<em>syscall</em>，<em>int 0x80</em>等，我便学习用<em>push,pop,dec,inc,xor</em>来编写<code>32</code>位的<em>execve</em>的系统调用。</p>
