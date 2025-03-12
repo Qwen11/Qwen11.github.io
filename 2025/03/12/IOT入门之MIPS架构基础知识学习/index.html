@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="这段时间准备开始学习IOT安全了，在这之前要先学一下MIPS汇编基础。由于是全新的之前未涉及的内容（好吧学完之后发现与之前的汇编语言还是有点相似的），我先从调试一段简单的代码开始，看看MIPS汇编指令是怎么进行一系列操作的，然后去了解各个指令的含义和寄存器的用途，遇到不易理解的就在gdb中调试一下，接着就是其函数调用约定及相关特性（可以找几道题练练），最后是编写MIPS汇编的shellcode。大">
+<meta property="og:type" content="article">
+<meta property="og:title" content="IOT入门之MIPS架构基础知识学习">
+<meta property="og:url" content="http://example.com/2025/03/12/IOT%E5%85%A5%E9%97%A8%E4%B9%8BMIPS%E6%9E%B6%E6%9E%84%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="这段时间准备开始学习IOT安全了，在这之前要先学一下MIPS汇编基础。由于是全新的之前未涉及的内容（好吧学完之后发现与之前的汇编语言还是有点相似的），我先从调试一段简单的代码开始，看看MIPS汇编指令是怎么进行一系列操作的，然后去了解各个指令的含义和寄存器的用途，遇到不易理解的就在gdb中调试一下，接着就是其函数调用约定及相关特性（可以找几道题练练），最后是编写MIPS汇编的shellcode。大">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503121514052.png">
+<meta property="article:published_time" content="2025-03-12T07:13:48.000Z">
+<meta property="article:modified_time" content="2025-03-12T07:15:31.637Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="IOT安全">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503121514052.png">
+
+<link rel="canonical" href="http://example.com/2025/03/12/IOT%E5%85%A5%E9%97%A8%E4%B9%8BMIPS%E6%9E%B6%E6%9E%84%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>IOT入门之MIPS架构基础知识学习 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/03/12/IOT%E5%85%A5%E9%97%A8%E4%B9%8BMIPS%E6%9E%B6%E6%9E%84%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_1.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          IOT入门之MIPS架构基础知识学习
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2025-03-12 15:13:48 / 修改时间：15:15:31" itemprop="dateCreated datePublished" datetime="2025-03-12T15:13:48+08:00">2025-03-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/IOT%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">IOT安全</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>这段时间准备开始学习IOT安全了，在这之前要先学一下MIPS汇编基础。由于是全新的之前未涉及的内容（好吧学完之后发现与之前的汇编语言还是有点相似的），我先从调试一段简单的代码开始，看看MIPS汇编指令是怎么进行一系列操作的，然后去了解各个指令的含义和寄存器的用途，遇到不易理解的就在gdb中调试一下，接着就是其函数调用约定及相关特性（可以找几道题练练），最后是编写MIPS汇编的shellcode。大致的学习路线就是这样，学习过程中也参考了不少师傅写的文章非常感谢，链接放在最后了。</p>
+<span id="more"></span>
+
+<p>本人菜鸟一枚，如有不对请指出，谢谢包容^_^</p>
+<h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p>最开始的开始当然是先搭建好环境，搭建交叉编译环境和qemu，调试还要安装gdb-multiarch，这一部分就不细说了，内容不多就下面几条命令。（其实在这一步我已经踩了无数坑😀👍</p>
+<h3 id="安装qemu、mips依赖库、gdb-multiarch"><a href="#安装qemu、mips依赖库、gdb-multiarch" class="headerlink" title="安装qemu、mips依赖库、gdb-multiarch"></a>安装qemu、mips依赖库、gdb-multiarch</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo apt install qemu</span><br><span class="line">sudo apt install qemu-user-static binfmt-support qemu-user qemu-system</span><br><span class="line">sudo apt-get install gcc-mips-linux-gnu</span><br><span class="line">sudo apt-get install gcc-mipsel-linux-gnu</span><br><span class="line">sudo apt-get install gcc-mips64-linux-gnuabi64</span><br><span class="line">sudo apt-get install gcc-mips64el-linux-gnuabi64</span><br><span class="line">sudo apt install gdb-multiarch</span><br></pre></td></tr></table></figure>
+
+<h3 id="安装buildroot交叉编译环境"><a href="#安装buildroot交叉编译环境" class="headerlink" title="安装buildroot交叉编译环境"></a>安装buildroot交叉编译环境</h3><p>去<a target="_blank" rel="noopener" href="https://buildroot.org/">buildroot.org</a>下载buildroot-2024.02.11.tar.gz</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zxvf buildroot-2019.02.4.tar.gz</span><br><span class="line">make clean</span><br><span class="line">make menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>在<code>target options-&gt;target arch</code>选项里面选择自己要编译的架构，这里选择<code>MIPS(Little endian)</code>，代表MIPS小端序。<code>toolchain</code>中还要选择C语言库，这里选<code>uGlibc</code>。</p>
+<p>设置环境变量：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;export PATH=/home/wen/Desktop/buildroot-2024.02.11/output/host/bin:\$PATH&quot;</span> &gt;&gt; ~/.bashrc</span><br><span class="line"><span class="built_in">source</span> ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<h2 id="程序启动调试"><a href="#程序启动调试" class="headerlink" title="程序启动调试"></a>程序启动调试</h2><p>demo.c：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> age = <span class="number">7</span>;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;My age is %d.\n&quot;</span>,age);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上面demo.c程序为例，执行下面指令来启动程序：<br>注：mips和mipsel的区别是前者为大端序，后者为小端序，<code>readelf -h demo</code>可以查看程序的字节序。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#编译</span></span><br><span class="line">mips-linux-gnu-gcc demo.c -o demo -static -g <span class="comment">#-static是静态链接</span></span><br><span class="line"><span class="comment">#运行</span></span><br><span class="line">qemu-mips ./demo   <span class="comment">#（大端序</span></span><br></pre></td></tr></table></figure>
+
+<p>如果要直接调试程序，先执行<code>qemu-mips -g 6666 ./demo</code>，然后在另一个终端，执行下面这几条命令。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">gdb-multiarch</span><br><span class="line"><span class="built_in">set</span> architecture mips   <span class="comment">#设置架构为mips</span></span><br><span class="line"><span class="built_in">set</span> endian big   <span class="comment">#设置端序为大端序</span></span><br><span class="line">symbol-file ./demo   <span class="comment">#添加符号表</span></span><br><span class="line">target remote localhost:6666</span><br></pre></td></tr></table></figure>
+
+<p>如下：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503121514052.png" alt="image-20250310092641519" style="zoom:67%;" />
+
+<p>上面这种情况是调试静态链接的程序，如果程序是动态链接的，先执行<code>qemu-mips -g 6666 ./demo</code>，然后执行这几条命令即可。</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line">gdb-mutiarch</span><br><span class="line"><span class="keyword">file</span> ./demo</span><br><span class="line"><span class="keyword">target</span> remote localhost:<span class="number">6666</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="寄存器"><a href="#寄存器" class="headerlink" title="寄存器"></a>寄存器</h2><h3 id="通用寄存器"><a href="#通用寄存器" class="headerlink" title="通用寄存器"></a>通用寄存器</h3><p>MIPS架构中有32个通用寄存器，在汇编程序中可以用编号表示，也可以用寄存器的名称来表示，各个通用寄存器的详细信息如下表所示：</p>
+<table>
+<thead>
+<tr>
+<th align="left">编号</th>
+<th>名称</th>
+<th>描述</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">$0</td>
+<td>$zero</td>
+<td>常量寄存器，值为0</td>
+<td></td>
+</tr>
+<tr>
+<td align="left">$1</td>
+<td>$at</td>
+<td>为汇编器保留的寄存器，主要用于处理伪指令和加载大常数。</td>
+<td>Assembler Temporary</td>
+</tr>
+<tr>
+<td align="left">$2 ~ $3</td>
+<td>$v0 ~ $v1</td>
+<td>存储表达式或函数返回值</td>
+<td>Values</td>
+</tr>
+<tr>
+<td align="left">$4 ~ $7</td>
+<td>$a0 ~ $a3</td>
+<td>函数调用时，用来存储前四个参数</td>
+<td>Arguments</td>
+</tr>
+<tr>
+<td align="left">$8 ~ $15</td>
+<td>$t0 ~ $t7</td>
+<td>临时寄存器，存放临时变量</td>
+<td>Temporaries</td>
+</tr>
+<tr>
+<td align="left">$16 ~ $23</td>
+<td>$s0 ~ $s7</td>
+<td>保存寄存器，用于保存函数调用之间的状态（即寄存器的值）（与$t0~$t9相反）</td>
+<td>Saved Values</td>
+</tr>
+<tr>
+<td align="left">$24 ~ $25</td>
+<td>$t8 ~ $t9</td>
+<td>临时寄存器</td>
+<td>Temporaries</td>
+</tr>
+<tr>
+<td align="left">$26 ~ $27</td>
+<td>$k0 ~ $k1</td>
+<td>用于保存异常处理和中断的返回值，为操作系统<code>Keep</code>使用</td>
+<td>Kernel reserved</td>
+</tr>
+<tr>
+<td align="left">$28</td>
+<td>$gp</td>
+<td>全局指针</td>
+<td>Global Pointer</td>
+</tr>
+<tr>
+<td align="left">$29</td>
+<td>$sp</td>
+<td>堆栈指针，会指向栈顶</td>
+<td>Stack Pointer</td>
+</tr>
+<tr>
+<td align="left">$30</td>
+<td>$s8 &#x2F; $fp</td>
+<td>可以作为第九个保存寄存器($s8)，也可以作为栈帧指针($fp)保存栈指针</td>
+<td>Saved value &#x2F; Frame Pointer</td>
+</tr>
+<tr>
+<td align="left">$31</td>
+<td>$ra</td>
+<td>存储函数的返回地址</td>
+<td>Return Address</td>
+</tr>
+</tbody></table>
+<h3 id="特殊寄存器"><a href="#特殊寄存器" class="headerlink" title="特殊寄存器"></a>特殊寄存器</h3><p>除了上面32个通用寄存器，MIPS架构还定义了一些特殊用途的寄存器，下面介绍一些特殊寄存器：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>$pc</td>
+<td>程序计数器，指向当前执行的指令地址</td>
+</tr>
+<tr>
+<td>$hi</td>
+<td>高位寄存器，存储乘除操作的高位结果</td>
+</tr>
+<tr>
+<td>$lo</td>
+<td>低位寄存器，存储乘除操作的低位结果</td>
+</tr>
+<tr>
+<td>$status</td>
+<td>状态寄存器，控制处理器模式和中断状态</td>
+</tr>
+<tr>
+<td>$cause</td>
+<td>原因寄存器，存储异常和中断的原因</td>
+</tr>
+</tbody></table>
+<h2 id="指令"><a href="#指令" class="headerlink" title="指令"></a>指令</h2><p>MIPS架构固定4字节指令长度，其汇编指令与x86还是不太一样的，但区别也不大，下面就只介绍一些常见的汇编指令。</p>
+<h3 id="基础指令"><a href="#基础指令" class="headerlink" title="基础指令"></a>基础指令</h3><table>
+<thead>
+<tr>
+<th align="left">指令</th>
+<th align="left">备注</th>
+<th>描述</th>
+<th align="left">举例分析</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>li</code></td>
+<td align="left">Load Immediate</td>
+<td>将立即数存入寄存器</td>
+<td align="left"><code>li $a2,2</code>，$a2的值为2</td>
+</tr>
+<tr>
+<td align="left"><code>lui</code></td>
+<td align="left"></td>
+<td>将立即数(以二进制形式)左移16位后，存入寄存器</td>
+<td align="left"><code>lui $t0,0xF</code>，$t0的值为0xF0000</td>
+</tr>
+<tr>
+<td align="left"><code>la</code></td>
+<td align="left">Load Address</td>
+<td>将地址存入寄存器</td>
+<td align="left"><code>la $t9,memset</code>，$t9中为memset函数的地址</td>
+</tr>
+<tr>
+<td align="left"><code>lw</code></td>
+<td align="left">Load Word</td>
+<td>从内存中加载一个<code>word</code>类型的值到寄存器中</td>
+<td align="left"><code>lw $gp,0x170+var_158($sp)</code>，从栈指针$sp偏移 0x170+var_158 的位置，加载一个<code>32</code>位的值到$gp中</td>
+</tr>
+<tr>
+<td align="left"><code>sw</code></td>
+<td align="left">Store Word</td>
+<td>将一个 32 位的值从寄存器存储到内存中</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"><code>addi</code></td>
+<td align="left">Add Immediate</td>
+<td>将立即数与寄存器的值相加后，把结果写入另一个寄存器</td>
+<td align="left"><code>addi $t,$s,0xF</code>，$t中为$s的值与0xF的和</td>
+</tr>
+<tr>
+<td align="left"><code>addu</code></td>
+<td align="left">Add Unsigned</td>
+<td>将寄存器的值相加(无符号加法)后，把结果写到寄存器中</td>
+<td align="left"><code>addu $v0,$v1,$v0</code></td>
+</tr>
+<tr>
+<td align="left"><code>add</code></td>
+<td align="left"></td>
+<td>同addu，区别是该指令是有符号加法</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"><code>addiu</code></td>
+<td align="left"></td>
+<td>同addi，区别是该指令加无符号立即数</td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<h3 id="跳转指令"><a href="#跳转指令" class="headerlink" title="跳转指令"></a>跳转指令</h3><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>备注</th>
+<th>描述</th>
+<th>举例分析</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>jr</code></td>
+<td>Jump Register</td>
+<td>无条件跳转到某个寄存器指定的地址</td>
+<td></td>
+</tr>
+<tr>
+<td><code>jal</code></td>
+<td>Jump and Link</td>
+<td>跳转到某个地址，并将返回地址存入<code>$ra</code>寄存器</td>
+<td></td>
+</tr>
+<tr>
+<td><code>jalr</code></td>
+<td>Jump and Link Register</td>
+<td>跳转到某个寄存器指定的地址，并将返回地址存入另一个寄存器</td>
+<td><code>jalr $t9</code>跳转到$t9存储的地址，并将返回地址存入$ra</td>
+</tr>
+<tr>
+<td><code>b</code></td>
+<td>Branch</td>
+<td>无条件跳转指令（标签或地址）</td>
+<td></td>
+</tr>
+<tr>
+<td><code>bnez</code></td>
+<td>Branch if Not Equal to Zero</td>
+<td>指定寄存器的值<strong>不为0</strong>，才跳转</td>
+<td><code>bnez $v0,loc_402B24</code>若$v0的值为零则跳转到loc_402B24标签处</td>
+</tr>
+<tr>
+<td><code>beqz</code></td>
+<td>Branch if Equal to Zero</td>
+<td>指定寄存器的值<strong>为0</strong>，才跳转</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="函数调用"><a href="#函数调用" class="headerlink" title="函数调用"></a>函数调用</h2><h3 id="叶子与非叶子函数"><a href="#叶子与非叶子函数" class="headerlink" title="叶子与非叶子函数"></a>叶子与非叶子函数</h3><p>定义：现有3个函数分别为A、B、C，其中函数A调用函数B，函数B调用函数C，因此A和B为非叶子函数，C为叶子函数。</p>
+<p>调用函数C时会将其返回地址直接存入<code>$ra</code>寄存器，执行完函数C后，程序流会直接执行<code>jr $ra</code>指令跳到返回地址（返回函数B）；而对于函数B，在跳转到B时会将其返回地址先存入<code>$ra</code>寄存器，然后在执行函数B的过程中再将<code>$ra</code>的值存入栈中，执行完后，程序流则会先从堆栈中取出被保存在堆栈上的返回地址，放入<code>$ra</code>寄存器中，然后再执行<code>jr $ra</code>指令。</p>
+<h3 id="函数传参"><a href="#函数传参" class="headerlink" title="函数传参"></a>函数传参</h3><p>当参数小于等于4个时，使用<code>$a0 ~ $a3</code>寄存器存储；超过4个的部分被放到了栈里。且前4个参数在使用前也会被放入之前在栈中预留的空间中。</p>
+<h3 id="栈帧开辟"><a href="#栈帧开辟" class="headerlink" title="栈帧开辟"></a>栈帧开辟</h3><p>调用函数时，MIPS架构下开辟栈帧的方式与x86架构不同，但最后的栈帧结构是相同的。MIPS下的栈帧开辟方式如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">► 0x400614 &lt;main+16&gt;    jal    A &lt;0x4005a4&gt;</span><br><span class="line">   ↓</span><br><span class="line">  0x4005a4 &lt;A&gt;          addiu  $sp, $sp, -0x20   #（1）开辟栈帧空间</span><br><span class="line">  0x4005a8 &lt;A+4&gt;        sw     $ra, 0x1c($sp)    #（2）存储返回地址（调用完函数A后返回到的地址</span><br><span class="line">  0x4005ac &lt;A+8&gt;        sw     $fp, 0x18($sp)    #（3）将$fp放入栈中</span><br><span class="line">  0x4005b0 &lt;A+12&gt;       move   $fp, $sp          #（4）将$sp放入$fp中</span><br></pre></td></tr></table></figure>
+
+<p>等价的x86指令如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">call 	main			#这里的作用同上面的（2）</span><br><span class="line">push    ebp				#（3）</span><br><span class="line">mov     ebp, esp		#（4）</span><br><span class="line">sub     esp, 14h		#（1）</span><br></pre></td></tr></table></figure>
+
+<h2 id="mips架构特性"><a href="#mips架构特性" class="headerlink" title="mips架构特性"></a>mips架构特性</h2><p>MIPS架构存在“流水线效应”和“缓存不一致性”这两个特性。</p>
+<p>“流水线效应”指的是本应该顺序执行的几条指令会同时执行，这样在执行跳转指令的时候，当刚要跳转到指定地址时，跳转指令的下一条指令也已经执行了，这样的现象称为<strong>分支延迟效应</strong>，跳转指令的下一条指令称为<strong>分支延迟槽</strong>。也因此，MIPS架构下的分支延迟槽通常都是<code>nop</code>指令，当然也不全是。</p>
+<p>“缓存不一致性”指的是指令缓存区和数据缓存区两者的同步需要一个时间来同步，比如我们将shellcode写入栈上后，我们需要这块区域已经是指令缓存区，但此时其还属于数据缓存区，若直接跳转过去执行shellcode，就会出现问题，因此，我们<strong>需要调用<code>sleep</code>函数</strong>，先停顿一段时间，给它时间从数据缓存区转成指令缓存区，然后再跳转过去，才能成功执行。</p>
+<h2 id="shellcode编写"><a href="#shellcode编写" class="headerlink" title="shellcode编写"></a>shellcode编写</h2><p><code>$v0</code>寄存器存储<strong>系统调用号</strong>和<strong>系统调用的返回值</strong>，<code>$a0 ~ $a3</code>寄存器用来存储前4个参数，<code>syscall</code>指令触发系统调用。</p>
+<p>execve系统调用</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">.section .text</span><br><span class="line">.globl __start</span><br><span class="line">.set noreorder</span><br><span class="line">__start:</span><br><span class="line">li $a2,0x111</span><br><span class="line">p:bltzal $a2,p</span><br><span class="line">li $a2,0 </span><br><span class="line">addiu $sp,$sp,-32</span><br><span class="line">addiu $a0,$ra,20</span><br><span class="line">li $a1,0</span><br><span class="line">li $v0,4011</span><br><span class="line">syscall</span><br><span class="line">sc:</span><br><span class="line">    .byte 0x2f,0x62,0x69,0x6e,0x2f,0x73,0x68</span><br></pre></td></tr></table></figure>
+
+<p>可以借助这个网站<a target="_blank" rel="noopener" href="https://shell-storm.org/online/Online-Assembler-and-Disassembler/">Online Assembler and Disassembler</a>，查看汇编代码对应的机器码。</p>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://www.yuque.com/cyberangel/rg9gdm/yxb067">《IoT从入门到入土》(1)–MIPS交叉编译环境搭建及其32位指令集</a></p>
+<p><a target="_blank" rel="noopener" href="https://prowes5.github.io/2019/07/21/%E8%B7%AF%E7%94%B1%E5%99%A8%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">路由器漏洞分析环境搭建 | Prowes5’s Blog</a></p>
+<p><a target="_blank" rel="noopener" href="https://zikh26.github.io/posts/919c29c4.html">IOT安全入门学习–MIPS汇编基础 | ZIKH26’s Blog</a></p>
+<p>[<a target="_blank" rel="noopener" href="https://bbs.kanxue.com/thread-273522.htm#msg_header_h1_4">原创]IDA及插件MIPSROP安装——《揭秘家用路由器0day漏洞挖掘技术》学习笔记-安全工具-看雪-安全社区|安全招聘|kanxue.com</a></p>
+<p><a target="_blank" rel="noopener" href="https://gdufs-king.github.io/2021/06/08/ida%E6%8F%92%E4%BB%B6%E5%AE%89%E8%A3%85%E8%B8%A9%E5%9D%91%E7%BB%8F%E5%8E%86/">ida插件安装踩坑经历 - V1ct0r的博客</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/IOT%E5%AE%89%E5%85%A8/" rel="tag"># IOT安全</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/03/03/%E6%97%A0%E5%9B%9E%E6%98%BERCE/" rel="prev" title="无回显RCE">
+      <i class="fa fa-chevron-left"></i> 无回显RCE
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="nav-number">1.</span> <span class="nav-text">环境搭建</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85qemu%E3%80%81mips%E4%BE%9D%E8%B5%96%E5%BA%93%E3%80%81gdb-multiarch"><span class="nav-number">1.1.</span> <span class="nav-text">安装qemu、mips依赖库、gdb-multiarch</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85buildroot%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E7%8E%AF%E5%A2%83"><span class="nav-number">1.2.</span> <span class="nav-text">安装buildroot交叉编译环境</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E5%90%AF%E5%8A%A8%E8%B0%83%E8%AF%95"><span class="nav-number">2.</span> <span class="nav-text">程序启动调试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">3.</span> <span class="nav-text">寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">3.1.</span> <span class="nav-text">通用寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E6%AE%8A%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">3.2.</span> <span class="nav-text">特殊寄存器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8C%87%E4%BB%A4"><span class="nav-number">4.</span> <span class="nav-text">指令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E6%8C%87%E4%BB%A4"><span class="nav-number">4.1.</span> <span class="nav-text">基础指令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%B3%E8%BD%AC%E6%8C%87%E4%BB%A4"><span class="nav-number">4.2.</span> <span class="nav-text">跳转指令</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8"><span class="nav-number">5.</span> <span class="nav-text">函数调用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%B6%E5%AD%90%E4%B8%8E%E9%9D%9E%E5%8F%B6%E5%AD%90%E5%87%BD%E6%95%B0"><span class="nav-number">5.1.</span> <span class="nav-text">叶子与非叶子函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E4%BC%A0%E5%8F%82"><span class="nav-number">5.2.</span> <span class="nav-text">函数传参</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%88%E5%B8%A7%E5%BC%80%E8%BE%9F"><span class="nav-number">5.3.</span> <span class="nav-text">栈帧开辟</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#mips%E6%9E%B6%E6%9E%84%E7%89%B9%E6%80%A7"><span class="nav-number">6.</span> <span class="nav-text">mips架构特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#shellcode%E7%BC%96%E5%86%99"><span class="nav-number">7.</span> <span class="nav-text">shellcode编写</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-number">8.</span> <span class="nav-text">参考文章</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_1.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
