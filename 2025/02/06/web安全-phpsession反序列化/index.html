@@ -20,12 +20,12 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="该篇用于记录自己的有关PHPSession反序列化部分的学习。">
+  <meta name="description" content="有关session的基础知识先来了解一下关于session的一些基础知识 什么是session？">
 <meta property="og:type" content="article">
 <meta property="og:title" content="PHPSession反序列化">
 <meta property="og:url" content="http://example.com/2025/02/06/web%E5%AE%89%E5%85%A8-phpsession%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/index.html">
 <meta property="og:site_name" content="Qwen&#39;s blog">
-<meta property="og:description" content="该篇用于记录自己的有关PHPSession反序列化部分的学习。">
+<meta property="og:description" content="有关session的基础知识先来了解一下关于session的一些基础知识 什么是session？">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202502060151428.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202502060151977.png">
@@ -33,7 +33,7 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202502060151985.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202502060151087.png">
 <meta property="article:published_time" content="2025-02-05T17:50:00.000Z">
-<meta property="article:modified_time" content="2025-02-25T16:32:58.538Z">
+<meta property="article:modified_time" content="2025-03-13T15:43:34.128Z">
 <meta property="article:author" content="Qwen">
 <meta property="article:tag" content="web安全">
 <meta name="twitter:card" content="summary">
@@ -197,7 +197,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-02-26 00:32:58" itemprop="dateModified" datetime="2025-02-26T00:32:58+08:00">2025-02-26</time>
+                <time title="修改时间：2025-03-13 23:43:34" itemprop="dateModified" datetime="2025-03-13T23:43:34+08:00">2025-03-13</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -227,11 +227,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>该篇用于记录自己的有关PHPSession反序列化部分的学习。</p>
+        <h2 id="有关session的基础知识"><a href="#有关session的基础知识" class="headerlink" title="有关session的基础知识"></a>有关session的基础知识</h2><p>先来了解一下关于<code>session</code>的一些基础知识</p>
+<p>什么是session？</p>
 <span id="more"></span>
 
-<h2 id="有关session的基础知识"><a href="#有关session的基础知识" class="headerlink" title="有关session的基础知识"></a>有关session的基础知识</h2><p>先来了解一下关于<code>session</code>的一些基础知识</p>
-<p>什么是session？</p>
 <blockquote>
 <p>在计算机中，尤其是在网络应用中，称为“会话控制”。Session 对象存储特定用户会话所需的属性及配置信息。这样，当用户在应用程序的  Web 页之间跳转时，存储在 Session 对象中的变量将不会丢失，而是在整个用户会话中一直存在下去。当用户请求来自应用程序的 Web  页时，如果该用户还没有会话，则 Web 服务器将自动创建一个 Session 对象。当会话过期或被放弃后，服务器将终止该会话。</p>
 </blockquote>
@@ -340,8 +339,8 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2025/01/18/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" rel="prev" title="格式化字符串漏洞学习总结">
-      <i class="fa fa-chevron-left"></i> 格式化字符串漏洞学习总结
+    <a href="/2024/11/19/%E8%AE%B0%E5%BD%95%E7%AC%AC%E4%B8%80%E6%AC%A1%E6%89%93%E9%9D%B6%E5%9C%BA/" rel="prev" title="渗透测试靶机vulnhub_AI-WEB-1.0通关记录">
+      <i class="fa fa-chevron-left"></i> 渗透测试靶机vulnhub_AI-WEB-1.0通关记录
     </a></div>
       <div class="post-nav-item">
     <a href="/2025/02/06/php%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%97%E7%AC%A6%E9%80%83%E9%80%B8/" rel="next" title="php反序列化字符逃逸">
@@ -429,14 +428,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-count">30</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
