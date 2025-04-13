@@ -29,7 +29,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503121514052.png">
 <meta property="article:published_time" content="2025-03-03T07:13:48.000Z">
-<meta property="article:modified_time" content="2025-03-14T03:50:47.679Z">
+<meta property="article:modified_time" content="2025-04-13T09:53:00.157Z">
 <meta property="article:author" content="Qwen">
 <meta property="article:tag" content="IOT安全">
 <meta name="twitter:card" content="summary">
@@ -221,7 +221,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-03-14 11:50:47" itemprop="dateModified" datetime="2025-03-14T11:50:47+08:00">2025-03-14</time>
+                <time title="修改时间：2025-04-13 17:53:00" itemprop="dateModified" datetime="2025-04-13T17:53:00+08:00">2025-04-13</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -510,7 +510,7 @@
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">► 0x400614 &lt;main+16&gt;    jal    A &lt;0x4005a4&gt;</span><br><span class="line">   ↓</span><br><span class="line">  0x4005a4 &lt;A&gt;          addiu  $sp, $sp, -0x20   #（1）开辟栈帧空间</span><br><span class="line">  0x4005a8 &lt;A+4&gt;        sw     $ra, 0x1c($sp)    #（2）存储返回地址（调用完函数A后返回到的地址</span><br><span class="line">  0x4005ac &lt;A+8&gt;        sw     $fp, 0x18($sp)    #（3）将$fp放入栈中</span><br><span class="line">  0x4005b0 &lt;A+12&gt;       move   $fp, $sp          #（4）将$sp放入$fp中</span><br></pre></td></tr></table></figure>
 
 <p>等价的x86指令如下所示：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">call 	main			#这里的作用同上面的（2）</span><br><span class="line">push    ebp				#（3）</span><br><span class="line">mov     ebp, esp		#（4）</span><br><span class="line">sub     esp, 14h		#（1）</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">call 	main			#这里的作用同上面的（2）：先将返回地址push到栈上，然后跳到目标函数的第一条指令地址</span><br><span class="line">push    ebp				#（3）</span><br><span class="line">mov     ebp, esp		#（4）</span><br><span class="line">sub     esp, 14h		#（1）</span><br></pre></td></tr></table></figure>
 
 <h2 id="mips架构特性"><a href="#mips架构特性" class="headerlink" title="mips架构特性"></a>mips架构特性</h2><p>MIPS架构存在“流水线效应”和“缓存不一致性”这两个特性。</p>
 <p>“流水线效应”指的是本应该顺序执行的几条指令会同时执行，这样在执行跳转指令的时候，当刚要跳转到指定地址时，跳转指令的下一条指令也已经执行了，这样的现象称为<strong>分支延迟效应</strong>，跳转指令的下一条指令称为<strong>分支延迟槽</strong>。也因此，MIPS架构下的分支延迟槽通常都是<code>nop</code>指令，当然也不全是。</p>
