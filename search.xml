@@ -2706,9 +2706,9 @@
     <title>无数字字母RCE</title>
     <url>/2025/02/06/%E6%97%A0%E6%95%B0%E5%AD%97%E5%AD%97%E6%AF%8Drce/</url>
     <content><![CDATA[<p>无数字字母RCE就是不利用数字和字母，构造<code>webshell</code>来执行命令。常见的利用方法有异或、取反这两种，此外还有或、自增和临时文件。</p>
-<h2 id="异或"><a href="#异或" class="headerlink" title="异或"></a>异或</h2><h3 id="法一"><a href="#法一" class="headerlink" title="法一"></a>法一</h3><span id="more"></span>
+<span id="more"></span>
 
-<p>​	在php中，两个字符进行异或时，会先将字符分别转换成ascii码值，再将这个值转换成二进制，然后将两个二进制值进行按位异或。按位异或的规则：<code>1^1=0,0^0=0,1^0=1</code></p>
+<h2 id="异或"><a href="#异或" class="headerlink" title="异或"></a>异或</h2><h3 id="法一"><a href="#法一" class="headerlink" title="法一"></a>法一</h3><p>​	在php中，两个字符进行异或时，会先将字符分别转换成ascii码值，再将这个值转换成二进制，然后将两个二进制值进行按位异或。按位异或的规则：<code>1^1=0,0^0=0,1^0=1</code></p>
 <p>以<code>@</code>和<code>!</code>异或得<code>a</code>为例，下面是三种不同的方法：</p>
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="keyword">echo</span> <span class="string">&#x27;@&#x27;</span>^<span class="string">&#x27;!&#x27;</span>;</span><br><span class="line"><span class="comment">// echo urlencode(&#x27;@!&#x27;);  #%40%21，%后面的是十六进制</span></span><br><span class="line"><span class="comment">// echo hexdec(&quot;40&quot;)^hexdec(&quot;21&quot;);   #得到97，a的ascii码十进制表示</span></span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">chr</span>(<span class="number">97</span>);</span><br><span class="line"><span class="comment">// echo hexdec(&quot;40&quot;).&#x27;,&#x27;.hexdec(&quot;21&quot;);   #64,33是40,21的十进制</span></span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">chr</span>(<span class="number">64</span>^<span class="number">33</span>);</span><br></pre></td></tr></table></figure>
 
