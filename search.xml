@@ -537,6 +537,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -690,7 +691,8 @@
 
 ]]></content>
       <categories>
-        <category>堆学习</category>
+        <category>pwn学习总结</category>
+        <category>堆</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -826,7 +828,8 @@
 
 ]]></content>
       <categories>
-        <category>堆学习</category>
+        <category>pwn学习总结</category>
+        <category>堆</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -888,7 +891,8 @@
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>​	如果想覆盖任意地址的数据，那么可以在任意地址或其前面构造一个<code>fake_chunk</code>，然后使<code>fastbins</code>中的<code>fd</code>指针指向这个<code>fake_chunk</code>的首地址（可以通过堆溢出），我们便能通过从<code>fastbins</code>获取<code>chunk</code>的方式来改写任意地址里的数据。</p>
 ]]></content>
       <categories>
-        <category>堆学习</category>
+        <category>pwn学习总结</category>
+        <category>堆</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -960,7 +964,8 @@
 </ol>
 ]]></content>
       <categories>
-        <category>堆学习</category>
+        <category>pwn学习总结</category>
+        <category>堆</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -1053,7 +1058,8 @@
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102221509.png" alt="image-20240710222113464"></p>
 ]]></content>
       <categories>
-        <category>堆学习</category>
+        <category>pwn学习总结</category>
+        <category>堆</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -1384,6 +1390,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -1465,6 +1472,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -1519,6 +1527,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -1593,6 +1602,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -2065,7 +2075,8 @@
 
 ]]></content>
       <categories>
-        <category>堆学习</category>
+        <category>pwn学习总结</category>
+        <category>堆</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -2272,7 +2283,8 @@
 
 ]]></content>
       <categories>
-        <category>堆学习</category>
+        <category>pwn学习总结</category>
+        <category>堆</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -2584,6 +2596,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -2646,6 +2659,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -2891,6 +2905,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -3007,6 +3022,7 @@
 ]]></content>
       <categories>
         <category>pwn学习总结</category>
+        <category>栈</category>
       </categories>
       <tags>
         <tag>pwn</tag>
@@ -3662,6 +3678,7 @@
 ]]></content>
       <categories>
         <category>IOT安全</category>
+        <category>CVE复现</category>
       </categories>
       <tags>
         <tag>IOT安全</tag>
