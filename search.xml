@@ -4099,6 +4099,9 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
 <p><a href="https://zikh26.github.io/posts/719b289c.html">CVE-2017-17215复现（华为HG532命令执行） | ZIKH26’s Blog</a></p>
 <p><a href="https://blog.csdn.net/The54No1/article/details/129362750">HG532命令执行漏洞复现（CVE-2017-17215）_安装attifyos v3.0虚拟机-CSDN博客</a></p>
 ]]></content>
+      <categories>
+        <category>IOT安全</category>
+      </categories>
       <tags>
         <tag>IOT安全</tag>
       </tags>
