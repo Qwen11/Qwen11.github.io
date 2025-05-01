@@ -208,7 +208,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-05-01 18:06:30 / 修改时间：21:49:01" itemprop="dateCreated datePublished" datetime="2025-05-01T18:06:30+08:00">2025-05-01</time>
+              <time title="创建时间：2025-05-01 18:06:30 / 修改时间：22:05:55" itemprop="dateCreated datePublished" datetime="2025-05-01T18:06:30+08:00">2025-05-01</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -236,6 +236,7 @@
 
       
           <p>前两次的漏洞复现都挺难挺费力的，这次来复现个简单点的：CVE-2017-17215 ，关于华为 HG532 路由器可能存在的远程代码执行。整个的复现过程还是比较顺利的，虽然也踩了不少坑，但解决的还都算快。</p>
+<p>该漏洞的起因是<code>upnp</code>服务中的<code>NewStatsURL</code>和<code>NewDownloadURL</code>标签存在命令注入，故可以在端口<code>37215</code>上，向<code>uri</code>为<code>/ctrlt/DeviceUpgrade_1</code>的路径发送<code>POST</code>报文来触发漏洞进行命令执行。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2025/05/01/CVE-2017-17215%E5%A4%8D%E7%8E%B0/#more" rel="contents">
