@@ -4101,6 +4101,7 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
 ]]></content>
       <categories>
         <category>IOT安全</category>
+        <category>CVE复现</category>
       </categories>
       <tags>
         <tag>IOT安全</tag>
