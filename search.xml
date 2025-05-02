@@ -48,9 +48,9 @@
 <p>为了方便后面的操作，可以执行以下命令，将路由器的文件系统根目录作为一个临时的chroot环境</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd squashfs-root</span><br><span class="line">mount --bind /proc ./proc</span><br><span class="line">mount --bind /dev ./dev</span><br><span class="line">chroot . /bin/sh</span><br></pre></td></tr></table></figure>
 
-<h2 id="漏洞复现"><a href="#漏洞复现" class="headerlink" title="漏洞复现"></a>漏洞复现</h2><p>根据<a href="https://nvd.nist.gov/vuln/detail/CVE-2017-17215">NVD</a>上面对该漏洞的描述可知，<strong>经过身份验证的攻击者可以向端口 37215 发送恶意数据包以发起攻击</strong>，即漏洞的关键点在于开启37215这个端口号。</p>
-<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011449886.png" alt="image-20250501144936857"></p>
-<p>搜索<code>37215</code>，发现其存在于<code>/bin/mic</code>这个文件</p>
+<h2 id="漏洞复现"><a href="#漏洞复现" class="headerlink" title="漏洞复现"></a>漏洞复现</h2><p>根据 <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-17215">CVE-2017-17215</a> 上面对该漏洞的描述可知，<strong>经过身份验证的攻击者可以向端口 37215 发送恶意数据包以发起攻击</strong>，即漏洞的关键点在于开启37215这个端口号。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505021000780.png" alt="image-20250502100001714"></p>
+<p>搜索<code>37215</code>，发现其存在于<code>bin/mic</code>这个文件</p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011633403.png" alt="image-20250501163308229"></p>
 <p>执行<code>/bin/mic</code>后，会占用当前这个终端，且此时网卡<code>eth0</code>的IP没了，网桥<code>br0</code>的IP也变成了192.168.1.1，因此我们也不能ssh连接再开一个终端</p>
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505011806872.png" alt="image-20250501165409513" style="zoom:50%;" />
