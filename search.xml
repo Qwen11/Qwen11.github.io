@@ -7,7 +7,7 @@
 <p>该漏洞的起因是<code>upnp</code>服务中的<code>NewStatsURL</code>和<code>NewDownloadURL</code>标签存在命令注入，故可以在端口<code>37215</code>上，向<code>uri</code>为<code>/ctrlt/DeviceUpgrade_1</code>的路径发送<code>POST</code>报文来触发漏洞进行命令执行。</p>
 <span id="more"></span>
 
-<h2 id="固件解压"><a href="#固件解压" class="headerlink" title="固件解压"></a>固件解压</h2><p>用binwalk直接解压</p>
+<h2 id="固件解压"><a href="#固件解压" class="headerlink" title="固件解压"></a>固件解压</h2><p><a href="https://pan.baidu.com/s/1N-Z8XyMJP97nEfrOBmVrnA">下载固件</a>，接着直接用binwalk对固件进行解压</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">binwalk -Me HG532eV100R001C02B015_upgrade_main.bin</span><br></pre></td></tr></table></figure>
 
 <h2 id="仿真搭建"><a href="#仿真搭建" class="headerlink" title="仿真搭建"></a>仿真搭建</h2><p>环境如下：</p>
@@ -94,6 +94,8 @@
     <content><![CDATA[<p>这是我目前复现的第二个漏洞，也挺难的，我觉得比第一次复现的DIR-815那个更复杂一点，大概花了近一个月的时间,期间很多次因为不同问题或同一个问题停滞。虽然是复现完了，但其实我感觉自己还没有懂透，尤其是逆向分析这部分很少有分析过这么多且复杂的代码，思路也大都是跟着其他师傅文章里的分析往下走的，等多复现几个漏洞后再来看看吧。不过呢，对于这次长达一个月的漏洞复现，还是有不少收获的。</p>
 <span id="more"></span>
 
+<h2 id="固件"><a href="#固件" class="headerlink" title="固件"></a>固件</h2><p>链接: <a href="https://pan.baidu.com/s/1wHkXiHIErOQ9RJUF1gCrlA">https://pan.baidu.com/s/1wHkXiHIErOQ9RJUF1gCrlA</a></p>
+<p>提取码: 7d79</p>
 <p>直接从官网上下载的固件被加密过，需要对其进行解密，而且我也没有在官网上找到对应的固件🤨可能是因为时间有点久了下架了吧。因此呢，本文用的是已经解密过后的固件，直接用binwalk解压即可。</p>
 <h2 id="寻找漏洞文件"><a href="#寻找漏洞文件" class="headerlink" title="寻找漏洞文件"></a>寻找漏洞文件</h2><p>我们要先找到无鉴权的API接口，此类固件的cgi部分通常都是用lua所写的，因此可以直接定位到<code>/usr/lib/lua/luci/controller/eweb/api.lua</code>文件。</p>
 <h3 id="api-lua文件"><a href="#api-lua文件" class="headerlink" title="api.lua文件"></a>api.lua文件</h3><p>api.lua文件在<code>/usr/lib/lua/luci/controller/eweb/</code>目录下，该文件的大致结构如下：</p>
