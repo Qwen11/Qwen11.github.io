@@ -4789,6 +4789,7 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
     <content><![CDATA[<p>该漏洞的起因是攻击者可以通过将<code>AUTHORIZED_GROUP=1</code>作为<code>POST</code>报文数据的一部分来发送，而读取报文的时候只会识别报文中的第一个<code>=</code>继而将后面的<code>AUTHORIZED_GROUP=1</code>一起读入并写入来绕过身份验证，进而造成登录信息的泄露。</p>
 <span id="more"></span>
 
+<p><a href="https://pan.baidu.com/s/1heHs3W04AViqCue4wX61fQ#qpkj">固件链接</a></p>
 <h2 id="漏洞描述"><a href="#漏洞描述" class="headerlink" title="漏洞描述"></a>漏洞描述</h2><p>根据 [CVE-2018-7034](<a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-7034">CVE - CVE-2018-7034漏洞</a>) 上对该漏洞的披露可知，由<code>getcfg.php</code>中的请求所示，攻击者可以通过<code>AUTHORIZED_GROUP=1</code>值来绕过身份验证。</p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505121711977.png" alt="image-20250502101510755"></p>
 <h2 id="漏洞前提分析"><a href="#漏洞前提分析" class="headerlink" title="漏洞前提分析"></a>漏洞前提分析</h2><p>so，我们先来分析一下<code>getcfg.php</code>文件：</p>
