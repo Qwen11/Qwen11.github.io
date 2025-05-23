@@ -206,10 +206,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2025-05-21 23:11:42 / 修改时间：23:23:06" itemprop="dateCreated datePublished" datetime="2025-05-21T23:11:42+08:00">2025-05-21</time>
+              <time title="创建时间：2025-05-21 23:11:42" itemprop="dateCreated datePublished" datetime="2025-05-21T23:11:42+08:00">2025-05-21</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-05-23 10:00:46" itemprop="dateModified" datetime="2025-05-23T10:00:46+08:00">2025-05-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -235,7 +241,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>该漏洞的起因是攻击者可以通过将<code>AUTHORIZED_GROUP=1</code>和原来的<code>POST</code>报文数据一起发送写入来绕过身份验证，进而造成登录信息的泄露。</p>
+          <p>该漏洞的起因是攻击者可以通过将<code>AUTHORIZED_GROUP=1</code>作为<code>POST</code>报文数据的一部分来发送，而读取报文的时候只会识别报文中的第一个<code>=</code>继而将后面的<code>AUTHORIZED_GROUP=1</code>一起读入并写入来绕过身份验证，进而造成登录信息的泄露。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2025/05/21/CVE-2018-7034%E5%A4%8D%E7%8E%B0-D-Link%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2-%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87/#more" rel="contents">
