@@ -4786,7 +4786,7 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
   <entry>
     <title>CVE-2018-7034复现_D-Link信息泄露(权限绕过)</title>
     <url>/2025/05/21/CVE-2018-7034%E5%A4%8D%E7%8E%B0-D-Link%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2-%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87/</url>
-    <content><![CDATA[<p>该漏洞的起因是攻击者可以通过将<code>AUTHORIZED_GROUP=1</code>作为<code>POST</code>报文数据的一部分来发送，而读取报文的时候只会识别报文中的第一个<code>=</code>继而将后面的<code>AUTHORIZED_GROUP=1</code>一起读入并写入来绕过身份验证，进而造成登录信息的泄露。</p>
+    <content><![CDATA[<p>该漏洞的起因是身份验证是否成功的标识（<code>AUTHORIZED_GROUP</code>）会被添加到 <code>POST</code> 报文数据的后面，而攻击者可以通过将<code>AUTHORIZED_GROUP=1</code> 作为 <code>POST</code> 报文数据的一部分来发送，当读取报文的时候只有报文中的第一个 <code>=</code> 被识别到继而将后面的<code>AUTHORIZED_GROUP=1</code> 一起读入并写入来绕过身份验证，造成登录信息的泄露。</p>
 <span id="more"></span>
 
 <p><a href="https://pan.baidu.com/s/1heHs3W04AViqCue4wX61fQ#qpkj">固件链接</a></p>
