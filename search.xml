@@ -4912,7 +4912,7 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
   <entry>
     <title>DVRF题目之MIPS栈溢出中ROP链的构造</title>
     <url>/2025/05/29/DVRF%E9%A2%98%E7%9B%AE%E4%B9%8BMIPS%E6%A0%88%E6%BA%A2%E5%87%BA%E4%B8%ADROP%E9%93%BE%E7%9A%84%E6%9E%84%E9%80%A0/</url>
-    <content><![CDATA[<p>本文对DVRF路由器漏洞靶机中的一道题目(<code>stack_bof_02</code>)进行了复现，详细记录了复现过程中如何利用<code>gadget</code>片段来构造<code>ROP</code>链进行攻击。</p>
+    <content><![CDATA[<p>本文对DVRF路由器漏洞靶机中的一道题目（<code>stack_bof_02</code>）进行了复现，详细记录了复现过程中如何利用<code>gadget</code>片段来构造<code>ROP</code>链进行攻击。</p>
 <span id="more"></span>
 
 <h2 id="逆向分析"><a href="#逆向分析" class="headerlink" title="逆向分析"></a>逆向分析</h2><p>直接看<code>main</code>函数：</p>
