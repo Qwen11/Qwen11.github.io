@@ -4919,7 +4919,7 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505291501125.png" alt="image-20250529133717913" style="zoom:50%;" />
 
 <p>漏洞点在第14行，<code>strcpy</code>函数会把命令行参数<code>argv[1]</code>复制到<code>v4</code>中，造成栈溢出且<code>argv[1]</code>可控。程序中并没有给出后门函数，只能执行<code>shellcode</code>来攻击。</p>
-<h2 id="ROP构造"><a href="#ROP构造" class="headerlink" title="ROP构造"></a>ROP构造</h2><h3 id="调用sleep函数"><a href="#调用sleep函数" class="headerlink" title="调用sleep函数"></a>调用sleep函数</h3><p>通常将<code>shellcode</code>写到某个区域时，这块区域是作为数据缓存区来存放的，在执行<code>shellcode</code>的时候该区域又必须是指令缓存区，但是在<code>MIPS</code>架构中指令缓存区和数据缓存区的同步是需要一个时间，也就是在我们写入<code>shellcode</code>后不能将其立即执行，需要一个<code>sleep</code>来等待缓存区同步。</p>
+<h2 id="ROP构造"><a href="#ROP构造" class="headerlink" title="ROP构造"></a>ROP构造</h2><h3 id="调用sleep函数"><a href="#调用sleep函数" class="headerlink" title="调用sleep函数"></a>调用sleep函数</h3><p>通常将<code>shellcode</code>写到某个区域时，这块区域是作为数据缓存区来存放的，在执行<code>shellcode</code>的时候该区域又必须是指令缓存区，但是在<code>MIPS</code>架构中指令缓存区和数据缓存区的同步是需要一个时间的，也就是说在我们写入<code>shellcode</code>后不能立即将其执行，需要一个<code>sleep</code>来等待缓存区同步。</p>
 <p>因为要先设置<code>$a0</code>为1作为<code>sleep</code>函数的参数，故可以找到如下<code>gadget1</code>：</p>
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202505291502808.png" alt="image-20250528003123823" style="zoom: 67%;" />
 
