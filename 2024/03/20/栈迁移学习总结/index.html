@@ -267,14 +267,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span></span>
+              <span>7.5k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>NaN:aN</span>
+              <span>7 分钟</span>
             </span>
 
         </div>
@@ -323,7 +323,7 @@
 <h2 id="gyctf-2020-borrowstack"><a href="#gyctf-2020-borrowstack" class="headerlink" title="gyctf_2020_borrowstack"></a><code>gyctf_2020_borrowstack</code></h2><h3 id="思路-2"><a href="#思路-2" class="headerlink" title="思路"></a>思路</h3><p>查看保护，只开了<code>NX</code>保护</p>
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503251950796.png" alt="image-20240206202551148"></p>
 <p>​	分析函数，两次<code>read</code>第二次是写到<code>.bss</code>段。第一个<code>read</code>可以读入<code>0x70(112)</code>个字节，只能溢出<code>16</code>个字节，恰好可以覆盖返回地址。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> __cdecl <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> **argv, <span class="type">const</span> <span class="type">char</span> **envp)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> buf[<span class="number">96</span>]; <span class="comment">// [rsp+0h] [rbp-60h] BYREF</span></span><br><span class="line"></span><br><span class="line">  setbuf(<span class="built_in">stdin</span>, <span class="number">0LL</span>);</span><br><span class="line">  setbuf(<span class="built_in">stdout</span>, <span class="number">0LL</span>);</span><br><span class="line">  <span class="built_in">puts</span>(&amp;s);</span><br><span class="line">  read(<span class="number">0</span>, buf, <span class="number">0x70</span>uLL);</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;Done!You can check and use your borrow stack now!&quot;</span>);</span><br><span class="line">  read(<span class="number">0</span>, &amp;bank, <span class="number">0x100</span>uLL);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> __cdecl <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> **argv, <span class="type">const</span> <span class="type">char</span> **envp)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> buf[<span class="number">96</span>]; <span class="comment">// [rsp+0h] [rbp-60h] BYREF</span></span><br><span class="line"></span><br><span class="line">  setbuf(<span class="built_in">stdin</span>, <span class="number">0LL</span>);</span><br><span class="line">  setbuf(<span class="built_in">stdout</span>, <span class="number">0LL</span>);</span><br><span class="line">  <span class="built_in">puts</span>(&amp;s);</span><br><span class="line">  read(<span class="number">0</span>, buf, <span class="number">0x70u</span>LL);</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;Done!You can check and use your borrow stack now!&quot;</span>);</span><br><span class="line">  read(<span class="number">0</span>, &amp;bank, <span class="number">0x100u</span>LL);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>​	先泄漏<code>libc</code>，我们要用到栈迁移。第一次<code>read</code>我们先填充<code>0x60</code>个字节的垃圾数据，然后<code>ebp</code>中写入<code>.bss</code>段的地址（因为我们会把泄漏<code>libc</code>的<code>payload</code>写到<code>.bss</code>段），然后覆盖返回地址为<code>leave ; ret</code>的地址。</p>
 <p>​	这里有一点需要注意的就是，在写入泄漏地址的代码前要先用<code>ret</code>指令抬高栈帧（调用<code>puts</code>函数会开辟新的栈帧，会毁坏<code>.bss</code>段上面（低地址）的<code>got</code>表等数据）。</p>
@@ -515,12 +515,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">NaNm</span>
+    <span title="站点总字数">284k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">NaN:aN</span>
+    <span title="站点阅读时长">4:18</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>

@@ -261,14 +261,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span></span>
+              <span>6.7k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>NaN:aN</span>
+              <span>6 分钟</span>
             </span>
 
         </div>
@@ -336,7 +336,7 @@
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909642.png" alt="image-20240206160012074"></p>
 <h2 id="360chunqiu2017-smallest"><a href="#360chunqiu2017-smallest" class="headerlink" title="360chunqiu2017_smallest"></a><code>360chunqiu2017_smallest</code></h2><h3 id="思路-2"><a href="#思路-2" class="headerlink" title="思路"></a>思路</h3><p>我们每次控制寄存器的时候，都把<code>rsp</code>写成下一个片段的<code>rt_sigreturn</code>的地址，并且<code>rip</code>的地址要指向<code>syscall；ret</code> 一定要后面有<code>ret</code>，不然所有的片段连不起来，到<code>ret</code>的时候，就会去执行<code>rsp</code>执行的地址，因此我们就可以一直劫持程序的控制流。</p>
 <p>​	程序很简单，只有下面一个函数，分析一下代码就是一个<code>read</code>系统调用，可以栈溢出并且能够溢出的字节数很长。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">signed</span> __int64 <span class="title function_">start</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">void</span> *retaddr; <span class="comment">// [rsp+0h] [rbp+0h] BYREF</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> sys_read(<span class="number">0</span>, (<span class="type">char</span> *)&amp;retaddr, <span class="number">0x400</span>uLL);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">signed</span> __int64 <span class="title function_">start</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">void</span> *retaddr; <span class="comment">// [rsp+0h] [rbp+0h] BYREF</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> sys_read(<span class="number">0</span>, (<span class="type">char</span> *)&amp;retaddr, <span class="number">0x400u</span>LL);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909763.png" alt="image-20240207130130852"></p>
 <p>​	这道题既然是用<code>srop</code>，那么必然是需要能够调用<code>sigreturn</code>，也就是需要把<code>rax</code>寄存器的值设置为<code>0xf</code>。我们发现并没有能够实现这个的相关的<code>gadget</code>，但是我们突然想到<code>read</code>返回值就是存储在<code>rax</code>寄存器中的，我们可以利用这个来设置<code>rax</code>寄存器的值。</p>
@@ -504,12 +504,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">NaNm</span>
+    <span title="站点总字数">284k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">NaN:aN</span>
+    <span title="站点阅读时长">4:18</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>

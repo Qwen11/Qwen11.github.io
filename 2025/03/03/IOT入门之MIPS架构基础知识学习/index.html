@@ -247,14 +247,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span></span>
+              <span>5.2k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>NaN:aN</span>
+              <span>5 分钟</span>
             </span>
 
         </div>
@@ -271,7 +271,7 @@
 
 <p>学习过程中参考了不少师傅写的文章，大佬们写的都非常好非常感谢，链接放在最后了。本人菜鸟一枚，如有不对请指出，谢谢包容^_^</p>
 <h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p>最开始的开始当然是先搭建好环境，搭建交叉编译环境和qemu，调试还要安装gdb-multiarch，这一部分就不细说了，内容不多就下面几条命令。（其实在这一步我已经踩了无数坑😀👍</p>
-<h3 id="安装qemu、mips依赖库、gdb-multiarch"><a href="#安装qemu、mips依赖库、gdb-multiarch" class="headerlink" title="安装qemu、mips依赖库、gdb-multiarch"></a>安装qemu、mips依赖库、gdb-multiarch</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo apt install qemu</span><br><span class="line">sudo apt install qemu-user-static binfmt-support qemu-user qemu-system</span><br><span class="line">sudo apt-get install gcc-mips-linux-gnu</span><br><span class="line">sudo apt-get install gcc-mipsel-linux-gnu</span><br><span class="line">sudo apt-get install gcc-mips64-linux-gnuabi64</span><br><span class="line">sudo apt-get install gcc-mips64el-linux-gnuabi64</span><br><span class="line">sudo apt install gdb-multiarch</span><br></pre></td></tr></table></figure>
+<h3 id="安装qemu、mips依赖库、gdb-multiarch"><a href="#安装qemu、mips依赖库、gdb-multiarch" class="headerlink" title="安装qemu、mips依赖库、gdb-multiarch"></a>安装qemu、mips依赖库、gdb-multiarch</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install qemu</span><br><span class="line"><span class="built_in">sudo</span> apt install qemu-user-static binfmt-support qemu-user qemu-system</span><br><span class="line"><span class="built_in">sudo</span> apt-get install gcc-mips-linux-gnu</span><br><span class="line"><span class="built_in">sudo</span> apt-get install gcc-mipsel-linux-gnu</span><br><span class="line"><span class="built_in">sudo</span> apt-get install gcc-mips64-linux-gnuabi64</span><br><span class="line"><span class="built_in">sudo</span> apt-get install gcc-mips64el-linux-gnuabi64</span><br><span class="line"><span class="built_in">sudo</span> apt install gdb-multiarch</span><br></pre></td></tr></table></figure>
 
 <h3 id="安装buildroot交叉编译环境"><a href="#安装buildroot交叉编译环境" class="headerlink" title="安装buildroot交叉编译环境"></a>安装buildroot交叉编译环境</h3><p>去<a target="_blank" rel="noopener" href="https://buildroot.org/">buildroot.org</a>下载buildroot-2024.02.11.tar.gz</p>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zxvf buildroot-2019.02.4.tar.gz</span><br><span class="line">make clean</span><br><span class="line">make menuconfig</span><br></pre></td></tr></table></figure>
@@ -702,12 +702,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">NaNm</span>
+    <span title="站点总字数">284k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">NaN:aN</span>
+    <span title="站点阅读时长">4:18</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>

@@ -275,14 +275,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span></span>
+              <span>9.3k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>NaN:aN</span>
+              <span>8 分钟</span>
             </span>
 
         </div>
@@ -303,7 +303,7 @@
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/iChet/p/16124082.html">文件上传漏洞之upload-labs靶场通关(20关) - iChet - 博客园</a></p>
 <h2 id="对content的过滤"><a href="#对content的过滤" class="headerlink" title="对content的过滤"></a>对content的过滤</h2><p>**&lt;?&#x3D; ?&gt;<strong>与</strong>&lt;?php ?&gt;<strong>与</strong>&lt;script language&#x3D;”php”&gt; &lt;&#x2F;script&gt;**都可以标识php代码。</p>
 <p>当文件内容中不能出现&lt;?，&lt;script language&#x3D;”php”&gt;也不能起作用，那么还可以将content进行base64编码，然后借助.htaccess文件解码并解析content。如下：</p>
-<figure class="highlight 1c"><table><tr><td class="code"><pre><span class="line">AddType application/x-httpd-php .jt</span><br><span class="line">php_value auto_append_file <span class="string">&quot;php://filter/convert.base64-decode/resource=./1.jt</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight 1c"><table><tr><td class="code"><pre><span class="line">AddType application/x<span class="punctuation">-</span>httpd<span class="punctuation">-</span>php .jt</span><br><span class="line">php_value auto_append_file <span class="string">&quot;php://filter/convert.base64-decode/resource=./1.jt</span></span><br></pre></td></tr></table></figure>
 
 <p>PASS-1</p>
 <p><strong>只有前端验证，所以我们先选择<code>.jpg</code>后缀的文件，绕过前端验证，再<code>bp</code>抓包修改后缀便可绕过检查。</strong></p>
@@ -602,12 +602,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">NaNm</span>
+    <span title="站点总字数">284k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">NaN:aN</span>
+    <span title="站点阅读时长">4:18</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>

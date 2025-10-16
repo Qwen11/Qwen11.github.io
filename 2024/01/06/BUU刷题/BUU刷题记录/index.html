@@ -281,14 +281,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span></span>
+              <span>9k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>NaN:aN</span>
+              <span>8 分钟</span>
             </span>
 
         </div>
@@ -351,7 +351,7 @@
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101101413.png" alt="image-20240710110101339" style="zoom:67%;" />
 
 <p>源码：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">__int64 <span class="title function_">sub_960</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  __int64 buf[<span class="number">6</span>]; <span class="comment">// [rsp+0h] [rbp-30h] BYREF</span></span><br><span class="line"></span><br><span class="line">  buf[<span class="number">5</span>] = __readfsqword(<span class="number">0x28</span>u);</span><br><span class="line">  setvbuf(<span class="built_in">stdin</span>, <span class="number">0LL</span>, <span class="number">2</span>, <span class="number">0LL</span>);</span><br><span class="line">  setvbuf(_bss_start, <span class="number">0LL</span>, <span class="number">2</span>, <span class="number">0LL</span>);</span><br><span class="line">  <span class="built_in">memset</span>(buf, <span class="number">0</span>, <span class="number">32</span>);</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;Input your Name:&quot;</span>);</span><br><span class="line">  read(<span class="number">0</span>, buf, <span class="number">0x30</span>uLL);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Hello %s:\n&quot;</span>, (<span class="type">const</span> <span class="type">char</span> *)buf);</span><br><span class="line">  read(<span class="number">0</span>, buf, <span class="number">0x60</span>uLL);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0LL</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">sub_A3E</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">return</span> system(<span class="string">&quot;/bin/sh&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">__int64 <span class="title function_">sub_960</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  __int64 buf[<span class="number">6</span>]; <span class="comment">// [rsp+0h] [rbp-30h] BYREF</span></span><br><span class="line"></span><br><span class="line">  buf[<span class="number">5</span>] = __readfsqword(<span class="number">0x28u</span>);</span><br><span class="line">  setvbuf(<span class="built_in">stdin</span>, <span class="number">0LL</span>, <span class="number">2</span>, <span class="number">0LL</span>);</span><br><span class="line">  setvbuf(_bss_start, <span class="number">0LL</span>, <span class="number">2</span>, <span class="number">0LL</span>);</span><br><span class="line">  <span class="built_in">memset</span>(buf, <span class="number">0</span>, <span class="number">32</span>);</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;Input your Name:&quot;</span>);</span><br><span class="line">  read(<span class="number">0</span>, buf, <span class="number">0x30u</span>LL);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Hello %s:\n&quot;</span>, (<span class="type">const</span> <span class="type">char</span> *)buf);</span><br><span class="line">  read(<span class="number">0</span>, buf, <span class="number">0x60u</span>LL);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0LL</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">sub_A3E</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">return</span> system(<span class="string">&quot;/bin/sh&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <h2 id="思路-1"><a href="#思路-1" class="headerlink" title="思路"></a>思路</h2><p>​	程序中直接给了后门函数，可以栈溢出，首先整体思路就是覆盖<code>main</code>函数返回地址为后门函数地址。但是开了<code>canary</code>和<code>PIE</code>保护，所以我们接下来要看看是否能绕过这两个保护。</p>
 <p>​	首先是<code>PIE</code>保护，我们可以看到后门函数地址与原先地址只有最后<code>1</code>个字节不同，所以我们可以只覆盖返回地址的最后一、<code>1</code>个字节，进而控制执行流执行后门函数。</p>
@@ -593,12 +593,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">NaNm</span>
+    <span title="站点总字数">284k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">NaN:aN</span>
+    <span title="站点阅读时长">4:18</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>
