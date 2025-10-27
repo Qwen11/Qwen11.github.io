@@ -2320,7 +2320,9 @@ gopher:// 分布式文档传递服务，可使用gopherus生成payload
 <img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756722.png" alt="image-20241013161053618" style="zoom:50%;" />
 
 <h2 id="文件下载"><a href="#文件下载" class="headerlink" title="文件下载"></a>文件下载</h2><p><strong>原理：</strong></p>
-<p>​	一般当我们点击下载链接，便会向后台发送一个下载请求，这个请求会包含一个需要下载的文件名称，后<br>台在收到请求后，会开始执行下载代码，将该文件对应的文件**<em>response</em>** 给浏览器，从而完成下载。<br>​	如果后台在收到请求的文件名后，将其直接拼进下载文件的路径中而不对其进行安全判断的话，则可能会引发不安全的文件下载漏洞。<br>此时如果攻击者提交的不是一个程序预期的文件名，而是一个精心构造的路径（如<code>../../../etc/passwd</code>），则可能会直接将该指定文件下载下来。从而导致后台敏感信息（密码文件、源代码等）被下载。</p>
+<p>一般当我们点击下载链接，便会向后台发送一个下载请求，这个请求会包含一个需要下载的文件名称，后台在收到请求后，会开始执行下载代码，将该文件对应的文件<strong>response</strong>给浏览器，从而完成下载。</p>
+<p>如果后台在收到请求的文件名后，将其直接拼进下载文件的路径中而不对其进行安全判断的话，则可能会引发不安全的文件下载漏洞。</p>
+<p>此时如果攻击者提交的不是一个程序预期的文件名，而是一个精心构造的路径（如<code>../../../etc/passwd</code>），则可能会直接将该指定文件下载下来。从而导致后台敏感信息（密码文件、源代码等）被下载。</p>
 <h3 id="防范措施-1"><a href="#防范措施-1" class="headerlink" title="防范措施"></a><strong>防范措施</strong></h3><ul>
 <li>对传入的文件名进行严格的过滤和限定</li>
 <li>对文件下载的目录进行严格的限定</li>
@@ -3417,7 +3419,7 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
 <p><a href="https://www.cnblogs.com/henry666/p/17051491.html">全面了解文件上传漏洞, 通关upload-labs靶场! - 亨利其实很坏 - 博客园</a></p>
 <p><a href="https://www.cnblogs.com/xiaoyus/articles/18250023">upload-labs通关全教程（建议萌新收藏）Web安全-文件上传漏洞超详细解析 - 白小雨 - 博客园</a></p>
 <p><a href="https://www.cnblogs.com/iChet/p/16124082.html">文件上传漏洞之upload-labs靶场通关(20关) - iChet - 博客园</a></p>
-<h2 id="对content的过滤"><a href="#对content的过滤" class="headerlink" title="对content的过滤"></a>对content的过滤</h2><p>**&lt;?&#x3D; ?&gt;<strong>与</strong>&lt;?php ?&gt;<strong>与</strong>&lt;script language&#x3D;”php”&gt; &lt;&#x2F;script&gt;**都可以标识php代码。</p>
+<h2 id="对content的过滤"><a href="#对content的过滤" class="headerlink" title="对content的过滤"></a>对content的过滤</h2><p><code>&lt;?= ?&gt;</code>与<code>&lt;?php ?&gt;</code>与<code>&lt;script language=&quot;php&quot;&gt;</code> <code>&lt;/script&gt;</code>都可以标识php代码。</p>
 <p>当文件内容中不能出现&lt;?，&lt;script language&#x3D;”php”&gt;也不能起作用，那么还可以将content进行base64编码，然后借助.htaccess文件解码并解析content。如下：</p>
 <figure class="highlight 1c"><table><tr><td class="code"><pre><span class="line">AddType application/x<span class="punctuation">-</span>httpd<span class="punctuation">-</span>php .jt</span><br><span class="line">php_value auto_append_file <span class="string">&quot;php://filter/convert.base64-decode/resource=./1.jt</span></span><br></pre></td></tr></table></figure>
 
@@ -3466,7 +3468,7 @@ insert into tables values(&#39;$email&#39;,&#39;$username&#39;,&#39;$password&#3
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line">auto_prepend_file = exp.jpg</span><br></pre></td></tr></table></figure>
 
 <p>上传该<code>.user.ini</code>文件，再上传<code>exp.jpg</code>文件</p>
-<h2 id="大小写绕过"><a href="#大小写绕过" class="headerlink" title="大小写绕过"></a>大小写绕过</h2><p>源码中没有<code>strtolower()</code>可以利用大小写绕过，<code>strtolower()</code>函数将大写字母转为小写字母。</p>
+<h1 id="大小写绕过"><a href="#大小写绕过" class="headerlink" title="大小写绕过"></a>大小写绕过</h1><p>源码中没有<code>strtolower()</code>可以利用大小写绕过，<code>strtolower()</code>函数将大写字母转为小写字母。</p>
 <h2 id="Pass-0708"><a href="#Pass-0708" class="headerlink" title="Pass-0708"></a><code>Pass-0708</code></h2><p>源码中没有<code>trim()</code>可以空格绕过，没有<code>deldot()</code>可以后缀加点绕过。</p>
 <ul>
 <li><code>trim()</code>函数会去除字符串中的空格</li>
