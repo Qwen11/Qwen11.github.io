@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Pikachu靶场是一个用于学习和测试网络安全的练习平台，主要用于Web安全漏洞的实践和研究。它包含了一系列常见的Web安全漏洞。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pikachu靶场通关记录">
+<meta property="og:url" content="http://example.com/post/pikachu%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="Pikachu靶场是一个用于学习和测试网络安全的练习平台，主要用于Web安全漏洞的实践和研究。它包含了一系列常见的Web安全漏洞。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131758776.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131801378.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131758117.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131758854.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757965.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757206.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757337.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757469.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757274.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131802005.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757113.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131802917.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757494.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757771.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757528.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131804716.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131805384.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757491.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757454.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757367.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131805565.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757194.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757581.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131805160.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757943.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757000.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757895.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131806543.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757423.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757399.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757604.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756736.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756730.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131807839.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756346.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756056.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756713.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756722.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756208.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756536.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756584.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131806617.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756191.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756384.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756333.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756794.png">
+<meta property="article:published_time" content="2024-10-17T09:54:15.000Z">
+<meta property="article:modified_time" content="2025-10-23T09:57:25.387Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="web安全">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131758776.png">
+
+<link rel="canonical" href="http://example.com/post/pikachu%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>pikachu靶场通关记录 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/post/pikachu%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          pikachu靶场通关记录
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-10-17 17:54:15" itemprop="dateCreated datePublished" datetime="2024-10-17T17:54:15+08:00">2024-10-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-23 17:57:25" itemprop="dateModified" datetime="2025-10-23T17:57:25+08:00">2025-10-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">web安全</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web%E5%AE%89%E5%85%A8/%E9%9D%B6%E5%9C%BA/" itemprop="url" rel="index"><span itemprop="name">靶场</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Pikachu靶场是一个用于学习和测试网络安全的练习平台，主要用于Web安全漏洞的实践和研究。它包含了一系列常见的Web安全漏洞。</p>
+<span id="more"></span>
+
+<h2 id="Brute-Force暴力破解"><a href="#Brute-Force暴力破解" class="headerlink" title="Brute Force暴力破解"></a><code>Brute Force</code>暴力破解</h2><h3 id="基于表单的暴力破解"><a href="#基于表单的暴力破解" class="headerlink" title="基于表单的暴力破解"></a>基于表单的暴力破解</h3><p>直接爆破</p>
+<h3 id="验证码绕过-on-server"><a href="#验证码绕过-on-server" class="headerlink" title="验证码绕过(on server)"></a>验证码绕过(<code>on server</code>)</h3><p>这种同上面一样，直接爆破</p>
+<h3 id="验证码绕过-on-client"><a href="#验证码绕过-on-client" class="headerlink" title="验证码绕过(on client)"></a>验证码绕过(<code>on client</code>)</h3><p>填写正确的验证码后劫持请求包，在<code>Repeater</code>模块中将验证码参数设置为空后发送，服务器返回正常信息，</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131758776.png" alt="image-20241011155625971" style="zoom:50%;" />
+
+<p>然后将请求包发送到<code>Intruder</code>模块，正常暴力破解即可。</p>
+<h3 id="token防爆破"><a href="#token防爆破" class="headerlink" title="token防爆破"></a><code>token</code>防爆破</h3><p>这种抓包后，可以发现多了一个<code>token</code>参数，需要同时爆破两个参数，可以利用<code>Pitchfork</code>攻击模式。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131801378.png" alt="image-20241011160629228" style="zoom:50%;" />
+
+<p><code>password</code>的<code>payload</code>设置正常加载字典，<code>token</code>的<code>payload</code>设置为<code>Recursive grep</code>（递归搜索）类型</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131758117.png" alt="image-20241011161617335" style="zoom: 67%;" />
+
+<p>在<code>Options</code>模块下：</p>
+<p>在<code>Request Engine</code>中设置线程数为<code>1</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131758854.png" alt="image-20241011161720097" style="zoom:67%;" />
+
+<p>在<code>Grep-Extract</code>中提取响应中的有用信息，到攻击结果表中，这里是<code>token</code>值</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757965.png" alt="image-20241011161903701" style="zoom:50%;" />
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757206.png" alt="image-20241011162304789" style="zoom:50%;" />
+
+<p>在<code>Redirections</code>中设置如何遵循重定向为<code>Always</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757337.png" alt="image-20241011162347048" style="zoom:50%;" />
+
+<p>然后开始爆破</p>
+<h2 id="XSS跨站脚本"><a href="#XSS跨站脚本" class="headerlink" title="XSS跨站脚本"></a><code>XSS</code>跨站脚本</h2><h3 id="漏洞测试流程"><a href="#漏洞测试流程" class="headerlink" title="漏洞测试流程"></a><strong>漏洞测试流程</strong></h3><ol>
+<li>在目标站点找到输入点，比如查询接口，留言板等；</li>
+<li>输入一组“特殊字符+唯一识别字符”，点击提交后，查看返回的源码，是否有做对应的处理。</li>
+<li>通过搜索定位到唯一字符，结合唯一字符前后语法确认是否可以构造执行JS代码的条件（构造闭合），是否在<code>p</code>标签中；</li>
+<li>提交payload，成功执行则存在xss漏洞。</li>
+</ol>
+<h3 id="反射型xss-get"><a href="#反射型xss-get" class="headerlink" title="反射型xss(get)"></a>反射型<code>xss(get)</code></h3><p>​	先输入<code>&lt;script&gt;111</code>提交，然后查看源码，搜索找到输入的<code>&lt;script&gt;111</code>，联系上下文可以确定这是一个<code>xss</code>漏洞。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757469.png" alt="image-20241011191329652" style="zoom: 50%;" />
+
+<p>试着输入<code>&lt;script&gt;alert(1)&lt;/script&gt;</code>，发现输入字节数被限制。<br><code>F12</code>找到设置字数的参数<code>maxlength</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757274.png" alt="image-20241011192735750"></p>
+<p>修改<code>maxlength</code>值</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131802005.png" alt="image-20241011192958868" style="zoom:67%;" />
+
+<p>再次注入代码</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757113.png" alt="image-20241011193044360" style="zoom: 50%;" />
+
+<h5 id="payload："><a href="#payload：" class="headerlink" title="payload："></a><code>payload</code>：</h5><figure class="highlight php"><table><tr><td class="code"><pre><span class="line">&lt;script&gt;<span class="title function_ invoke__">alert</span>(<span class="number">1</span>)&lt;/script&gt;</span><br><span class="line">&lt;svg/onload=<span class="title function_ invoke__">confirm</span>(<span class="number">1</span>)&gt;</span><br><span class="line">&lt;img src=<span class="number">1</span> onerror=<span class="title function_ invoke__">alert</span>(<span class="number">3</span>)&gt;</span><br></pre></td></tr></table></figure>
+
+<p>反射型<code>xss(post)</code>与<code>get</code>型的区别是，<code>get</code>会在<code>url</code>中显示我们注入的代码，该类不会显示。</p>
+<h3 id="存储型xss"><a href="#存储型xss" class="headerlink" title="存储型xss"></a>存储型<code>xss</code></h3><p>​	存储型与反射型的区别在于，存储型会将每次输入的数据都保留在数据库中，后一次输入的数据不会覆盖前一次输入的数据。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131802917.png" alt="image-20241011195802223" style="zoom:67%;" />
+
+<h3 id="DOM型xss"><a href="#DOM型xss" class="headerlink" title="DOM型xss"></a><code>DOM</code>型<code>xss</code></h3><p>​	<code>DOM XSS</code>的<code>XSS</code>代码并不需要服务器解析响应的直接参与，触发<code>XSS</code>靠的就是浏览器端的<code>DOM</code>解析，可以认为完全是客户端的事情，无法通过<code>WAF</code>防护。</p>
+<p>​	分析一下前端网页代码，可以发现输入框里的参数会被传递给<code>a</code>标签中的<code>href</code>属性，所以我们输入<code>payload</code>后点击<code>a</code>标签也就是网页上的<code>what do you see?</code>即可。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757494.png" alt="image-20241011214756139" style="zoom: 67%;" />
+
+<ul>
+<li><p>输入<code>javascript:alert(1)</code>，插入数据后的<code>a</code>标签为：<code>&lt;a href=&#39;javascript:alert(1)&#39;&gt;what do you see?&lt;/a&gt;</code>。</p>
+</li>
+<li><p>输入<code>&#39; onclick=&quot;alert(1)&quot;&gt;</code>，输入的<code>&#39;</code>会把<code>href</code>属性构造成一个闭合，然后再通过<code>onclick</code>也可以实现跟上面一样的功能。</p>
+</li>
+</ul>
+<p>前：<code>&lt;a href=&#39;&#39;&gt;what do you see?&lt;/a&gt;</code><br>后：<code>&lt;a href=&#39;&#39; onclick=&quot;alert(&#39;1&#39;)&quot;&gt;&#39;&gt;what do you see?&lt;/a&gt;</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757771.png" alt="image-20241011220439496" style="zoom:67%;" />
+
+<h4 id="payload：-1"><a href="#payload：-1" class="headerlink" title="payload："></a><code>payload</code>：</h4><figure class="highlight isbl"><table><tr><td class="code"><pre><span class="line"><span class="variable">javascript</span>:<span class="function"><span class="title">alert</span>(<span class="string">&quot;1&quot;</span>)</span></span><br><span class="line"><span class="string">&#x27; onclick=&quot;alert(&#x27;</span><span class="number">1</span><span class="string">&#x27;)&quot;&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="xss之盲打"><a href="#xss之盲打" class="headerlink" title="xss之盲打"></a><code>xss</code>之盲打</h3><blockquote>
+<p>XSS盲打不是一种漏洞类型而是一种xss漏洞的利用方式，攻击者可以在网站留言板、反馈建议等功能点提交恶意的xss payload，如果该网站存在xss漏洞，当管理员在后台查看用户留言页面时就会执行xss payload，xss盲打最主要的目的是通过加载外部的恶意js文件(通过xss盲打平台生成)获取管理员后台的Cookie信息，攻击者就可以使用管理员的身份访问网站后台从而进一步发动攻击</p>
+</blockquote>
+<p>该类攻击的过程是找到<code>xss</code>漏洞的注入点，然后将通过<a target="_blank" rel="noopener" href="https://xssaq.com/dashboard">XSS平台</a>得到的恶意<code>js</code>文件在漏洞点注入，登录管理员后台使恶意代码执行，便能在<code>XSS</code>平台上得到<code>cookie</code>值。</p>
+<p>在<a target="_blank" rel="noopener" href="https://xssaq.com/dashboard">XSS平台</a>上，创建项目，查看配置代码</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757528.png" alt="image-20241012170823583" style="zoom:50%;" />
+
+<p>将第二个代码注入漏洞点，提交</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131804716.png" alt="image-20241012170947388" style="zoom:50%;" />
+
+<p>注入恶意代码后，再次登录后台，代码就会被执行</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131805384.png" alt="image-20241012172214641" style="zoom:50%;" />
+
+<p>然后在<code>XSS</code>平台上查看记录，要等一会儿才能看到</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757491.png" alt="image-20241012172423588" style="zoom:50%;" />
+
+<p>然后就可以利用获得的<code>cookie</code>值登录管理后台了</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757454.png" alt="image-20241012172949880" style="zoom:50%;" />
+
+<h3 id="xss之过滤"><a href="#xss之过滤" class="headerlink" title="xss之过滤"></a><code>xss</code>之过滤</h3><p><code>&lt;&gt;</code>可以正常打印出来</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757367.png" alt="image-20241012175326553"></p>
+<p><code>&lt;script&gt;</code>被过滤</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131805565.png" alt="image-20241012175401883"></p>
+<p>尝试双写<code>&lt;scrscriptipt&gt;</code>同样被过滤</p>
+<p>尝试大小写<code>&lt;ScrIpt&gt;</code>，绕过成功</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757194.png" alt="image-20241012180032520"></p>
+<p>猜测是<code>script</code>关键字被过滤，尝试<code>&lt;svg/onload=confirm(1)&gt;</code>和<code>&lt;img src=1 onerror=alert(3)&gt;</code>都可成功</p>
+<h3 id="xss之htmlspecialchars"><a href="#xss之htmlspecialchars" class="headerlink" title="xss之htmlspecialchars"></a><code>xss</code>之<code>htmlspecialchars</code></h3><h4 id="htmlspecialchars"><a href="#htmlspecialchars" class="headerlink" title="htmlspecialchars"></a><code>htmlspecialchars</code></h4><p><code>htmlspecialchars</code>函数会把<code>&#39; &quot; &amp; &lt; &gt;</code>等字符转换为实体，也就是过滤了。但是该函数默认情况下是不会过滤<code>&#39;</code>的，只有<code>quotestyle</code>选项被设为<code>ENT_QUOTES</code>时才会过滤<code>&#39;</code>。</p>
+<h4 id="标签和href属性"><a href="#标签和href属性" class="headerlink" title="&lt;a&gt;标签和href属性"></a><code>&lt;a&gt;</code>标签和<code>href</code>属性</h4><p> <code>&lt;a&gt;</code>是<code>&quot;anchor&quot;</code>的缩写，用于定义超链接，可以将用户导航到另一个页面、页面上的某个部分，或者任何其他<code>URL</code>。<code>href</code>属性指定了超链接的目标<code>URL</code>。</p>
+<p>随便输入123，发现输入的数据给了<code>href</code>属性</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757581.png" alt="image-20241012184854479" style="zoom: 67%;" />
+
+<p>那就先输入<code>javascript:alert(1)</code>试试，如果没有过滤，即可成功</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131805160.png" alt="image-20241012185644279" style="zoom:50%;" />
+
+<p>成功了，我们还可以用其他<code>payload</code>，只要能绕过过滤即可</p>
+<h4 id="payload"><a href="#payload" class="headerlink" title="payload"></a><code>payload</code></h4><figure class="highlight isbl"><table><tr><td class="code"><pre><span class="line"><span class="variable">javascript</span>:<span class="function"><span class="title">alert</span>(<span class="string">&#x27;1&#x27;</span>)</span></span><br><span class="line"><span class="string">&#x27; onclick=&#x27;</span><span class="function"><span class="title">alert</span>(<span class="number">2</span>)<span class="string">&#x27;</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="xss之href输出"><a href="#xss之href输出" class="headerlink" title="xss之href输出"></a><code>xss</code>之<code>href</code>输出</h3><p>直接用<code>javascript:alert(1)</code>即可。</p>
+<h3 id="xss之js输出"><a href="#xss之js输出" class="headerlink" title="xss之js输出"></a><code>xss</code>之<code>js</code>输出</h3><p>输入123</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757943.png" alt="image-20241012190623893" style="zoom:50%;" />
+
+<p>这里有一个小技巧，我们可以利用<code>&#39;</code>和<code>//</code>构造在<code>$ms=&#39;123&#39;</code>可以执行的语句。</p>
+<p>输入<code>123&#39;;//</code>，拼接后：<code>$ms=&#39;123&#39;;//&#39;;</code></p>
+<p>所以现在我们输入<code>123&#39;;alert(2);//</code>即可</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757000.png" alt="image-20241012191615734"></p>
+<h2 id="CSRF跨站请求伪造"><a href="#CSRF跨站请求伪造" class="headerlink" title="CSRF跨站请求伪造"></a><code>CSRF</code>跨站请求伪造</h2><h3 id="CSRF-get"><a href="#CSRF-get" class="headerlink" title="CSRF(get)"></a><code>CSRF(get)</code></h3><p>攻击方：<code>vince</code><br>被攻击方：<code>allen</code><br>被攻击方原个人信息：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757895.png" alt="image-20241022141942627" style="zoom:50%;" />
+
+<h4 id="攻击方"><a href="#攻击方" class="headerlink" title="攻击方"></a>攻击方</h4><p>攻击方登录自己账号，点击修改个人信息</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131806543.png" alt="image-20241022142028237" style="zoom:50%;" />
+
+<p>填入要修改的内容，点击<code>submit</code>并进行<code>bp</code>抓包</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757423.png" alt="image-20241022142718284" style="zoom:50%;" />
+
+<p>可以发现，该页面是通过<code>GET</code>传参方式对数据进行修改的</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757399.png" alt="image-20241022142845195"></p>
+<p>右键选中<code>Engagement tools-&gt;Generate CSRF PoC</code>，生成<code>CSRF Poc</code>代码</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131757604.png" alt="image-20241022143336617" style="zoom:50%;" />
+
+<p>点击<code>Test in browser</code>，复制<code>URL</code>，在浏览器打开</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756736.png" alt="image-20241022143504559" style="zoom: 67%;" />
+
+<p>将当前请求包<code>Drop</code>掉，关闭<code>bp</code>拦截，直接退出登录，<code>vince</code>信息并未被修改</p>
+<h4 id="被攻击方"><a href="#被攻击方" class="headerlink" title="被攻击方"></a>被攻击方</h4><p>被攻击方<code>allen</code>登录自己账号，然后来到前面<code>burp</code>生成的网站，点击<code>Submit request</code>，此时被攻击方的个人信息已被成功修改</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756730.png" alt="image-20241022144414264" style="zoom:50%;" />
+
+<h3 id="CSRF-post"><a href="#CSRF-post" class="headerlink" title="CSRF(post)"></a><code>CSRF(post)</code></h3><p>该类与前类的区别在于，对于关键数据的传参方式不同，攻击过程同上</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131807839.png" alt="image-20241022144910205" style="zoom:50%;" />
+
+<p>攻击成功，过程不再赘述</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756346.png" alt="image-20241022145016235" style="zoom:50%;" />
+
+<h2 id="RCE"><a href="#RCE" class="headerlink" title="RCE"></a><code>RCE</code></h2><h3 id="exec-ping"><a href="#exec-ping" class="headerlink" title="exec&quot;ping&quot;"></a><code>exec&quot;ping&quot;</code></h3><p>通过一些命令连接符如<code>||,&amp;,&amp;&amp;</code>，来拼接<code>IP</code>地址和命令，执行我们想要执行的命令。</p>
+<h3 id="exec-eval"><a href="#exec-eval" class="headerlink" title="exec&quot;eval&quot;"></a><code>exec&quot;eval&quot;</code></h3><p>这种是直接通过<code>eval()</code>将输入的字符串当作代码来执行。</p>
+<h2 id="文件包含"><a href="#文件包含" class="headerlink" title="文件包含"></a>文件包含</h2><p>文件包含函数：<code>include(),include_once(),require(),require_once()</code></p>
+<h3 id="防范措施"><a href="#防范措施" class="headerlink" title="防范措施"></a><strong>防范措施</strong></h3><ul>
+<li>在功能设计上尽量不要将文件包含函数对应的文件放给前端进行选择和操作。</li>
+<li>过滤各种<code>./.</code>，<code>http://</code>，<code>https://</code></li>
+<li>配置php.ini配置文件：<code>allow_ url_open = off</code>，<code>Allow_ url include= off</code>，<code>magic quotes_ gpc=on</code> <code> //gpc</code>在</li>
+<li>通过白名单策略，仅允许包含运行指定的文件，其他的都禁止。</li>
+</ul>
+<h3 id="本地文件包含"><a href="#本地文件包含" class="headerlink" title="本地文件包含"></a>本地文件包含</h3><p>​	这种是仅对服务器本地的文件进行包含，因为服务器上的文件并不是攻击者可以自己控制的，所以该种攻击通常是包含系统的配置文件（如密钥文件），或是配合文件上传漏洞去利用。</p>
+<p>​	先随便提交一个数据，然后看<code>url</code>可以发现，<code>filename=</code>这个参数存在文件包含漏洞，我们可以通过这个参数访问本地上的其他文件</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756056.png" alt="image-20241013160223589"></p>
+<p>​	在本地查看当前目录，其下有一个<code>file6.php</code>文件，看一下里面的内容，该靶场应该是将该文件作为一个敏感文件</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756713.png" alt="image-20241013160634171" style="zoom:50%;" />
+
+<p>那么接下来我们便可以通过设置<code>url</code>中的<code>filename=file6.php</code>来获取<code>file6.php</code>文件里的敏感数据</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756722.png" alt="image-20241013161053618" style="zoom:50%;" />
+
+<h2 id="文件下载"><a href="#文件下载" class="headerlink" title="文件下载"></a>文件下载</h2><p><strong>原理：</strong></p>
+<p>一般当我们点击下载链接，便会向后台发送一个下载请求，这个请求会包含一个需要下载的文件名称，后台在收到请求后，会开始执行下载代码，将该文件对应的文件<strong>response</strong>给浏览器，从而完成下载。</p>
+<p>如果后台在收到请求的文件名后，将其直接拼进下载文件的路径中而不对其进行安全判断的话，则可能会引发不安全的文件下载漏洞。</p>
+<p>此时如果攻击者提交的不是一个程序预期的文件名，而是一个精心构造的路径（如<code>../../../etc/passwd</code>），则可能会直接将该指定文件下载下来。从而导致后台敏感信息（密码文件、源代码等）被下载。</p>
+<h3 id="防范措施-1"><a href="#防范措施-1" class="headerlink" title="防范措施"></a><strong>防范措施</strong></h3><ul>
+<li>对传入的文件名进行严格的过滤和限定</li>
+<li>对文件下载的目录进行严格的限定</li>
+</ul>
+<p>成功下载了<code>flag.txt</code>文件</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756208.png" alt="image-20241013184458217" style="zoom: 50%;" />
+
+<h2 id="文件上传"><a href="#文件上传" class="headerlink" title="文件上传"></a>文件上传</h2><h3 id="getimagesize"><a href="#getimagesize" class="headerlink" title="getimagesize"></a><code>getimagesize</code></h3><p><code>PHP</code>中的<code>getimagesize()</code>函数是一个内置函数，用于获取图像的大小。<code>getimagesize()</code>返回结果中有文件大小和文件类型，如果用这个函数来获取类型，从而判断是否是图片的话，会存在问题。</p>
+<p>介绍两个绕过方法：</p>
+<ul>
+<li>直接伪造头部<code>GIF89A</code></li>
+<li>用<code>copy 1.php/a+1.jpg/b 2.jpg</code>命令合成，然后上传<code>2.jpg</code>，再配合文件包含漏洞执行<code>2.jpg</code>中的代码</li>
+</ul>
+<h2 id="Over-Permission越权"><a href="#Over-Permission越权" class="headerlink" title="Over Permission越权"></a><code>Over Permission</code>越权</h2><p>​	越权漏洞形成的原因是后台使用了 不合理的权限校验规则导致的。一般越权漏洞容易出现在权限页面（需要登录的页面）增、删、改、查的的地方，当用户对权限页面内的信息进行这些操作时，后台需要对当前用户的权限进行校验，看其是否具备操作的权限，从而给出响应，而如果校验的规则过于简单则容易出现越权漏洞。</p>
+<p>下面来简单认识一下越权操作：</p>
+<h3 id="水平越权"><a href="#水平越权" class="headerlink" title="水平越权"></a>水平越权</h3><p>在登录页面登录用户<code>lili</code>的账号</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756536.png" alt="image-20241015124201596" style="zoom:50%;" />
+
+<p>成功登录后，点击查看个人信息</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756584.png" alt="image-20241015124215044" style="zoom:50%;" />
+
+<p>此时会向后台提交一个<code>GET</code>请求，并提供了当前用户的用户名，后台便会将当前用户的信息返回到页面</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131806617.png" alt="image-20241015124237973" style="zoom:50%;" />
+
+<p>当我们修改<code>URL</code>中的<code>username</code>参数为另一个用户名<code>kobe</code>时，页面便会出现<code>kobe</code>用户的信息，也就是说我们无需密码便得到了<code>kobe</code>的个人信息，实现了水平越权</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756191.png" alt="image-20241015124313480" style="zoom:50%;" />
+
+<h3 id="垂直越权"><a href="#垂直越权" class="headerlink" title="垂直越权"></a>垂直越权</h3><p>先获取超级用户添加用户的<code>URL</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756384.png" alt="image-20241015141619677" style="zoom:50%;" />
+
+<p>登录<code>pikachu</code>用户</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756333.png" alt="image-20241015141746803" style="zoom:50%;" />
+
+<p>直接替换当前页面的<code>URL</code>为前面保存的<code>URL</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131756794.png" alt="image-20241015141905178" style="zoom:50%;" />
+
+<p>现在已经可以通过<code>pikachu</code>用户添加用户          </p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/web%E5%AE%89%E5%85%A8/" rel="tag"># web安全</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/post/unlink%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="prev" title="unlink学习笔记">
+      <i class="fa fa-chevron-left"></i> unlink学习笔记
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/post/upload-labs%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" rel="next" title="upload-labs靶场通关记录">
+      upload-labs靶场通关记录 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Brute-Force%E6%9A%B4%E5%8A%9B%E7%A0%B4%E8%A7%A3"><span class="nav-number">1.</span> <span class="nav-text">Brute Force暴力破解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E8%A1%A8%E5%8D%95%E7%9A%84%E6%9A%B4%E5%8A%9B%E7%A0%B4%E8%A7%A3"><span class="nav-number">1.1.</span> <span class="nav-text">基于表单的暴力破解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E7%A0%81%E7%BB%95%E8%BF%87-on-server"><span class="nav-number">1.2.</span> <span class="nav-text">验证码绕过(on server)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E7%A0%81%E7%BB%95%E8%BF%87-on-client"><span class="nav-number">1.3.</span> <span class="nav-text">验证码绕过(on client)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#token%E9%98%B2%E7%88%86%E7%A0%B4"><span class="nav-number">1.4.</span> <span class="nav-text">token防爆破</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#XSS%E8%B7%A8%E7%AB%99%E8%84%9A%E6%9C%AC"><span class="nav-number">2.</span> <span class="nav-text">XSS跨站脚本</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E6%B5%8B%E8%AF%95%E6%B5%81%E7%A8%8B"><span class="nav-number">2.1.</span> <span class="nav-text">漏洞测试流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8D%E5%B0%84%E5%9E%8Bxss-get"><span class="nav-number">2.2.</span> <span class="nav-text">反射型xss(get)</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#payload%EF%BC%9A"><span class="nav-number">2.2.0.1.</span> <span class="nav-text">payload：</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E5%9E%8Bxss"><span class="nav-number">2.3.</span> <span class="nav-text">存储型xss</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DOM%E5%9E%8Bxss"><span class="nav-number">2.4.</span> <span class="nav-text">DOM型xss</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#payload%EF%BC%9A-1"><span class="nav-number">2.4.1.</span> <span class="nav-text">payload：</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xss%E4%B9%8B%E7%9B%B2%E6%89%93"><span class="nav-number">2.5.</span> <span class="nav-text">xss之盲打</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xss%E4%B9%8B%E8%BF%87%E6%BB%A4"><span class="nav-number">2.6.</span> <span class="nav-text">xss之过滤</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xss%E4%B9%8Bhtmlspecialchars"><span class="nav-number">2.7.</span> <span class="nav-text">xss之htmlspecialchars</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#htmlspecialchars"><span class="nav-number">2.7.1.</span> <span class="nav-text">htmlspecialchars</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%87%E7%AD%BE%E5%92%8Chref%E5%B1%9E%E6%80%A7"><span class="nav-number">2.7.2.</span> <span class="nav-text">&lt;a&gt;标签和href属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#payload"><span class="nav-number">2.7.3.</span> <span class="nav-text">payload</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xss%E4%B9%8Bhref%E8%BE%93%E5%87%BA"><span class="nav-number">2.8.</span> <span class="nav-text">xss之href输出</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xss%E4%B9%8Bjs%E8%BE%93%E5%87%BA"><span class="nav-number">2.9.</span> <span class="nav-text">xss之js输出</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CSRF%E8%B7%A8%E7%AB%99%E8%AF%B7%E6%B1%82%E4%BC%AA%E9%80%A0"><span class="nav-number">3.</span> <span class="nav-text">CSRF跨站请求伪造</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CSRF-get"><span class="nav-number">3.1.</span> <span class="nav-text">CSRF(get)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E6%96%B9"><span class="nav-number">3.1.1.</span> <span class="nav-text">攻击方</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%A2%AB%E6%94%BB%E5%87%BB%E6%96%B9"><span class="nav-number">3.1.2.</span> <span class="nav-text">被攻击方</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CSRF-post"><span class="nav-number">3.2.</span> <span class="nav-text">CSRF(post)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RCE"><span class="nav-number">4.</span> <span class="nav-text">RCE</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#exec-ping"><span class="nav-number">4.1.</span> <span class="nav-text">exec&quot;ping&quot;</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exec-eval"><span class="nav-number">4.2.</span> <span class="nav-text">exec&quot;eval&quot;</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB"><span class="nav-number">5.</span> <span class="nav-text">文件包含</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%B2%E8%8C%83%E6%8E%AA%E6%96%BD"><span class="nav-number">5.1.</span> <span class="nav-text">防范措施</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%AC%E5%9C%B0%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB"><span class="nav-number">5.2.</span> <span class="nav-text">本地文件包含</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD"><span class="nav-number">6.</span> <span class="nav-text">文件下载</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%B2%E8%8C%83%E6%8E%AA%E6%96%BD-1"><span class="nav-number">6.1.</span> <span class="nav-text">防范措施</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0"><span class="nav-number">7.</span> <span class="nav-text">文件上传</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#getimagesize"><span class="nav-number">7.1.</span> <span class="nav-text">getimagesize</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Over-Permission%E8%B6%8A%E6%9D%83"><span class="nav-number">8.</span> <span class="nav-text">Over Permission越权</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B0%B4%E5%B9%B3%E8%B6%8A%E6%9D%83"><span class="nav-number">8.1.</span> <span class="nav-text">水平越权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9E%82%E7%9B%B4%E8%B6%8A%E6%9D%83"><span class="nav-number">8.2.</span> <span class="nav-text">垂直越权</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:wenw8121@gmail.com" title="E-Mail → mailto:wenw8121@gmail.com" rel="noopener" target="_blank"><i class="envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

