@@ -24,7 +24,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="double free学习笔记">
 <meta property="og:url" content="http://example.com/post/double-free%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/index.html">
-<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:site_name" content="Kohairpin&#39;s blog">
 <meta property="og:description" content="“Double free”漏洞是一种内存管理错误，当程序尝试释放已经释放过的内存时发生，这可能导致内存管理器的数据结构损坏，进而可能引发程序崩溃、数据泄露或被攻击者利用来执行任意代码，通常出现在使用C或C++这类需要手动管理内存的编程环境中；防御这种漏洞的策略包括在释放内存后将指针设置为NULL、使用智能指针、进行代码审查和采用自动内存管理的编程语言。">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407142307675.png">
@@ -33,7 +33,7 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202407101800574.png">
 <meta property="article:published_time" content="2024-07-10T12:22:59.000Z">
 <meta property="article:modified_time" content="2025-10-16T13:02:57.211Z">
-<meta property="article:author" content="Qwen">
+<meta property="article:author" content="Kohairpin">
 <meta property="article:tag" content="pwn">
 <meta property="article:tag" content="堆">
 <meta name="twitter:card" content="summary">
@@ -52,7 +52,7 @@
   };
 </script>
 
-  <title>double free学习笔记 | Qwen's blog</title>
+  <title>double free学习笔记 | Kohairpin's blog</title>
   
 
 
@@ -103,7 +103,7 @@
 
     <a href="/" class="brand" rel="start">
       <span class="logo-line-before"><i></i></span>
-      <h1 class="site-title">Qwen's blog</h1>
+      <h1 class="site-title">Kohairpin's blog</h1>
       <span class="logo-line-after"><i></i></span>
     </a>
   </div>
@@ -196,12 +196,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar_2.jpg">
-      <meta itemprop="name" content="Qwen">
+      <meta itemprop="name" content="Kohairpin">
       <meta itemprop="description" content="">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Qwen's blog">
+      <meta itemprop="name" content="Kohairpin's blog">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
@@ -421,9 +421,9 @@
 
       <div class="site-overview-wrap sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Qwen"
+    <img class="site-author-image" itemprop="image" alt="Kohairpin"
       src="/images/avatar_2.jpg">
-  <p class="site-author-name" itemprop="name">Qwen</p>
+  <p class="site-author-name" itemprop="name">Kohairpin</p>
   <div class="site-description" itemprop="description"></div>
 </div>
 <div class="site-state-wrap motion-element">
@@ -487,7 +487,7 @@
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
-  <span class="author" itemprop="copyrightHolder">Qwen</span>
+  <span class="author" itemprop="copyrightHolder">Kohairpin</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>

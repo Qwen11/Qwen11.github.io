@@ -24,13 +24,13 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="IOT入门之MIPS架构基础知识学习">
 <meta property="og:url" content="http://example.com/post/IOT%E5%85%A5%E9%97%A8%E4%B9%8BMIPS%E6%9E%B6%E6%9E%84%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0/index.html">
-<meta property="og:site_name" content="Qwen&#39;s blog">
+<meta property="og:site_name" content="Kohairpin&#39;s blog">
 <meta property="og:description" content="花了几天的时间来学习MIPS，先从调试一段简单的代码开始，看看MIPS汇编指令是怎么进行一系列操作的，然后去了解各个指令的含义和寄存器的用途，遇到不易理解的就在gdb中调试一下，接着就是其函数调用约定及相关特性，最后是编写MIPS汇编的shellcode。学完这些紧接着就去复现漏洞了，也没好好总结一下，复现完漏洞后还是觉得要梳理一下MIPS的相关知识，想了想写篇文章总结是再好不过了，因此又花了不少">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503121514052.png">
 <meta property="article:published_time" content="2025-03-03T07:13:48.000Z">
 <meta property="article:modified_time" content="2025-04-13T09:53:00.157Z">
-<meta property="article:author" content="Qwen">
+<meta property="article:author" content="Kohairpin">
 <meta property="article:tag" content="IOT安全">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/Qwen11/picture/main/202503121514052.png">
@@ -48,7 +48,7 @@
   };
 </script>
 
-  <title>IOT入门之MIPS架构基础知识学习 | Qwen's blog</title>
+  <title>IOT入门之MIPS架构基础知识学习 | Kohairpin's blog</title>
   
 
 
@@ -99,7 +99,7 @@
 
     <a href="/" class="brand" rel="start">
       <span class="logo-line-before"><i></i></span>
-      <h1 class="site-title">Qwen's blog</h1>
+      <h1 class="site-title">Kohairpin's blog</h1>
       <span class="logo-line-after"><i></i></span>
     </a>
   </div>
@@ -192,12 +192,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar_2.jpg">
-      <meta itemprop="name" content="Qwen">
+      <meta itemprop="name" content="Kohairpin">
       <meta itemprop="description" content="">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Qwen's blog">
+      <meta itemprop="name" content="Kohairpin's blog">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
@@ -644,9 +644,9 @@
 
       <div class="site-overview-wrap sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Qwen"
+    <img class="site-author-image" itemprop="image" alt="Kohairpin"
       src="/images/avatar_2.jpg">
-  <p class="site-author-name" itemprop="name">Qwen</p>
+  <p class="site-author-name" itemprop="name">Kohairpin</p>
   <div class="site-description" itemprop="description"></div>
 </div>
 <div class="site-state-wrap motion-element">
@@ -710,7 +710,7 @@
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
-  <span class="author" itemprop="copyrightHolder">Qwen</span>
+  <span class="author" itemprop="copyrightHolder">Kohairpin</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
